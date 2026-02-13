@@ -95,7 +95,15 @@ Doctor checks MUST include:
 
 Doctor MUST report issue code, severity, and remediation hint.
 
-#### 3.3.1 Doctor JSON Schema (`--json`)
+#### 3.3.1 Strict Mode Output Parity
+
+When findings exist, `doctor --strict` MUST emit the same findings payload as non-strict mode for the same input state.
+
+- In text mode, stdout finding lines MUST be equivalent; only process exit behavior differs.
+- In JSON mode, stdout JSON payload MUST be equivalent; only process exit behavior differs.
+- `--strict` changes exit semantics only (conflict exit), not finding content.
+
+#### 3.3.2 Doctor JSON Schema (`--json`)
 
 When `--json` is set, `doctor` MUST emit a single JSON object to stdout with:
 

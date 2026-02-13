@@ -72,3 +72,11 @@ These scenarios are recommended incremental coverage for Safety Gate MVP mechani
 - `apply` with `no_exec_metadata_only=true` syncs source and writes safety metadata, but does not mutate targets.
 - `doctor` emits safety warnings for license unknown/non-permissive and risk-review-required labels.
 - safety metadata file (`.eden-safety.toml`) includes required fields and stable enums.
+
+## 6. Incremental Doctor Contract Scenarios
+
+These scenarios are recommended incremental coverage for doctor contract stability:
+
+- `doctor --strict` and `doctor` emit equivalent findings payloads for identical input state (text mode parity).
+- `doctor --strict --json` and `doctor --json` emit equivalent JSON payloads for identical input state.
+- doctor JSON payload under mixed warning/error findings preserves required fields (`summary.total/error/warning`, finding `code/severity/skill_id/target_path/message/remediation`).

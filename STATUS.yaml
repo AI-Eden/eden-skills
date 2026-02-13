@@ -24,6 +24,9 @@ phase1:
       - safety_metadata_persistence
       - risk_label_detection
       - no_exec_metadata_only_enforcement
+  doctor_contract_hardening:
+    strict_non_strict_payload_parity: implemented
+    json_required_fields_mixed_findings: implemented
   test_matrix:
     covered: 7
     total: 7
@@ -48,7 +51,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-018
+  - id: B-019
     owner: builder
-    task: expand_doctor_strict_non_strict_parity_assertions_and_json_stability
-    source_spec: spec/SPEC_TEST_MATRIX.md
+    task: verify_hosted_ci_run_and_sync_phase1_status
+    source_spec: ROADMAP.md

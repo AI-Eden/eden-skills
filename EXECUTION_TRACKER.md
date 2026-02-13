@@ -58,7 +58,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
 - [~] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), first hosted run pending
 
-Current automated tests: `53` (workspace unit/integration-style tests).
+Current automated tests: `55` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -90,6 +90,7 @@ Current automated tests: `53` (workspace unit/integration-style tests).
 - [x] Implemented `add/remove/set` lifecycle commands (deterministic TOML writes + validation + tests).
 - [x] Implemented Safety Gate MVP mechanics (`.eden-safety.toml`, license/risk detection, no-exec metadata-only execution path).
 - [x] Hardened copy-mode delta detection for edge cases (streaming compare + symlink/IO conflict reasons).
+- [x] Added doctor strict/non-strict payload parity and JSON required-field stability tests.
 - [x] Declared stable `list --json` output schema in spec and added a contract test.
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
@@ -100,7 +101,7 @@ Current automated tests: `53` (workspace unit/integration-style tests).
 ### 5.1 Builder-Owned (GPT-5 Codex)
 
 - [x] Harden copy-mode delta detection for edge cases (symlink-in-tree, large-file strategy, permission anomalies).
-- [~] Expand integration assertions depth (doctor strict/non-strict parity and stable JSON contract fields).
+- [x] Expand integration assertions depth (doctor strict/non-strict parity and stable JSON contract fields).
 - [x] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).
 - [x] Migrate CLI argument parsing to `clap` subcommands/flags.
 - [x] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `config import` -> `add/remove/set`.
@@ -118,11 +119,10 @@ Current automated tests: `53` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Expand integration assertions depth (doctor strict/non-strict parity and JSON stability checks).
+1. Verify one hosted CI run and sync phase-1 status/doc metrics.
 
-### 6.1 Builder Checklist (B-018)
+### 6.1 Builder Checklist (B-019)
 
-- Expand tests for doctor strict/non-strict parity to ensure identical finding payloads with only exit behavior differing.
-- Add assertions for stable `code` values and mandatory fields in doctor JSON outputs under mixed warning/error findings.
-- Verify no-regression behavior for apply/repair and lifecycle commands after safety mechanics integration.
-- Keep command behavior spec-first and update `spec/SPEC_TRACEABILITY.md` with any new requirement links.
+- Trigger one hosted workflow run (`fmt + clippy + test`) on default branch.
+- Record hosted run status and run URL/reference.
+- Update `STATUS.yaml` (`hosted_run_verified`) and tracker notes accordingly.
