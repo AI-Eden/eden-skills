@@ -33,11 +33,11 @@ Legend:
 - [~] Test Matrix completion (all 7 scenarios automated; CI hosted pass pending)
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
-- [ ] Safety Gate MVP (license gate, risk labels, no-exec mode)
+- [x] Safety Gate MVP mechanics (safety metadata persistence, risk labels, no-exec metadata-only enforcement)
 - [x] CLI UX RFC (`init/list/config export/config import/add/remove/set` implemented)
 - [x] CLI framework refactor to `clap` (subcommands + flags)
 
-Progress score (roadmap action items): `7.5 / 10 = 75%`
+Progress score (roadmap action items): `8 / 10 = 80%`
 
 ### 3.2 Phase 1 Mandatory Command Status (Spec)
 
@@ -58,7 +58,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
 - [~] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), first hosted run pending
 
-Current automated tests: `39` (workspace unit/integration-style tests).
+Current automated tests: `53` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -88,6 +88,8 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 - [x] Implemented `config export` command (normalized TOML output + JSON wrapper).
 - [x] Implemented `config import` command (validated import + `--dry-run` preview).
 - [x] Implemented `add/remove/set` lifecycle commands (deterministic TOML writes + validation + tests).
+- [x] Implemented Safety Gate MVP mechanics (`.eden-safety.toml`, license/risk detection, no-exec metadata-only execution path).
+- [x] Hardened copy-mode delta detection for edge cases (streaming compare + symlink/IO conflict reasons).
 - [x] Declared stable `list --json` output schema in spec and added a contract test.
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
@@ -97,9 +99,9 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 
 ### 5.1 Builder-Owned (GPT-5 Codex)
 
-- [~] Harden copy-mode delta detection for edge cases (symlink-in-tree, large-file strategy, permission anomalies).
+- [x] Harden copy-mode delta detection for edge cases (symlink-in-tree, large-file strategy, permission anomalies).
 - [~] Expand integration assertions depth (doctor strict/non-strict parity and stable JSON contract fields).
-- [ ] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).
+- [x] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).
 - [x] Migrate CLI argument parsing to `clap` subcommands/flags.
 - [x] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `config import` -> `add/remove/set`.
 
@@ -116,13 +118,11 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Harden copy-mode delta detection edge cases (symlink-in-tree, large-file strategy, permission anomalies).
+1. Expand integration assertions depth (doctor strict/non-strict parity and JSON stability checks).
 
-### 6.1 Builder Checklist (B-016)
+### 6.1 Builder Checklist (B-018)
 
-- Update `spec/SPEC_COMMANDS.md` to define deterministic copy-mode comparison failure behavior for `plan`.
-- Implement streaming file comparisons for copy-mode planning (no full-file reads).
-- Treat copy-mode comparison IO failures as `conflict` with stable reason strings.
-- Treat symlink-in-tree in copy mode as `conflict` (do not follow symlinks).
-- Add tests covering large files, permission-denied paths, and symlink-in-tree behavior.
-- Update `spec/SPEC_TRACEABILITY.md`, `STATUS.yaml`, and `EXECUTION_TRACKER.md` after completion.
+- Expand tests for doctor strict/non-strict parity to ensure identical finding payloads with only exit behavior differing.
+- Add assertions for stable `code` values and mandatory fields in doctor JSON outputs under mixed warning/error findings.
+- Verify no-regression behavior for apply/repair and lifecycle commands after safety mechanics integration.
+- Keep command behavior spec-first and update `spec/SPEC_TRACEABILITY.md` with any new requirement links.

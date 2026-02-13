@@ -21,7 +21,7 @@ pub fn verify_config_state(
     let mut issues = Vec::new();
 
     for skill in &config.skills {
-        if !skill.verify.enabled {
+        if !skill.verify.enabled || skill.safety.no_exec_metadata_only {
             continue;
         }
 

@@ -68,6 +68,7 @@ no_exec_metadata_only = false
 - Relative paths in config MUST resolve relative to config file directory.
 - Duplicate skill `id` MUST fail validation.
 - Empty `verify.checks` with `verify.enabled=true` MUST fail validation.
+- `safety.no_exec_metadata_only=true` MUST be honored by command execution semantics (`apply`/`repair` skip target mutation and verification for that skill while keeping metadata workflows enabled).
 
 ## 5. Error Contract
 

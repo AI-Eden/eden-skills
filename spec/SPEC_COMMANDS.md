@@ -128,6 +128,54 @@ Repair MUST attempt:
 
 Repair MUST NOT delete unknown user files unless `--force`.
 
+### 3.5 Safety Gate MVP (Mechanics)
+
+Phase 1 safety mechanics MUST cover license/status metadata, risk labeling, and no-exec behavior.
+
+#### 3.5.1 Safety Metadata Persistence (`apply` and `repair`)
+
+For every skill, after source sync, implementations MUST persist a deterministic metadata file under the synced repo root:
+
+- path: `<storage_root>/<skill_id>/.eden-safety.toml`
+- required fields:
+  - `version` (`1`)
+  - `skill_id`
+  - `repo_path`
+  - `source_path`
+  - `retrieved_at_unix` (unix seconds)
+  - `license_status` in `{permissive, non-permissive, unknown}`
+  - `risk_labels` (array of strings)
+  - `no_exec_metadata_only` (boolean)
+- optional fields:
+  - `license_hint`
+  - `commit_sha`
+
+#### 3.5.2 License and Risk Detection (Mechanics)
+
+Safety detection MUST be deterministic for a given filesystem state.
+
+- License detection MUST inspect repository license files and classify status to `{permissive, non-permissive, unknown}`.
+- Risk labeling MUST scan source content and include stable labels for detected executable/script risk indicators.
+- Detection failures MUST degrade to `unknown`/empty labels where possible instead of failing the command.
+
+#### 3.5.3 No-Exec Metadata-Only Behavior
+
+When `skills.safety.no_exec_metadata_only=true`:
+
+- `apply` and `repair` MUST still sync source repositories.
+- `apply` and `repair` MUST persist safety metadata.
+- `apply` and `repair` MUST NOT mutate install targets for that skill (create/update operations are skipped).
+- Verification checks for that skill MUST be skipped.
+
+#### 3.5.4 Doctor Safety Findings
+
+`doctor` MUST emit safety findings in the same finding contract (`code/severity/message/remediation`):
+
+- `LICENSE_NON_PERMISSIVE` warning
+- `LICENSE_UNKNOWN` warning
+- `RISK_REVIEW_REQUIRED` warning
+- `NO_EXEC_METADATA_ONLY` warning (when enabled)
+
 ## 4. Planned Config Lifecycle Commands
 
 These commands are RECOMMENDED for post-Phase-1 CLI UX and may be implemented incrementally.

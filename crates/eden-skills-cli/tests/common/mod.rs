@@ -43,19 +43,40 @@ pub fn write_config(
     storage_root: &Path,
     target_root: &Path,
 ) -> PathBuf {
+    write_config_with_safety(
+        base,
+        repo_url,
+        install_mode,
+        verify_checks,
+        storage_root,
+        target_root,
+        false,
+    )
+}
+
+pub fn write_config_with_safety(
+    base: &Path,
+    repo_url: &str,
+    install_mode: &str,
+    verify_checks: &[&str],
+    storage_root: &Path,
+    target_root: &Path,
+    no_exec_metadata_only: bool,
+) -> PathBuf {
     let checks = verify_checks
         .iter()
         .map(|check| format!("\"{check}\""))
         .collect::<Vec<_>>()
         .join(", ");
     let config = format!(
-        "version = 1\n\n[storage]\nroot = \"{}\"\n\n[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"{}\"\nsubpath = \"packages/browser\"\nref = \"main\"\n\n[skills.install]\nmode = \"{}\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n\n[skills.verify]\nenabled = true\nchecks = [{}]\n\n[skills.safety]\nno_exec_metadata_only = false\n",
+        "version = 1\n\n[storage]\nroot = \"{}\"\n\n[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"{}\"\nsubpath = \"packages/browser\"\nref = \"main\"\n\n[skills.install]\nmode = \"{}\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n\n[skills.verify]\nenabled = true\nchecks = [{}]\n\n[skills.safety]\nno_exec_metadata_only = {}\n",
         toml_escape(storage_root),
         SKILL_ID,
         toml_escape_str(repo_url),
         install_mode,
         toml_escape(target_root),
-        checks
+        checks,
+        no_exec_metadata_only
     );
     let config_path = base.join("skills.toml");
     fs::write(&config_path, config).expect("write config");
@@ -132,6 +153,10 @@ fn run_git(cwd: &Path, args: &[&str]) {
         String::from_utf8_lossy(&output.stderr).trim(),
         String::from_utf8_lossy(&output.stdout).trim()
     );
+}
+
+pub fn run_git_cmd(cwd: &Path, args: &[&str]) {
+    run_git(cwd, args);
 }
 
 fn toml_escape(path: &Path) -> String {

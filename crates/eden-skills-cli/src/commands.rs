@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -10,6 +11,7 @@ use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
+use eden_skills_core::safety::{analyze_skills, persist_reports, LicenseStatus, SkillSafetyReport};
 use eden_skills_core::source::sync_sources;
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
 
@@ -72,20 +74,34 @@ pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError
         "source sync: cloned={} updated={} skipped={}",
         sync_summary.cloned, sync_summary.updated, sync_summary.skipped
     );
+    let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
+    persist_reports(&safety_reports)?;
+    print_safety_summary(&safety_reports);
+
+    let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
     let plan = build_plan(&loaded.config, &config_dir)?;
 
     let mut created = 0usize;
     let mut updated = 0usize;
     let mut noops = 0usize;
     let mut conflicts = 0usize;
+    let mut skipped_no_exec = 0usize;
 
     for item in &plan {
         match item.action {
             Action::Create => {
+                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                    skipped_no_exec += 1;
+                    continue;
+                }
                 apply_plan_item(item)?;
                 created += 1;
             }
             Action::Update => {
+                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                    skipped_no_exec += 1;
+                    continue;
+                }
                 apply_plan_item(item)?;
                 updated += 1;
             }
@@ -98,7 +114,9 @@ pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError
         }
     }
 
-    println!("apply summary: create={created} update={updated} noop={noops} conflict={conflicts}");
+    println!(
+        "apply summary: create={created} update={updated} noop={noops} conflict={conflicts} skipped_no_exec={skipped_no_exec}"
+    );
 
     if options.strict && conflicts > 0 {
         return Err(EdenError::Conflict(format!(
@@ -133,7 +151,8 @@ pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
     let config_dir = config_dir_from_path(config_path);
     let plan = build_plan(&loaded.config, &config_dir)?;
     let verify_issues = verify_config_state(&loaded.config, &config_dir)?;
-    let findings = collect_doctor_findings(&plan, &verify_issues);
+    let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
+    let findings = collect_doctor_findings(&plan, &verify_issues, &safety_reports);
 
     if findings.is_empty() {
         println!("doctor: no issues detected");
@@ -155,7 +174,11 @@ pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
     Ok(())
 }
 
-fn collect_doctor_findings(plan: &[PlanItem], verify_issues: &[VerifyIssue]) -> Vec<DoctorFinding> {
+fn collect_doctor_findings(
+    plan: &[PlanItem],
+    verify_issues: &[VerifyIssue],
+    safety_reports: &[SkillSafetyReport],
+) -> Vec<DoctorFinding> {
     let mut findings = Vec::new();
 
     for item in plan {
@@ -168,6 +191,8 @@ fn collect_doctor_findings(plan: &[PlanItem], verify_issues: &[VerifyIssue]) -> 
     for issue in verify_issues {
         findings.push(verify_issue_to_finding(issue));
     }
+
+    findings.extend(safety_reports.iter().flat_map(safety_report_to_findings));
 
     findings
 }
@@ -199,6 +224,58 @@ fn verify_issue_to_finding(issue: &VerifyIssue) -> DoctorFinding {
         message: issue.message.clone(),
         remediation: remediation.to_string(),
     }
+}
+
+fn safety_report_to_findings(report: &SkillSafetyReport) -> Vec<DoctorFinding> {
+    let mut findings = Vec::new();
+
+    if report.no_exec_metadata_only {
+        findings.push(DoctorFinding {
+            code: "NO_EXEC_METADATA_ONLY".to_string(),
+            severity: "warning".to_string(),
+            skill_id: report.skill_id.clone(),
+            target_path: report.source_path.display().to_string(),
+            message: "install mutations are disabled by no_exec_metadata_only".to_string(),
+            remediation: "Set `safety.no_exec_metadata_only = false` to re-enable apply/repair target mutations."
+                .to_string(),
+        });
+    }
+
+    match report.license_status {
+        LicenseStatus::Permissive => {}
+        LicenseStatus::NonPermissive => findings.push(DoctorFinding {
+            code: "LICENSE_NON_PERMISSIVE".to_string(),
+            severity: "warning".to_string(),
+            skill_id: report.skill_id.clone(),
+            target_path: report.source_path.display().to_string(),
+            message: "repository license is not detected as permissive".to_string(),
+            remediation: "Review license terms or switch this skill to metadata-only mode."
+                .to_string(),
+        }),
+        LicenseStatus::Unknown => findings.push(DoctorFinding {
+            code: "LICENSE_UNKNOWN".to_string(),
+            severity: "warning".to_string(),
+            skill_id: report.skill_id.clone(),
+            target_path: report.source_path.display().to_string(),
+            message: "repository license could not be determined".to_string(),
+            remediation: "Add an explicit license file upstream, or use metadata-only mode."
+                .to_string(),
+        }),
+    }
+
+    if !report.risk_labels.is_empty() {
+        findings.push(DoctorFinding {
+            code: "RISK_REVIEW_REQUIRED".to_string(),
+            severity: "warning".to_string(),
+            skill_id: report.skill_id.clone(),
+            target_path: report.source_path.display().to_string(),
+            message: format!("risk labels detected: {}", report.risk_labels.join(",")),
+            remediation: "Review flagged files before enabling execution in agent workflows."
+                .to_string(),
+        });
+    }
+
+    findings
 }
 
 fn map_plan_reason(reason: &str) -> (&'static str, &'static str, &'static str) {
@@ -347,14 +424,24 @@ pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
         "source sync: cloned={} updated={} skipped={}",
         sync_summary.cloned, sync_summary.updated, sync_summary.skipped
     );
+    let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
+    persist_reports(&safety_reports)?;
+    print_safety_summary(&safety_reports);
+
+    let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
     let plan = build_plan(&loaded.config, &config_dir)?;
 
     let mut repaired = 0usize;
     let mut skipped_conflicts = 0usize;
+    let mut skipped_no_exec = 0usize;
 
     for item in &plan {
         match item.action {
             Action::Create | Action::Update => {
+                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                    skipped_no_exec += 1;
+                    continue;
+                }
                 apply_plan_item(item)?;
                 repaired += 1;
             }
@@ -365,7 +452,9 @@ pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
         }
     }
 
-    println!("repair summary: repaired={repaired} skipped_conflicts={skipped_conflicts}");
+    println!(
+        "repair summary: repaired={repaired} skipped_conflicts={skipped_conflicts} skipped_no_exec={skipped_no_exec}"
+    );
 
     let verify_issues = verify_config_state(&loaded.config, &config_dir)?;
     if !verify_issues.is_empty() {
@@ -386,6 +475,35 @@ pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
 
     println!("repair verification: ok");
     Ok(())
+}
+
+fn no_exec_skill_ids(reports: &[SkillSafetyReport]) -> HashSet<&str> {
+    reports
+        .iter()
+        .filter(|r| r.no_exec_metadata_only)
+        .map(|r| r.skill_id.as_str())
+        .collect()
+}
+
+fn print_safety_summary(reports: &[SkillSafetyReport]) {
+    let permissive = reports
+        .iter()
+        .filter(|r| matches!(r.license_status, LicenseStatus::Permissive))
+        .count();
+    let non_permissive = reports
+        .iter()
+        .filter(|r| matches!(r.license_status, LicenseStatus::NonPermissive))
+        .count();
+    let unknown = reports
+        .iter()
+        .filter(|r| matches!(r.license_status, LicenseStatus::Unknown))
+        .count();
+    let risk_labeled = reports.iter().filter(|r| !r.risk_labels.is_empty()).count();
+    let no_exec = reports.iter().filter(|r| r.no_exec_metadata_only).count();
+
+    println!(
+        "safety summary: permissive={permissive} non_permissive={non_permissive} unknown={unknown} risk_labeled={risk_labeled} no_exec={no_exec}"
+    );
 }
 
 fn print_plan_text(items: &[PlanItem]) {

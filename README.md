@@ -28,7 +28,7 @@ In real-world setups, skill install paths and runtime discovery paths can drift 
 - Config-driven (`skills.toml`)
 - Platform-agnostic
 - License-aware indexing behavior
-- Safety-first execution (risk labels + metadata traceability)
+- Safety-first execution (risk labels + metadata traceability + metadata-only mode)
 
 ## Status
 

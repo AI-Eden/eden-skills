@@ -18,6 +18,12 @@ phase1:
     apply: implemented
     doctor: implemented
     repair: implemented
+  safety_gate_mechanics:
+    implemented: true
+    includes:
+      - safety_metadata_persistence
+      - risk_label_detection
+      - no_exec_metadata_only_enforcement
   test_matrix:
     covered: 7
     total: 7
@@ -42,7 +48,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-017
+  - id: B-018
     owner: builder
-    task: implement_safety_gate_mvp_mechanics_license_risk_no_exec
-    source_spec: ROADMAP.md
+    task: expand_doctor_strict_non_strict_parity_assertions_and_json_stability
+    source_spec: spec/SPEC_TEST_MATRIX.md

@@ -64,3 +64,11 @@ A release candidate MUST pass:
 - all scenario tests in Linux CI
 - at least one macOS smoke run
 - idempotency assertions for both `symlink` and `copy`
+
+## 5. Incremental Safety Scenarios
+
+These scenarios are recommended incremental coverage for Safety Gate MVP mechanics:
+
+- `apply` with `no_exec_metadata_only=true` syncs source and writes safety metadata, but does not mutate targets.
+- `doctor` emits safety warnings for license unknown/non-permissive and risk-review-required labels.
+- safety metadata file (`.eden-safety.toml`) includes required fields and stable enums.
