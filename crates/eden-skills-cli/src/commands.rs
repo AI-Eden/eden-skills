@@ -2,7 +2,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use eden_skills_core::config::InstallMode;
-use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions};
+use eden_skills_core::config::{
+    config_dir_from_path, default_verify_checks_for_mode, load_from_file, validate_config,
+    LoadOptions,
+};
 use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
@@ -558,12 +561,269 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     Ok(())
 }
 
+pub fn add(
+    config_path: &str,
+    id: &str,
+    repo: &str,
+    r#ref: &str,
+    subpath: &str,
+    mode: InstallMode,
+    target_specs: &[String],
+    verify_enabled: Option<bool>,
+    verify_checks: Option<&[String]>,
+    no_exec_metadata_only: Option<bool>,
+    options: CommandOptions,
+) -> Result<(), EdenError> {
+    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path = config_path_buf.as_path();
+    let loaded = load_from_file(
+        config_path,
+        LoadOptions {
+            strict: options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+
+    let config_dir = config_dir_from_path(config_path);
+    let mut config = loaded.config;
+
+    if config.skills.iter().any(|s| s.id == id) {
+        return Err(EdenError::InvalidArguments(format!(
+            "skill id already exists: `{id}`"
+        )));
+    }
+
+    let targets = parse_target_specs(target_specs)?;
+    let enabled = verify_enabled.unwrap_or(true);
+    let checks = verify_checks
+        .map(|v| v.to_vec())
+        .unwrap_or_else(|| default_verify_checks_for_mode(mode));
+
+    let skill = SkillConfig {
+        id: id.to_string(),
+        source: eden_skills_core::config::SourceConfig {
+            repo: repo.to_string(),
+            subpath: subpath.to_string(),
+            r#ref: r#ref.to_string(),
+        },
+        install: eden_skills_core::config::InstallConfig { mode },
+        targets,
+        verify: eden_skills_core::config::VerifyConfig { enabled, checks },
+        safety: eden_skills_core::config::SafetyConfig {
+            no_exec_metadata_only: no_exec_metadata_only.unwrap_or(false),
+        },
+    };
+
+    config.skills.push(skill);
+
+    validate_config(&config, &config_dir)?;
+    write_normalized_config(config_path, &config)?;
+
+    if options.json {
+        let payload = serde_json::json!({
+            "action": "add",
+            "config_path": config_path.display().to_string(),
+            "skill_id": id,
+        });
+        let encoded = serde_json::to_string_pretty(&payload)
+            .map_err(|err| EdenError::Runtime(format!("failed to serialize add json: {err}")))?;
+        println!("{encoded}");
+        return Ok(());
+    }
+
+    println!("add: wrote {}", config_path.display());
+    Ok(())
+}
+
+pub fn remove(config_path: &str, skill_id: &str, options: CommandOptions) -> Result<(), EdenError> {
+    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path = config_path_buf.as_path();
+    let loaded = load_from_file(
+        config_path,
+        LoadOptions {
+            strict: options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+
+    let config_dir = config_dir_from_path(config_path);
+    let mut config = loaded.config;
+
+    let Some(idx) = config.skills.iter().position(|s| s.id == skill_id) else {
+        return Err(EdenError::InvalidArguments(format!(
+            "unknown skill id: `{skill_id}`"
+        )));
+    };
+
+    config.skills.remove(idx);
+    validate_config(&config, &config_dir)?;
+    write_normalized_config(config_path, &config)?;
+
+    if options.json {
+        let payload = serde_json::json!({
+            "action": "remove",
+            "config_path": config_path.display().to_string(),
+            "skill_id": skill_id,
+        });
+        let encoded = serde_json::to_string_pretty(&payload)
+            .map_err(|err| EdenError::Runtime(format!("failed to serialize remove json: {err}")))?;
+        println!("{encoded}");
+        return Ok(());
+    }
+
+    println!("remove: wrote {}", config_path.display());
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn set(
+    config_path: &str,
+    skill_id: &str,
+    repo: Option<&str>,
+    r#ref: Option<&str>,
+    subpath: Option<&str>,
+    mode: Option<InstallMode>,
+    verify_enabled: Option<bool>,
+    verify_checks: Option<&[String]>,
+    target_specs: Option<&[String]>,
+    no_exec_metadata_only: Option<bool>,
+    options: CommandOptions,
+) -> Result<(), EdenError> {
+    let has_any_mutation = repo.is_some()
+        || r#ref.is_some()
+        || subpath.is_some()
+        || mode.is_some()
+        || verify_enabled.is_some()
+        || verify_checks.is_some()
+        || target_specs.is_some()
+        || no_exec_metadata_only.is_some();
+    if !has_any_mutation {
+        return Err(EdenError::InvalidArguments(
+            "set requires at least one mutation flag".to_string(),
+        ));
+    }
+
+    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path = config_path_buf.as_path();
+    let loaded = load_from_file(
+        config_path,
+        LoadOptions {
+            strict: options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+
+    let config_dir = config_dir_from_path(config_path);
+    let mut config = loaded.config;
+
+    let Some(skill) = config.skills.iter_mut().find(|s| s.id == skill_id) else {
+        return Err(EdenError::InvalidArguments(format!(
+            "unknown skill id: `{skill_id}`"
+        )));
+    };
+
+    if let Some(repo) = repo {
+        skill.source.repo = repo.to_string();
+    }
+    if let Some(r#ref) = r#ref {
+        skill.source.r#ref = r#ref.to_string();
+    }
+    if let Some(subpath) = subpath {
+        skill.source.subpath = subpath.to_string();
+    }
+    if let Some(mode) = mode {
+        skill.install.mode = mode;
+    }
+    if let Some(enabled) = verify_enabled {
+        skill.verify.enabled = enabled;
+    }
+    if let Some(checks) = verify_checks {
+        skill.verify.checks = checks.to_vec();
+    }
+    if let Some(target_specs) = target_specs {
+        skill.targets = parse_target_specs(target_specs)?;
+    }
+    if let Some(flag) = no_exec_metadata_only {
+        skill.safety.no_exec_metadata_only = flag;
+    }
+
+    validate_config(&config, &config_dir)?;
+    write_normalized_config(config_path, &config)?;
+
+    if options.json {
+        let payload = serde_json::json!({
+            "action": "set",
+            "config_path": config_path.display().to_string(),
+            "skill_id": skill_id,
+        });
+        let encoded = serde_json::to_string_pretty(&payload)
+            .map_err(|err| EdenError::Runtime(format!("failed to serialize set json: {err}")))?;
+        println!("{encoded}");
+        return Ok(());
+    }
+
+    println!("set: wrote {}", config_path.display());
+    Ok(())
+}
+
 fn agent_kind_label(agent: &AgentKind) -> &'static str {
     match agent {
         AgentKind::ClaudeCode => "claude-code",
         AgentKind::Cursor => "cursor",
         AgentKind::Custom => "custom",
     }
+}
+
+fn parse_target_specs(specs: &[String]) -> Result<Vec<TargetConfig>, EdenError> {
+    let mut targets = Vec::with_capacity(specs.len());
+    for spec in specs {
+        match spec.as_str() {
+            "claude-code" => targets.push(TargetConfig {
+                agent: AgentKind::ClaudeCode,
+                expected_path: None,
+                path: None,
+            }),
+            "cursor" => targets.push(TargetConfig {
+                agent: AgentKind::Cursor,
+                expected_path: None,
+                path: None,
+            }),
+            _ => {
+                if let Some(rest) = spec.strip_prefix("custom:") {
+                    if rest.trim().is_empty() {
+                        return Err(EdenError::InvalidArguments(
+                            "invalid target spec `custom:`: path is required".to_string(),
+                        ));
+                    }
+                    targets.push(TargetConfig {
+                        agent: AgentKind::Custom,
+                        expected_path: None,
+                        path: Some(rest.to_string()),
+                    });
+                    continue;
+                }
+                return Err(EdenError::InvalidArguments(format!(
+                    "invalid target spec `{spec}` (expected `claude-code`, `cursor`, or `custom:<path>`)"
+                )));
+            }
+        }
+    }
+    Ok(targets)
+}
+
+fn write_normalized_config(path: &Path, config: &Config) -> Result<(), EdenError> {
+    let toml = normalized_config_toml(config);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, toml)?;
+    Ok(())
 }
 
 pub fn config_export(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {

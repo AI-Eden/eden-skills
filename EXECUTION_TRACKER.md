@@ -34,7 +34,7 @@ Legend:
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
 - [ ] Safety Gate MVP (license gate, risk labels, no-exec mode)
-- [~] CLI UX RFC (`init/list/config export/config import` implemented; `add/remove/set` pending)
+- [x] CLI UX RFC (`init/list/config export/config import/add/remove/set` implemented)
 - [x] CLI framework refactor to `clap` (subcommands + flags)
 
 Progress score (roadmap action items): `7.5 / 10 = 75%`
@@ -87,6 +87,7 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 - [x] Implemented `list` command (text + JSON inventory output).
 - [x] Implemented `config export` command (normalized TOML output + JSON wrapper).
 - [x] Implemented `config import` command (validated import + `--dry-run` preview).
+- [x] Implemented `add/remove/set` lifecycle commands (deterministic TOML writes + validation + tests).
 - [x] Declared stable `list --json` output schema in spec and added a contract test.
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
@@ -100,7 +101,7 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 - [~] Expand integration assertions depth (doctor strict/non-strict parity and stable JSON contract fields).
 - [ ] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).
 - [x] Migrate CLI argument parsing to `clap` subcommands/flags.
-- [~] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `config import` -> `add/remove/set`.
+- [x] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `config import` -> `add/remove/set`.
 
 ### 5.2 Architect-Owned (Claude Opus)
 
@@ -116,3 +117,13 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 ## 6. Next Execution Target (Builder)
 
 1. Implement `add/remove/set` (config lifecycle mutation commands) while preserving deterministic TOML normalization rules.
+
+### 6.1 Builder Checklist (B-015)
+
+- Update `spec/SPEC_COMMANDS.md` to define `add/remove/set` CLI shape, validation rules, and output behavior.
+- Implement `eden-skills add` with deterministic append semantics and full config validation before write.
+- Implement `eden-skills remove <skill_id>` with "remove only the matching entry" semantics and error on missing id.
+- Implement `eden-skills set <skill_id> ...` to mutate only requested fields and require at least one mutation flag.
+- Add CLI integration tests for `add/remove/set` covering success paths and "no write on validation failure".
+- Close `SPEC_TRACEABILITY.md` item `SCH-URL-001` by adding direct negative URL validation tests in `eden-skills-core`.
+- Run `cargo fmt --all` and `cargo test --workspace` after each deliverable step.

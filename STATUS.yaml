@@ -42,7 +42,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-015
+  - id: B-016
     owner: builder
-    task: implement_add_remove_set_commands_for_config_lifecycle
-    source_spec: spec/SPEC_COMMANDS.md
+    task: harden_copy_mode_delta_detection_edge_cases
+    source_spec: spec/SPEC_TEST_MATRIX.md

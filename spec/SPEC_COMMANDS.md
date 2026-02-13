@@ -127,18 +127,72 @@ These commands are RECOMMENDED for post-Phase-1 CLI UX and may be implemented in
 
 ### 4.2 `add`
 
-- MUST append a skill entry with required fields.
-- MUST validate resulting config before persisting.
+CLI shape:
+
+- `eden-skills add --config <path> --id <skill_id> --repo <git_url> --target <target_spec>...`
+
+Supported flags:
+
+- `--ref <ref>` (default: `main`)
+- `--subpath <subpath>` (default: `.`)
+- `--mode <symlink|copy>` (default: `symlink`)
+- `--verify-enabled <true|false>` (default: `true`)
+- `--verify-check <check>...` (default: mode-dependent checks from `SPEC_SCHEMA.md`)
+- `--no-exec-metadata-only <true|false>` (default: `false`)
+
+`target_spec` MUST be one of:
+
+- `claude-code`
+- `cursor`
+- `custom:<path>` (path is required for custom targets)
+
+Behavior:
+
+- MUST load and validate the current config at `--config`.
+- MUST error if `skill_id` already exists in config.
+- MUST append exactly one new `[[skills]]` entry at the end of the skills array.
+- MUST validate the resulting config before persisting.
+- MUST write the normalized TOML form back to `--config`.
 
 ### 4.3 `remove <skill_id>`
 
+CLI shape:
+
+- `eden-skills remove <skill_id> --config <path>`
+
+Behavior:
+
+- MUST load and validate the current config at `--config`.
 - MUST remove the matching skill entry only.
 - MUST error if `skill_id` does not exist.
+- MUST validate the resulting config before persisting.
+- MUST write the normalized TOML form back to `--config`.
 
 ### 4.4 `set <skill_id> ...`
 
-- MUST mutate only targeted fields.
-- MUST preserve file validity and deterministic structure.
+CLI shape:
+
+- `eden-skills set <skill_id> --config <path> [flags...]`
+
+Supported flags (all optional; at least one MUST be provided):
+
+- `--repo <git_url>`
+- `--ref <ref>`
+- `--subpath <subpath>`
+- `--mode <symlink|copy>`
+- `--verify-enabled <true|false>`
+- `--verify-check <check>...` (replaces the full checks list)
+- `--target <target_spec>...` (replaces the full targets list; same `target_spec` rules as `add`)
+- `--no-exec-metadata-only <true|false>`
+
+Behavior:
+
+- MUST load and validate the current config at `--config`.
+- MUST error if `skill_id` does not exist.
+- MUST error if no mutation flags are provided.
+- MUST mutate only fields explicitly set by the user.
+- MUST validate the resulting config before persisting.
+- MUST write the normalized TOML form back to `--config`.
 
 ### 4.5 `list`
 

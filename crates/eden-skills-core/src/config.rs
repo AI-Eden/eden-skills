@@ -354,6 +354,80 @@ fn default_verify_checks(install_mode: InstallMode) -> Vec<String> {
     }
 }
 
+pub fn default_verify_checks_for_mode(install_mode: InstallMode) -> Vec<String> {
+    default_verify_checks(install_mode)
+}
+
+pub fn validate_config(config: &Config, config_dir: &Path) -> Result<(), EdenError> {
+    if config.version != 1 {
+        return Err(EdenError::Validation(format!(
+            "version: expected 1, got {}",
+            config.version
+        )));
+    }
+
+    resolve_path_string(&config.storage_root, config_dir).map_err(|err| {
+        EdenError::Validation(format!("storage.root: invalid path: {}", err.to_string()))
+    })?;
+
+    if config.skills.is_empty() {
+        return Err(EdenError::Validation(
+            "skills: must contain at least one skill".to_string(),
+        ));
+    }
+
+    let mut ids = HashSet::new();
+    for (idx, skill) in config.skills.iter().enumerate() {
+        let skill_path = format!("skills[{idx}]");
+        if !ids.insert(skill.id.clone()) {
+            return Err(EdenError::Validation(format!(
+                "{skill_path}.id: duplicate id `{}`",
+                skill.id
+            )));
+        }
+
+        validate_repo_url(&skill.source.repo, &format!("{skill_path}.source.repo"))?;
+
+        if skill.targets.is_empty() {
+            return Err(EdenError::Validation(format!(
+                "{skill_path}.targets: must contain at least one target"
+            )));
+        }
+        for (target_idx, target) in skill.targets.iter().enumerate() {
+            let target_path = format!("{skill_path}.targets[{target_idx}]");
+            if matches!(target.agent, AgentKind::Custom) && target.path.is_none() {
+                return Err(EdenError::Validation(format!(
+                    "{target_path}.path: required when agent=custom"
+                )));
+            }
+            if let Some(path) = &target.path {
+                resolve_path_string(path, config_dir).map_err(|err| {
+                    EdenError::Validation(format!(
+                        "{target_path}.path: invalid path: {}",
+                        err.to_string()
+                    ))
+                })?;
+            }
+            if let Some(expected) = &target.expected_path {
+                resolve_path_string(expected, config_dir).map_err(|err| {
+                    EdenError::Validation(format!(
+                        "{target_path}.expected_path: invalid path: {}",
+                        err.to_string()
+                    ))
+                })?;
+            }
+        }
+
+        if skill.verify.enabled && skill.verify.checks.is_empty() {
+            return Err(EdenError::Validation(format!(
+                "{skill_path}.verify.checks: must not be empty when verify.enabled=true"
+            )));
+        }
+    }
+
+    Ok(())
+}
+
 fn validate_repo_url(url: &str, field_path: &str) -> Result<(), EdenError> {
     let is_https = url.starts_with("https://");
     let is_ssh = url.starts_with("ssh://");
