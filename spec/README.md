@@ -9,12 +9,8 @@ This directory defines executable specifications for the CLI behavior.
 
 ## Scope
 
-Phase 1 commands and behavior only:
-
-- `plan`
-- `apply`
-- `doctor`
-- `repair`
+- Phase 1 mandatory behavior for reconciliation commands (`plan`, `apply`, `doctor`, `repair`).
+- Post-Phase-1 command UX expansion MAY be specified here when it does not conflict with Phase 1 delivery.
 
 ## Rule of Authority
 
@@ -36,7 +32,7 @@ Keywords are interpreted as:
 
 - `SPEC_SCHEMA.md`: `skills.toml` schema, defaults, and validation
 - `SPEC_AGENT_PATHS.md`: agent detection and path resolution policy
-- `SPEC_COMMANDS.md`: CLI contract for `plan/apply/doctor/repair`
+- `SPEC_COMMANDS.md`: CLI command contract and lifecycle command model
 - `SPEC_TEST_MATRIX.md`: minimum acceptance test matrix
 
 ## Contributor Workflow

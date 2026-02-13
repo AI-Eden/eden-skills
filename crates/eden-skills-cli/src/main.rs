@@ -19,21 +19,20 @@ fn main() -> ExitCode {
 }
 
 fn run() -> Result<(), EdenError> {
-    let mut args: Vec<String> = env::args().skip(1).collect();
-    if args.is_empty() {
+    let args: Vec<String> = env::args().skip(1).collect();
+    let Some((subcommand, option_args)) = args.split_first() else {
         print_usage();
         return Err(EdenError::InvalidArguments(
             "missing subcommand (plan|apply|doctor|repair)".to_string(),
         ));
-    }
+    };
 
-    let subcommand = args.remove(0);
     if matches!(subcommand.as_str(), "--help" | "-h" | "help") {
         print_usage();
         return Ok(());
     }
 
-    let parsed = parse_global_options(&args)?;
+    let parsed = parse_global_options(option_args)?;
     match subcommand.as_str() {
         "plan" => commands::plan(
             &parsed.config_path,
@@ -69,6 +68,7 @@ fn run() -> Result<(), EdenError> {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 struct ParsedGlobalOptions {
     config_path: String,
     strict: bool,
@@ -82,25 +82,25 @@ fn parse_global_options(args: &[String]) -> Result<ParsedGlobalOptions, EdenErro
         json: false,
     };
 
-    let mut idx = 0usize;
-    while idx < args.len() {
-        match args[idx].as_str() {
+    let mut remaining = args;
+    while let Some((arg, tail)) = remaining.split_first() {
+        match arg.as_str() {
             "--config" => {
-                let Some(value) = args.get(idx + 1) else {
+                let Some((value, after_value)) = tail.split_first() else {
                     return Err(EdenError::InvalidArguments(
                         "missing value for --config".to_string(),
                     ));
                 };
-                parsed.config_path = value.to_string();
-                idx += 2;
+                parsed.config_path = value.clone();
+                remaining = after_value;
             }
             "--strict" => {
                 parsed.strict = true;
-                idx += 1;
+                remaining = tail;
             }
             "--json" => {
                 parsed.json = true;
-                idx += 1;
+                remaining = tail;
             }
             unknown => {
                 return Err(EdenError::InvalidArguments(format!(
@@ -109,6 +109,7 @@ fn parse_global_options(args: &[String]) -> Result<ParsedGlobalOptions, EdenErro
             }
         }
     }
+
     Ok(parsed)
 }
 
@@ -121,5 +122,41 @@ fn exit_code_for_error(err: &EdenError) -> u8 {
         EdenError::InvalidArguments(_) | EdenError::Validation(_) => 2,
         EdenError::Conflict(_) => 3,
         EdenError::Runtime(_) | EdenError::Io(_) => 1,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_global_options;
+
+    fn args(input: &[&str]) -> Vec<String> {
+        input.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn parse_global_options_defaults() {
+        let parsed = parse_global_options(&args(&[])).expect("parse options");
+        assert!(!parsed.strict);
+        assert!(!parsed.json);
+        assert!(parsed.config_path.ends_with("skills.toml"));
+    }
+
+    #[test]
+    fn parse_global_options_with_flags_and_config() {
+        let parsed =
+            parse_global_options(&args(&["--strict", "--config", "./custom.toml", "--json"]))
+                .expect("parse options");
+
+        assert!(parsed.strict);
+        assert!(parsed.json);
+        assert_eq!(parsed.config_path, "./custom.toml");
+    }
+
+    #[test]
+    fn parse_global_options_missing_config_value() {
+        let err =
+            parse_global_options(&args(&["--config"])).expect_err("expected missing value error");
+        let message = err.to_string();
+        assert!(message.contains("missing value for --config"));
     }
 }
