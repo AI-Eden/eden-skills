@@ -46,11 +46,11 @@ next_execution_targets:
     owner: builder
     task: migrate_cli_parsing_to_clap_and_start_init_command
     source_spec: spec/SPEC_COMMANDS.md
-  - id: B-005
-    owner: builder
-    task: align_doctor_json_schema_as_stable_contract_in_spec
-    source_spec: spec/SPEC_COMMANDS.md
   - id: B-006
     owner: builder
     task: strengthen_path_resolution_tests_for_precedence_and_normalization
     source_spec: spec/SPEC_AGENT_PATHS.md
+  - id: B-007
+    owner: builder
+    task: define_stable_plan_json_schema_contract_in_spec
+    source_spec: spec/SPEC_COMMANDS.md

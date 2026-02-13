@@ -66,6 +66,27 @@ Doctor checks MUST include:
 
 Doctor MUST report issue code, severity, and remediation hint.
 
+#### 3.3.1 Doctor JSON Schema (`--json`)
+
+When `--json` is set, `doctor` MUST emit a single JSON object to stdout with:
+
+- `summary` object:
+  - `total`: number (integer)
+  - `error`: number (integer)
+  - `warning`: number (integer)
+- `findings` array of objects, where each finding MUST include:
+  - `code`: string (stable machine code, recommended format: `UPPER_SNAKE_CASE`)
+  - `severity`: string in `{error, warning}`
+  - `skill_id`: string
+  - `target_path`: string
+  - `message`: string (human-readable)
+  - `remediation`: string (human-readable hint)
+
+The JSON output MUST be backwards compatible:
+
+- Adding new optional fields is allowed.
+- Removing or renaming required fields is not allowed.
+
 ### 3.4 `repair`
 
 Purpose: reconcile recoverable drift discovered by doctor/plan.
