@@ -46,6 +46,7 @@ Purpose: execute planned actions idempotently.
 
 Rules:
 
+- MUST clone/update source repositories into configured storage root before executing install mutations.
 - MUST execute only `create`/`update` actions from resolved plan.
 - MUST NOT mutate entries marked `conflict` unless `--force`.
 - MUST run verification when `verify.enabled=true`.

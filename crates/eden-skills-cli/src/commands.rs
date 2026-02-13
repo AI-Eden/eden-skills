@@ -5,6 +5,7 @@ use eden_skills_core::config::InstallMode;
 use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
+use eden_skills_core::source::sync_sources;
 use eden_skills_core::verify::verify_config_state;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -44,6 +45,11 @@ pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError
         },
     )?;
     let config_dir = config_dir_from_path(config_path);
+    let sync_summary = sync_sources(&loaded.config, &config_dir)?;
+    println!(
+        "source sync: cloned={} updated={} skipped={}",
+        sync_summary.cloned, sync_summary.updated, sync_summary.skipped
+    );
     let plan = build_plan(&loaded.config, &config_dir)?;
 
     let mut created = 0usize;
@@ -151,6 +157,11 @@ pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
         },
     )?;
     let config_dir = config_dir_from_path(config_path);
+    let sync_summary = sync_sources(&loaded.config, &config_dir)?;
+    println!(
+        "source sync: cloned={} updated={} skipped={}",
+        sync_summary.cloned, sync_summary.updated, sync_summary.skipped
+    );
     let plan = build_plan(&loaded.config, &config_dir)?;
 
     let mut repaired = 0usize;

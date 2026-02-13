@@ -29,7 +29,7 @@ Legend:
 - [x] Initialize Repo (`Cargo workspace`, crates, toolchain)
 - [x] Freeze Specs (`spec/README.md`, `SPEC_*` baseline established)
 - [x] Draft Config (`skills.toml` with 5 skills)
-- [~] Rust CLI Build (`plan/apply/doctor/repair` implemented at baseline level; deep edge-case hardening pending)
+- [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source clone/update wired; deep edge-case hardening pending)
 - [ ] Test Matrix completion (all required scenarios automated)
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
@@ -37,7 +37,7 @@ Legend:
 - [~] CLI UX RFC (`init/add/remove/set/list/config export/import` contract captured in spec; code not started)
 - [ ] CLI framework refactor to `clap` (planned)
 
-Progress score (roadmap action items): `4.5 / 10 = 45%`
+Progress score (roadmap action items): `5 / 10 = 50%`
 
 ### 3.2 Phase 1 Mandatory Command Status (Spec)
 
@@ -49,6 +49,7 @@ Progress score (roadmap action items): `4.5 / 10 = 45%`
 Progress score (mandatory command availability): `4 / 4 = 100%`
 
 Quality note: baseline availability is complete; production hardening and test-matrix coverage remain incomplete.
+Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/...`) may be non-writable and cause `apply` failure unless overridden.
 
 ### 3.3 Verification and Testing
 
@@ -69,6 +70,7 @@ Current automated tests: `5` (workspace unit tests).
 - [x] Implemented baseline `apply`.
 - [x] Implemented baseline `doctor`.
 - [x] Implemented baseline `repair`.
+- [x] Implemented source repository sync (`clone/update`) in apply/repair path.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
 
 ## 5. Pending Tasks with Planned LLM Ownership
@@ -98,4 +100,3 @@ Current automated tests: `5` (workspace unit tests).
 1. Complete test-matrix automation for Phase 1 scenarios.
 2. Harden `apply/doctor/repair` behavior on conflict and copy mode.
 3. Introduce `clap` and start lifecycle command implementation from `init`.
-
