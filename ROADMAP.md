@@ -4,6 +4,10 @@
 
 ---
 
+Execution tracking and model-boundary handoff log: `EXECUTION_TRACKER.md`
+
+---
+
 ## 1. Executive Summary & Problem Statement
 
 ### 1.1 The Context

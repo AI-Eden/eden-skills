@@ -27,6 +27,12 @@ For each target, final path resolution MUST follow:
 
 If none resolves, CLI MUST fail for that target.
 
+## 3.1 Install Path Derivation
+
+- Resolved target path is treated as the agent skill root directory.
+- Effective install path MUST be `<resolved_target_root>/<skill_id>`.
+- Plan/apply/doctor/repair operations MUST use the effective install path.
+
 ## 4. Normalization Rules
 
 - `~` MUST expand to current user home directory.

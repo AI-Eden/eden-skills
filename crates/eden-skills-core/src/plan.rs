@@ -19,7 +19,7 @@ pub struct PlanItem {
     pub skill_id: String,
     pub source_path: String,
     pub target_path: String,
-    pub install_mode: String,
+    pub install_mode: InstallMode,
     pub action: Action,
     pub reasons: Vec<String>,
 }
@@ -33,7 +33,8 @@ pub fn build_plan(config: &Config, config_dir: &Path) -> Result<Vec<PlanItem>, E
         let source_path = normalize_lexical(&source_repo_root.join(&skill.source.subpath));
 
         for target in &skill.targets {
-            let target_path = resolve_target_path(target, config_dir)?;
+            let target_root = resolve_target_path(target, config_dir)?;
+            let target_path = normalize_lexical(&target_root.join(&skill.id));
             let (action, reasons) =
                 determine_action(skill.install.mode, &target_path, &source_path)
                     .map_err(EdenError::Io)?;
@@ -42,7 +43,7 @@ pub fn build_plan(config: &Config, config_dir: &Path) -> Result<Vec<PlanItem>, E
                 skill_id: skill.id.clone(),
                 source_path: source_path.display().to_string(),
                 target_path: target_path.display().to_string(),
-                install_mode: skill.install.mode.as_str().to_string(),
+                install_mode: skill.install.mode,
                 action,
                 reasons,
             });
@@ -57,6 +58,13 @@ fn determine_action(
     target_path: &Path,
     source_path: &Path,
 ) -> Result<(Action, Vec<String>), std::io::Error> {
+    if !source_path.exists() {
+        return Ok((
+            Action::Conflict,
+            vec!["source path does not exist".to_string()],
+        ));
+    }
+
     let metadata = match fs::symlink_metadata(target_path) {
         Ok(metadata) => metadata,
         Err(err) if err.kind() == ErrorKind::NotFound => {

@@ -37,6 +37,7 @@ Planning / specification phase (Phase 1 focus: CLI reliability baseline).
 ## Docs
 
 - Full roadmap: `ROADMAP.md`
+- Execution tracker and model-boundary ownership: `EXECUTION_TRACKER.md`
 - Spec index and writing rules: `spec/README.md`
 - CLI spec set (source of truth for implementation): `spec/`
 - Sample config for local dev: `skills.toml`
