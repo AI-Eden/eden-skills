@@ -25,7 +25,7 @@ In real-world setups, skill install paths and runtime discovery paths can drift 
 
 ## Design Principles
 
-- Config-driven (`skills.yaml`)
+- Config-driven (`skills.toml`)
 - Platform-agnostic
 - License-aware indexing behavior
 - Safety-first execution (risk labels + metadata traceability)
@@ -39,7 +39,7 @@ Planning / specification phase (Phase 1 focus: CLI reliability baseline).
 - Full roadmap: `ROADMAP.md`
 - Spec index and writing rules: `spec/README.md`
 - CLI spec set (source of truth for implementation): `spec/`
-- Sample config for local dev: `skills.yaml`
+- Sample config for local dev: `skills.toml`
 
 ## Workspace Layout
 
@@ -50,7 +50,7 @@ Planning / specification phase (Phase 1 focus: CLI reliability baseline).
 ## Local Commands
 
 - `cargo check --workspace`
-- `cargo run -p eden-skills-cli -- plan --config ./skills.yaml`
+- `cargo run -p eden-skills-cli -- plan --config ./skills.toml`
 
 ---
 

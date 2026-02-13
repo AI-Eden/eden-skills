@@ -62,28 +62,37 @@ Phase 1 implementation language is **Rust** (deterministic, typed, single-binary
 
 The tool must support a configuration-driven approach (Infrastructure as Code):
 
-```yaml
-# ~/.config/eden-skills/skills.yaml (Draft Schema)
-skills:
-  - url: "https://github.com/vercel-labs/skills/tree/main/packages/browser"
-    alias: "browser-tool"
-    install_mode: "symlink" # symlink | copy
-    # The Magic Feature: Define targets + expected runtime path
-    targets:
-      - agent: "claude-code"
-        expected_path: "~/.claude/skills"
-      - agent: "cursor"      # Auto-detects ~/.cursor/skills
-      - agent: "custom"
-        path: "/opt/my-agent/tools"
-    verify:
-      enabled: true
-      checks: ["path-exists", "is-symlink", "target-resolves"]
+```toml
+# ~/.config/eden-skills/skills.toml (Draft Schema)
+version = 1
 
+[[skills]]
+id = "browser-tool"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/skills.git"
+subpath = "packages/browser"
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "claude-code"
+expected_path = "~/.claude/skills"
+
+[[skills.targets]]
+agent = "cursor"
+expected_path = "~/.cursor/skills"
+
+[skills.verify]
+enabled = true
+checks = ["path-exists", "is-symlink", "target-resolves"]
 ```
 
 ### 3.3 Implementation Logic
 
-1. **Parse** the `skills.yaml`.
+1. **Parse** the `skills.toml`.
 2. **Clone/Update** the repo to a central storage.
 3. **Plan** the target graph (source path, target path, install mode) and output a dry-run diff.
 4. **Detect** local Agents and resolve path strategy (`~/.claude/skills`, `~/.cursor/skills`, etc.).
@@ -121,7 +130,7 @@ Leveraging **GPT-5.3-Codex** (High Speed/Code Gen) and **Claude Opus 4.6** (High
 
 ### Phase 1: The CLI Foundation (Immediate)
 
-* **Role:** Architect (Claude) defines the `skills.yaml` schema, verification model, and "Agent Detection Strategy".
+* **Role:** Architect (Claude) defines the `skills.toml` schema, verification model, and "Agent Detection Strategy".
 * **Role:** Builder (GPT-5.3) writes the **Rust CLI** implementing `plan/apply/doctor/repair` from `spec/`.
 * **Deliverable:** A deterministic installer that solves the "Last Mile Reliability" problem.
 
@@ -159,7 +168,7 @@ Leveraging **GPT-5.3-Codex** (High Speed/Code Gen) and **Claude Opus 4.6** (High
 
 1. [ ] **Initialize Repo:** Create `follow-edens-skills` (or `eden-skills`).
 2. [ ] **Freeze Specs:** Maintain `spec/README.md` + `SPEC_SCHEMA.md` + `SPEC_AGENT_PATHS.md` + `SPEC_COMMANDS.md` + `SPEC_TEST_MATRIX.md` as the Phase 1 contract.
-3. [ ] **Draft Config:** Manually create a `skills.yaml` with 5 favorite skills and explicit `expected_path` + `verify` rules.
+3. [ ] **Draft Config:** Manually create a `skills.toml` with 5 favorite skills and explicit `expected_path` + `verify` rules.
 4. [ ] **Rust CLI Build:** Implement `plan/apply/doctor/repair` strictly against `spec/` behavior.
 5. [ ] **Test Matrix:** Validate behavior on macOS/Linux with fresh install, repeated apply, broken link, and moved source scenarios.
 6. [ ] **Crawler RFC:** Define sharding, incremental sync, deduplication keys, and API rate-limit handling before writing crawler code.

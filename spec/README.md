@@ -34,7 +34,7 @@ Keywords are interpreted as:
 
 ## Spec Files
 
-- `SPEC_SCHEMA.md`: `skills.yaml` schema, defaults, and validation
+- `SPEC_SCHEMA.md`: `skills.toml` schema, defaults, and validation
 - `SPEC_AGENT_PATHS.md`: agent detection and path resolution policy
 - `SPEC_COMMANDS.md`: CLI contract for `plan/apply/doctor/repair`
 - `SPEC_TEST_MATRIX.md`: minimum acceptance test matrix

@@ -95,8 +95,8 @@ pub fn load_from_file(config_path: &Path, options: LoadOptions) -> Result<Loaded
     let config_raw = fs::read_to_string(config_path)?;
     let config_dir = config_path.parent().unwrap_or(Path::new("."));
 
-    let value: serde_yaml::Value = serde_yaml::from_str(&config_raw)
-        .map_err(|err| EdenError::Validation(format!("root: invalid yaml: {err}")))?;
+    let value: toml::Value = toml::from_str(&config_raw)
+        .map_err(|err| EdenError::Validation(format!("root: invalid toml: {err}")))?;
     let warnings = collect_top_level_unknown_key_warnings(&value)?;
 
     if options.strict && !warnings.is_empty() {
@@ -106,31 +106,25 @@ pub fn load_from_file(config_path: &Path, options: LoadOptions) -> Result<Loaded
         )));
     }
 
-    let raw: RawConfig = serde_yaml::from_value(value)
+    let raw: RawConfig = toml::from_str(&config_raw)
         .map_err(|err| EdenError::Validation(format!("root: invalid config shape: {err}")))?;
 
     let config = raw.into_config(config_dir)?;
     Ok(LoadedConfig { config, warnings })
 }
 
-fn collect_top_level_unknown_key_warnings(
-    value: &serde_yaml::Value,
-) -> Result<Vec<String>, EdenError> {
-    let Some(map) = value.as_mapping() else {
+fn collect_top_level_unknown_key_warnings(value: &toml::Value) -> Result<Vec<String>, EdenError> {
+    let Some(map) = value.as_table() else {
         return Err(EdenError::Validation(
-            "root: expected top-level YAML mapping".to_string(),
+            "root: expected top-level TOML table".to_string(),
         ));
     };
 
     let mut warnings = Vec::new();
     let allowed_keys = ["version", "storage", "skills"];
     for key in map.keys() {
-        let Some(key_str) = key.as_str() else {
-            warnings.push("unknown non-string top-level key".to_string());
-            continue;
-        };
-        if !allowed_keys.contains(&key_str) {
-            warnings.push(format!("unknown top-level key `{key_str}`"));
+        if !allowed_keys.contains(&key.as_str()) {
+            warnings.push(format!("unknown top-level key `{key}`"));
         }
     }
     Ok(warnings)
@@ -234,7 +228,7 @@ impl RawSkillConfig {
         let verify = self
             .verify
             .unwrap_or_default()
-            .into_verify_config(install_mode, &format!("{field_path}.verify"))?;
+            .into_verify_config(install_mode);
         if verify.enabled && verify.checks.is_empty() {
             return Err(EdenError::Validation(format!(
                 "{field_path}.verify.checks: must not be empty when verify.enabled=true"
@@ -322,17 +316,13 @@ struct RawVerifyConfig {
 }
 
 impl RawVerifyConfig {
-    fn into_verify_config(
-        self,
-        install_mode: InstallMode,
-        _field_path: &str,
-    ) -> Result<VerifyConfig, EdenError> {
+    fn into_verify_config(self, install_mode: InstallMode) -> VerifyConfig {
         let enabled = self.enabled.unwrap_or(true);
         let checks = self
             .checks
             .unwrap_or_else(|| default_verify_checks(install_mode));
 
-        Ok(VerifyConfig { enabled, checks })
+        VerifyConfig { enabled, checks }
     }
 }
 
@@ -391,17 +381,20 @@ mod tests {
     #[test]
     fn load_valid_config_with_defaults() {
         let dir = tempdir().expect("tempdir");
-        let config_path = dir.path().join("skills.yaml");
+        let config_path = dir.path().join("skills.toml");
         fs::write(
             &config_path,
             r#"
-version: 1
-skills:
-  - id: "x"
-    source:
-      repo: "https://github.com/vercel-labs/skills.git"
-    targets:
-      - agent: "claude-code"
+version = 1
+
+[[skills]]
+id = "x"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/skills.git"
+
+[[skills.targets]]
+agent = "claude-code"
 "#,
         )
         .expect("write config");
@@ -427,17 +420,20 @@ skills:
     #[test]
     fn reject_custom_target_without_path() {
         let dir = tempdir().expect("tempdir");
-        let config_path = dir.path().join("skills.yaml");
+        let config_path = dir.path().join("skills.toml");
         fs::write(
             &config_path,
             r#"
-version: 1
-skills:
-  - id: "x"
-    source:
-      repo: "https://github.com/vercel-labs/skills.git"
-    targets:
-      - agent: "custom"
+version = 1
+
+[[skills]]
+id = "x"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/skills.git"
+
+[[skills.targets]]
+agent = "custom"
 "#,
         )
         .expect("write config");

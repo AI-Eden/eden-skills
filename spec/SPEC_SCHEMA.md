@@ -1,33 +1,44 @@
 # SPEC_SCHEMA.md
 
-Normative schema for `~/.config/eden-skills/skills.yaml`.
+Normative schema for `~/.config/eden-skills/skills.toml`.
 
 ## 1. Top-Level Structure
 
-Config file MUST be valid YAML and follow:
+Config file MUST be valid TOML and follow:
 
-```yaml
-version: 1
-storage:
-  root: "~/.local/share/eden-skills/repos"
-skills:
-  - id: "browser-tool"
-    source:
-      repo: "https://github.com/vercel-labs/skills.git"
-      subpath: "packages/browser"
-      ref: "main"
-    install:
-      mode: "symlink"
-    targets:
-      - agent: "claude-code"
-      - agent: "cursor"
-      - agent: "custom"
-        path: "/opt/my-agent/tools"
-    verify:
-      enabled: true
-      checks: ["path-exists", "target-resolves", "is-symlink"]
-    safety:
-      no_exec_metadata_only: false
+```toml
+version = 1
+
+[storage]
+root = "~/.local/share/eden-skills/repos"
+
+[[skills]]
+id = "browser-tool"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/skills.git"
+subpath = "packages/browser"
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "claude-code"
+
+[[skills.targets]]
+agent = "cursor"
+
+[[skills.targets]]
+agent = "custom"
+path = "/opt/my-agent/tools"
+
+[skills.verify]
+enabled = true
+checks = ["path-exists", "target-resolves", "is-symlink"]
+
+[skills.safety]
+no_exec_metadata_only = false
 ```
 
 ## 2. Required Fields

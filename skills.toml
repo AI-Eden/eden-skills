@@ -1,0 +1,122 @@
+version = 1
+
+[storage]
+root = "~/.local/share/eden-skills/repos"
+
+[[skills]]
+id = "browser-tool"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/skills.git"
+subpath = "packages/browser"
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "claude-code"
+expected_path = "~/.claude/skills"
+
+[[skills.targets]]
+agent = "cursor"
+expected_path = "~/.cursor/skills"
+
+[skills.verify]
+enabled = true
+checks = ["path-exists", "target-resolves", "is-symlink"]
+
+[skills.safety]
+no_exec_metadata_only = false
+
+[[skills]]
+id = "filesystem-tool"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/skills.git"
+subpath = "packages/filesystem"
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "claude-code"
+expected_path = "~/.claude/skills"
+
+[[skills.targets]]
+agent = "cursor"
+expected_path = "~/.cursor/skills"
+
+[skills.verify]
+enabled = true
+checks = ["path-exists", "target-resolves", "is-symlink"]
+
+[skills.safety]
+no_exec_metadata_only = false
+
+[[skills]]
+id = "github-tool"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/skills.git"
+subpath = "packages/github"
+ref = "main"
+
+[skills.install]
+mode = "copy"
+
+[[skills.targets]]
+agent = "claude-code"
+expected_path = "~/.claude/skills"
+
+[skills.verify]
+enabled = true
+checks = ["path-exists", "content-present"]
+
+[skills.safety]
+no_exec_metadata_only = true
+
+[[skills]]
+id = "search-tool"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/skills.git"
+subpath = "packages/search"
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "cursor"
+expected_path = "~/.cursor/skills"
+
+[skills.verify]
+enabled = true
+checks = ["path-exists", "target-resolves", "is-symlink"]
+
+[skills.safety]
+no_exec_metadata_only = false
+
+[[skills]]
+id = "custom-devops-tool"
+
+[skills.source]
+repo = "https://github.com/example-org/agent-skills.git"
+subpath = "skills/devops"
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "custom"
+path = "/opt/my-agent/tools"
+
+[skills.verify]
+enabled = true
+checks = ["path-exists", "target-resolves", "is-symlink"]
+
+[skills.safety]
+no_exec_metadata_only = false

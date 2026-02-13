@@ -6,7 +6,7 @@ use std::process::ExitCode;
 use commands::CommandOptions;
 use eden_skills_core::error::EdenError;
 
-const DEFAULT_CONFIG_PATH: &str = "~/.config/eden-skills/skills.yaml";
+const DEFAULT_CONFIG_PATH: &str = "~/.config/eden-skills/skills.toml";
 
 fn main() -> ExitCode {
     match run() {

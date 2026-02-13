@@ -4,7 +4,7 @@ Normative command contract for `eden-skills` Phase 1.
 
 ## 1. Global Flags
 
-- `--config <path>`: config file path, default `~/.config/eden-skills/skills.yaml`
+- `--config <path>`: config file path, default `~/.config/eden-skills/skills.toml`
 - `--json`: emit machine-readable output
 - `--strict`: unknown keys and warnings become errors
 
