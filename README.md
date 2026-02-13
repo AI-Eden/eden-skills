@@ -39,6 +39,7 @@ Planning / specification phase (Phase 1 focus: CLI reliability baseline).
 - Full roadmap: `ROADMAP.md`
 - Spec index and writing rules: `spec/README.md`
 - CLI spec set (source of truth for implementation): `spec/`
+- Sample config for local dev: `skills.yaml`
 
 ---
 

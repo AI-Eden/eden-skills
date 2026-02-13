@@ -1,0 +1,87 @@
+version: 1
+storage:
+  root: "~/.local/share/eden-skills/repos"
+skills:
+  - id: "browser-tool"
+    source:
+      repo: "https://github.com/vercel-labs/skills.git"
+      subpath: "packages/browser"
+      ref: "main"
+    install:
+      mode: "symlink"
+    targets:
+      - agent: "claude-code"
+        expected_path: "~/.claude/skills"
+      - agent: "cursor"
+        expected_path: "~/.cursor/skills"
+    verify:
+      enabled: true
+      checks: ["path-exists", "target-resolves", "is-symlink"]
+    safety:
+      no_exec_metadata_only: false
+
+  - id: "filesystem-tool"
+    source:
+      repo: "https://github.com/vercel-labs/skills.git"
+      subpath: "packages/filesystem"
+      ref: "main"
+    install:
+      mode: "symlink"
+    targets:
+      - agent: "claude-code"
+        expected_path: "~/.claude/skills"
+      - agent: "cursor"
+        expected_path: "~/.cursor/skills"
+    verify:
+      enabled: true
+      checks: ["path-exists", "target-resolves", "is-symlink"]
+    safety:
+      no_exec_metadata_only: false
+
+  - id: "github-tool"
+    source:
+      repo: "https://github.com/vercel-labs/skills.git"
+      subpath: "packages/github"
+      ref: "main"
+    install:
+      mode: "copy"
+    targets:
+      - agent: "claude-code"
+        expected_path: "~/.claude/skills"
+    verify:
+      enabled: true
+      checks: ["path-exists", "content-present"]
+    safety:
+      no_exec_metadata_only: true
+
+  - id: "search-tool"
+    source:
+      repo: "https://github.com/vercel-labs/skills.git"
+      subpath: "packages/search"
+      ref: "main"
+    install:
+      mode: "symlink"
+    targets:
+      - agent: "cursor"
+        expected_path: "~/.cursor/skills"
+    verify:
+      enabled: true
+      checks: ["path-exists", "target-resolves", "is-symlink"]
+    safety:
+      no_exec_metadata_only: false
+
+  - id: "custom-devops-tool"
+    source:
+      repo: "https://github.com/example-org/agent-skills.git"
+      subpath: "skills/devops"
+      ref: "main"
+    install:
+      mode: "symlink"
+    targets:
+      - agent: "custom"
+        path: "/opt/my-agent/tools"
+    verify:
+      enabled: true
+      checks: ["path-exists", "target-resolves", "is-symlink"]
+    safety:
+      no_exec_metadata_only: false
