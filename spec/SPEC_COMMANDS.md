@@ -144,6 +144,31 @@ These commands are RECOMMENDED for post-Phase-1 CLI UX and may be implemented in
 
 - SHOULD display skill inventory and key metadata.
 
+#### 4.5.1 List JSON Schema (`--json`)
+
+When `--json` is set, `list` MUST emit a single JSON object to stdout with:
+
+- `count`: number (integer)
+- `skills`: array of objects, where each skill object MUST include:
+  - `id`: string
+  - `source` object:
+    - `repo`: string
+    - `ref`: string
+    - `subpath`: string
+  - `install` object:
+    - `mode`: string in `{symlink, copy}`
+  - `verify` object:
+    - `enabled`: boolean
+    - `checks`: array of strings
+  - `targets`: array of objects, where each target object MUST include:
+    - `agent`: string in `{claude-code, cursor, custom}`
+    - `path`: string (resolved path string; implementations MAY encode an error message as a string for unresolved paths)
+
+The JSON output MUST be backwards compatible:
+
+- Adding new optional fields is allowed.
+- Removing or renaming required fields is not allowed.
+
 ### 4.6 `config export`
 
 - SHOULD emit full normalized TOML config.
