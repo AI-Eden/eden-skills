@@ -58,7 +58,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
 - [~] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), first hosted run pending
 
-Current automated tests: `13` (workspace unit/integration-style tests).
+Current automated tests: `15` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -77,6 +77,7 @@ Current automated tests: `13` (workspace unit/integration-style tests).
 - [x] Replaced plan `--json` stub output with structured `serde_json` serialization (stable lowercase enums + reasons array).
 - [x] Added permission-denied target-path test for `apply`.
 - [x] Added invalid-config exit-code integration tests (`exit=2` + field-path assertions).
+- [x] Upgraded `doctor` findings output to include issue `code`, `severity`, and `remediation` hints (text + JSON).
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
@@ -104,6 +105,6 @@ Current automated tests: `13` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Complete remaining invalid-config/exit-code scenario coverage from `SPEC_TEST_MATRIX.md`.
-2. Upgrade `doctor` output to include issue code + severity + remediation hint (spec-aligned).
-3. Migrate argument parsing to `clap` and start lifecycle commands from `init`.
+1. Expand exit-code integration coverage for runtime (`1`) and strict conflict (`3`) paths.
+2. Migrate argument parsing to `clap` and start lifecycle commands from `init`.
+3. Stabilize/declare doctor `--json` schema in spec contract.

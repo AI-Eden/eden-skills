@@ -6,12 +6,22 @@ use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions
 use eden_skills_core::error::EdenError;
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::source::sync_sources;
-use eden_skills_core::verify::verify_config_state;
+use eden_skills_core::verify::{verify_config_state, VerifyIssue};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CommandOptions {
     pub strict: bool,
     pub json: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DoctorFinding {
+    code: String,
+    severity: String,
+    skill_id: String,
+    target_path: String,
+    message: String,
+    remediation: String,
 }
 
 pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
@@ -110,33 +120,17 @@ pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
     let config_dir = config_dir_from_path(config_path);
     let plan = build_plan(&loaded.config, &config_dir)?;
     let verify_issues = verify_config_state(&loaded.config, &config_dir)?;
-
-    let mut findings = Vec::new();
-    for item in &plan {
-        if matches!(item.action, Action::Conflict) {
-            findings.push(format!(
-                "CONFLICT {} {} ({})",
-                item.skill_id,
-                item.target_path,
-                item.reasons.join("; ")
-            ));
-        }
-    }
-    for issue in &verify_issues {
-        findings.push(format!(
-            "VERIFY {} {} [{}] {}",
-            issue.skill_id, issue.target_path, issue.check, issue.message
-        ));
-    }
+    let findings = collect_doctor_findings(&plan, &verify_issues);
 
     if findings.is_empty() {
         println!("doctor: no issues detected");
         return Ok(());
     }
 
-    println!("doctor: detected {} issue(s)", findings.len());
-    for line in &findings {
-        println!("  {line}");
+    if options.json {
+        print_doctor_json(&findings)?;
+    } else {
+        print_doctor_text(&findings);
     }
 
     if options.strict {
@@ -145,6 +139,183 @@ pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
             findings.len()
         )));
     }
+    Ok(())
+}
+
+fn collect_doctor_findings(plan: &[PlanItem], verify_issues: &[VerifyIssue]) -> Vec<DoctorFinding> {
+    let mut findings = Vec::new();
+
+    for item in plan {
+        if !matches!(item.action, Action::Conflict) {
+            continue;
+        }
+        findings.extend(plan_conflict_to_findings(item));
+    }
+
+    for issue in verify_issues {
+        findings.push(verify_issue_to_finding(issue));
+    }
+
+    findings
+}
+
+fn plan_conflict_to_findings(item: &PlanItem) -> Vec<DoctorFinding> {
+    item.reasons
+        .iter()
+        .map(|reason| {
+            let (code, severity, remediation) = map_plan_reason(reason);
+            DoctorFinding {
+                code: code.to_string(),
+                severity: severity.to_string(),
+                skill_id: item.skill_id.clone(),
+                target_path: item.target_path.clone(),
+                message: reason.clone(),
+                remediation: remediation.to_string(),
+            }
+        })
+        .collect()
+}
+
+fn verify_issue_to_finding(issue: &VerifyIssue) -> DoctorFinding {
+    let (code, severity, remediation) = map_verify_issue(issue);
+    DoctorFinding {
+        code: code.to_string(),
+        severity: severity.to_string(),
+        skill_id: issue.skill_id.clone(),
+        target_path: issue.target_path.clone(),
+        message: issue.message.clone(),
+        remediation: remediation.to_string(),
+    }
+}
+
+fn map_plan_reason(reason: &str) -> (&'static str, &'static str, &'static str) {
+    match reason {
+        "source path does not exist" => (
+            "SOURCE_MISSING",
+            "error",
+            "Run `eden-skills apply` to sync sources or correct storage/source settings.",
+        ),
+        "target exists but is not a symlink" => (
+            "TARGET_NOT_SYMLINK",
+            "error",
+            "Remove/rename the conflicting target, or set `install.mode = \"copy\"`.",
+        ),
+        "target is a symlink but install mode is copy" => (
+            "TARGET_MODE_MISMATCH",
+            "error",
+            "Remove the symlink target and re-run `eden-skills apply` in copy mode.",
+        ),
+        _ => (
+            "PLAN_CONFLICT",
+            "error",
+            "Inspect plan output and align local state with config.",
+        ),
+    }
+}
+
+fn map_verify_issue(issue: &VerifyIssue) -> (&'static str, &'static str, &'static str) {
+    match issue.check.as_str() {
+        "path-exists" => (
+            "TARGET_PATH_MISSING",
+            "error",
+            "Run `eden-skills apply` or `eden-skills repair` to recreate target paths.",
+        ),
+        "is-symlink" => {
+            if issue.message.contains("not a symlink") {
+                (
+                    "TARGET_NOT_SYMLINK",
+                    "error",
+                    "Replace target with a symlink or switch install mode to copy.",
+                )
+            } else {
+                (
+                    "BROKEN_SYMLINK",
+                    "error",
+                    "Run `eden-skills repair` to recreate a valid symlink target.",
+                )
+            }
+        }
+        "target-resolves" => {
+            if issue.message.contains("resolves to") {
+                (
+                    "TARGET_RESOLVE_MISMATCH",
+                    "error",
+                    "Run `eden-skills repair` to relink target to the configured source.",
+                )
+            } else {
+                (
+                    "BROKEN_SYMLINK",
+                    "error",
+                    "Run `eden-skills repair` to rebuild the unreadable/missing symlink.",
+                )
+            }
+        }
+        "content-present" => {
+            if issue.message.contains("typically for copy mode") {
+                (
+                    "VERIFY_CHECK_MISMATCH",
+                    "warning",
+                    "Adjust `verify.checks` to match the configured install mode.",
+                )
+            } else {
+                (
+                    "TARGET_CONTENT_MISSING",
+                    "error",
+                    "Run `eden-skills apply` or `eden-skills repair` to restore copied content.",
+                )
+            }
+        }
+        _ => (
+            "VERIFY_CHECK_FAILED",
+            "error",
+            "Review `verify.checks` and local target state.",
+        ),
+    }
+}
+
+fn print_doctor_text(findings: &[DoctorFinding]) {
+    println!("doctor: detected {} issue(s)", findings.len());
+    for finding in findings {
+        println!(
+            "  code={} severity={} skill={} target={} message={} remediation={}",
+            finding.code,
+            finding.severity,
+            finding.skill_id,
+            finding.target_path,
+            finding.message,
+            finding.remediation
+        );
+    }
+}
+
+fn print_doctor_json(findings: &[DoctorFinding]) -> Result<(), EdenError> {
+    let error_count = findings.iter().filter(|f| f.severity == "error").count();
+    let warning_count = findings.iter().filter(|f| f.severity == "warning").count();
+
+    let payload = serde_json::json!({
+        "summary": {
+            "total": findings.len(),
+            "error": error_count,
+            "warning": warning_count,
+        },
+        "findings": findings
+            .iter()
+            .map(|f| {
+                serde_json::json!({
+                    "code": f.code,
+                    "severity": f.severity,
+                    "skill_id": f.skill_id,
+                    "target_path": f.target_path,
+                    "message": f.message,
+                    "remediation": f.remediation,
+                })
+            })
+            .collect::<Vec<_>>(),
+    });
+
+    let encoded = serde_json::to_string_pretty(&payload)
+        .map_err(|err| EdenError::Runtime(format!("failed to serialize doctor json: {err}")))?;
+    println!("{encoded}");
     Ok(())
 }
 
