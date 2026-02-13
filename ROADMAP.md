@@ -183,7 +183,7 @@ This section remains a strategic checklist.
 6. [ ] **Crawler RFC:** Define sharding, incremental sync, deduplication keys, and API rate-limit handling before writing crawler code.
 7. [ ] **Curation RFC:** Freeze rubric weights + calibration process before enabling automatic quality scores in production.
 8. [ ] **Safety Gate MVP:** Implement license gate + risk label + no-exec mode in the initial CLI release.
-9. [ ] **CLI UX RFC:** Define `init/add/remove/set/list/config export/import` command contract and file-backed behavior (`skills.toml` as source of truth).
-10. [ ] **CLI Framework Refactor:** Adopt `clap`-based subcommand/flag parsing for command growth; keep CLI sync in Phase 1 and reserve async runtime for crawler/indexing workflows.
+9. [x] **CLI UX RFC:** Define `init/add/remove/set/list/config export/import` command contract and file-backed behavior (`skills.toml` as source of truth).
+10. [x] **CLI Framework Refactor:** Adopt `clap`-based subcommand/flag parsing for command growth; keep CLI sync in Phase 1 and reserve async runtime for crawler/indexing workflows.
 
 > *"The goal is not just to download code; it is to configure the agent's environment seamlessly."*

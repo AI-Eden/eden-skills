@@ -597,6 +597,40 @@ pub fn config_export(config_path: &str, options: CommandOptions) -> Result<(), E
     Ok(())
 }
 
+pub fn config_import(
+    from_path: &str,
+    config_path: &str,
+    dry_run: bool,
+    options: CommandOptions,
+) -> Result<(), EdenError> {
+    let cwd = std::env::current_dir().map_err(EdenError::Io)?;
+    let from_path = resolve_path_string(from_path, &cwd)?;
+    let loaded = load_from_file(
+        &from_path,
+        LoadOptions {
+            strict: options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+
+    let toml = normalized_config_toml(&loaded.config);
+
+    if dry_run {
+        print!("{toml}");
+        return Ok(());
+    }
+
+    let dest_path = resolve_config_path(config_path)?;
+    if let Some(parent) = dest_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(&dest_path, toml)?;
+    println!("config import: wrote {}", dest_path.display());
+    Ok(())
+}
+
 fn normalized_config_toml(config: &Config) -> String {
     let mut out = String::new();
 

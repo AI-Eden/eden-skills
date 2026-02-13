@@ -42,7 +42,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-014
+  - id: B-015
     owner: builder
-    task: implement_config_import_command_with_dry_run
+    task: implement_add_remove_set_commands_for_config_lifecycle
     source_spec: spec/SPEC_COMMANDS.md

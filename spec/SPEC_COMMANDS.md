@@ -178,6 +178,23 @@ The JSON output MUST be backwards compatible:
 - MUST validate imported config before replacing current one.
 - MUST support non-destructive preview mode (`--dry-run`) before write.
 
+#### 4.7.1 CLI Shape (Phase 1+)
+
+`config import` MUST support:
+
+- `--from <path>`: source config TOML path to import
+- `--config <path>`: destination config path (default `~/.config/eden-skills/skills.toml`)
+- `--dry-run`: do not write; instead emit normalized TOML to stdout
+
+Validation rules:
+
+- Imported config MUST be validated using the same schema rules as normal loading.
+- In `--strict` mode, unknown top-level keys MUST be treated as errors.
+
+Write rules:
+
+- When not `--dry-run`, command MUST write the normalized TOML to destination path, replacing existing contents.
+
 ## 5. Exit Codes
 
 - `0`: success (including no-op success)

@@ -16,6 +16,7 @@ Use this file to recover accurate context after compression.
 | CMD-INIT-001 | `SPEC_COMMANDS.md` 4.1 | `init` creates default config when absent; fails unless `--force` when file exists | `crates/eden-skills-cli/src/commands.rs` + `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/init_command.rs` | implemented |
 | CMD-LIST-001 | `SPEC_COMMANDS.md` 4.5 | `list` displays skill inventory and key metadata (text + JSON) | `crates/eden-skills-cli/src/commands.rs` + `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/list_command.rs` + `crates/eden-skills-cli/tests/list_json_contract.rs` | implemented |
 | CMD-CONFIG-EXPORT-001 | `SPEC_COMMANDS.md` 4.6 | `config export` emits full normalized TOML config | `crates/eden-skills-cli/src/commands.rs` + `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/config_export.rs` | implemented |
+| CMD-CONFIG-IMPORT-001 | `SPEC_COMMANDS.md` 4.7 | `config import` validates and imports config (dry-run supported) | `crates/eden-skills-cli/src/commands.rs` + `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/config_import.rs` | implemented |
 | CMD-EXIT-001 | `SPEC_COMMANDS.md` 5 | exit codes 0/1/2/3 mapped by error class | `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/invalid_config_exit.rs` + `crates/eden-skills-cli/tests/exit_code_matrix.rs` | implemented |
 
 ## 2. Schema Requirements

@@ -34,10 +34,10 @@ Legend:
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
 - [ ] Safety Gate MVP (license gate, risk labels, no-exec mode)
-- [~] CLI UX RFC (`init/add/remove/set/list/config export/import` contract captured in spec; code not started)
-- [ ] CLI framework refactor to `clap` (planned)
+- [~] CLI UX RFC (`init/list/config export/config import` implemented; `add/remove/set` pending)
+- [x] CLI framework refactor to `clap` (subcommands + flags)
 
-Progress score (roadmap action items): `6.5 / 10 = 65%`
+Progress score (roadmap action items): `7.5 / 10 = 75%`
 
 ### 3.2 Phase 1 Mandatory Command Status (Spec)
 
@@ -86,6 +86,7 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 - [x] Migrated CLI parsing to `clap` and introduced `init` command with `--force`.
 - [x] Implemented `list` command (text + JSON inventory output).
 - [x] Implemented `config export` command (normalized TOML output + JSON wrapper).
+- [x] Implemented `config import` command (validated import + `--dry-run` preview).
 - [x] Declared stable `list --json` output schema in spec and added a contract test.
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
@@ -98,8 +99,8 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 - [~] Harden copy-mode delta detection for edge cases (symlink-in-tree, large-file strategy, permission anomalies).
 - [~] Expand integration assertions depth (doctor strict/non-strict parity and stable JSON contract fields).
 - [ ] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).
-- [ ] Migrate CLI argument parsing to `clap` subcommands/flags.
-- [ ] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `add/remove/set` -> `config import`.
+- [x] Migrate CLI argument parsing to `clap` subcommands/flags.
+- [~] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `config import` -> `add/remove/set`.
 
 ### 5.2 Architect-Owned (Claude Opus)
 
@@ -114,4 +115,4 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Migrate argument parsing to `clap` and start lifecycle commands from `init`.
+1. Implement `add/remove/set` (config lifecycle mutation commands) while preserving deterministic TOML normalization rules.

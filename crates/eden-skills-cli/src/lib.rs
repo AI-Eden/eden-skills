@@ -63,6 +63,15 @@ pub fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                     json: args.json,
                 },
             ),
+            ConfigSubcommand::Import(args) => commands::config_import(
+                &args.from,
+                &args.config,
+                args.dry_run,
+                CommandOptions {
+                    strict: args.strict,
+                    json: false,
+                },
+            ),
         },
     }
 }
@@ -103,6 +112,7 @@ struct ConfigArgs {
 #[derive(Debug, Clone, Subcommand)]
 enum ConfigSubcommand {
     Export(CommonArgs),
+    Import(ConfigImportArgs),
 }
 
 #[derive(Debug, Clone, Args)]
@@ -113,6 +123,18 @@ struct CommonArgs {
     strict: bool,
     #[arg(long)]
     json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct ConfigImportArgs {
+    #[arg(long)]
+    from: String,
+    #[arg(long, default_value = DEFAULT_CONFIG_PATH)]
+    config: String,
+    #[arg(long)]
+    dry_run: bool,
+    #[arg(long)]
+    strict: bool,
 }
 
 #[derive(Debug, Clone, Args)]
