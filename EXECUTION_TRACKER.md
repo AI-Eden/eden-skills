@@ -58,7 +58,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
 - [~] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), first hosted run pending
 
-Current automated tests: `15` (workspace unit/integration-style tests).
+Current automated tests: `18` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -78,6 +78,7 @@ Current automated tests: `15` (workspace unit/integration-style tests).
 - [x] Added permission-denied target-path test for `apply`.
 - [x] Added invalid-config exit-code integration tests (`exit=2` + field-path assertions).
 - [x] Upgraded `doctor` findings output to include issue `code`, `severity`, and `remediation` hints (text + JSON).
+- [x] Expanded exit-code integration tests to cover runtime failure (`1`) and strict conflict (`3`) paths.
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
@@ -87,7 +88,7 @@ Current automated tests: `15` (workspace unit/integration-style tests).
 ### 5.1 Builder-Owned (GPT-5 Codex)
 
 - [~] Harden copy-mode delta detection for edge cases (symlink-in-tree, large-file strategy, permission anomalies).
-- [~] Expand integration assertions depth (exit-code matrix, doctor structured findings, strict/non-strict behavior parity).
+- [~] Expand integration assertions depth (doctor strict/non-strict parity and stable JSON contract fields).
 - [ ] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).
 - [ ] Migrate CLI argument parsing to `clap` subcommands/flags.
 - [ ] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `add/remove/set` -> `config import`.
@@ -105,6 +106,6 @@ Current automated tests: `15` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Expand exit-code integration coverage for runtime (`1`) and strict conflict (`3`) paths.
+1. Stabilize/declare doctor `--json` schema in spec contract.
 2. Migrate argument parsing to `clap` and start lifecycle commands from `init`.
-3. Stabilize/declare doctor `--json` schema in spec contract.
+3. Strengthen path resolution tests for precedence and normalization rules.
