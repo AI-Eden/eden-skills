@@ -34,6 +34,7 @@ name = "eden-skills-core"
 version = "0.1.0"
 dependencies = [
  "serde",
+ "serde_json",
  "tempfile",
  "thiserror",
  "toml",

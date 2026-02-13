@@ -77,6 +77,7 @@ Current automated tests: `11` (workspace unit/integration-style tests).
 - [x] Replaced plan `--json` stub output with structured `serde_json` serialization (stable lowercase enums + reasons array).
 - [x] Added permission-denied target-path test for `apply`.
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
+- [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
 
 ## 5. Pending Tasks with Planned LLM Ownership
