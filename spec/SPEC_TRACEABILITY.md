@@ -28,9 +28,9 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| PATH-RESOLVE-001 | `SPEC_AGENT_PATHS.md` 3 | target path precedence: `path` -> `expected_path` -> defaults | `crates/eden-skills-core/src/paths.rs` | `crates/eden-skills-core/tests/config_tests.rs` (custom path validation) | partial |
+| PATH-RESOLVE-001 | `SPEC_AGENT_PATHS.md` 3 | target path precedence: `path` -> `expected_path` -> defaults | `crates/eden-skills-core/src/paths.rs` | `crates/eden-skills-core/tests/paths_tests.rs` | implemented |
 | PATH-DERIVE-001 | `SPEC_AGENT_PATHS.md` 3.1 | effective install path is `<target_root>/<skill_id>` | `crates/eden-skills-core/src/plan.rs` | `crates/eden-skills-cli/tests/apply_repair.rs` | implemented |
-| PATH-NORM-001 | `SPEC_AGENT_PATHS.md` 4 | path normalization and `~` expansion | `crates/eden-skills-core/src/paths.rs` | (direct path normalization tests pending) | partial |
+| PATH-NORM-001 | `SPEC_AGENT_PATHS.md` 4 | path normalization and `~` expansion | `crates/eden-skills-core/src/paths.rs` | `crates/eden-skills-core/tests/paths_tests.rs` | implemented |
 
 ## 4. Test Matrix Coverage
 
