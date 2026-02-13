@@ -4,6 +4,7 @@ Deterministic skill installation and reconciliation for agent environments.
 
 `eden-skills` is a local CLI that makes skill setup predictable across tools like Claude Code and Cursor.  
 Instead of only fetching skills, it manages the full state lifecycle: `plan`, `apply`, `doctor`, `repair`.
+Phase 1 implementation stack is Rust.
 
 ## Why This Exists
 
@@ -35,7 +36,9 @@ Planning / specification phase (Phase 1 focus: CLI reliability baseline).
 
 ## Docs
 
-- Full roadmap:  `eden-skills-roadmap.md`
+- Full roadmap: `ROADMAP.md`
+- Spec index and writing rules: `spec/README.md`
+- CLI spec set (source of truth for implementation): `spec/`
 
 ---
 

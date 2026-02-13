@@ -56,6 +56,7 @@ Before building the platform, we must solve the immediate pain point: installati
 ### 3.1 The Product: `eden-skills` (Provisional Name)
 
 A local CLI tool acting as a "Skill State Reconciler" for Agent Skills.
+Phase 1 implementation language is **Rust** (deterministic, typed, single-binary delivery).
 
 ### 3.2 Core Feature: The "Soul" of the Tool (Plan + Apply + Verify + Repair)
 
@@ -103,6 +104,15 @@ skills:
 * **Risk Labels:** Mark skills that include executable scripts (`.sh`, `.py`, binaries) as "review-required" before enablement.
 * **Execution Policy:** Recommend sandboxed execution path for high-risk skills and provide a "no-exec metadata-only" mode.
 
+### 3.6 Specification-First Delivery Rule (Phase 1)
+
+To keep implementation deterministic across human and AI contributors:
+
+* Phase 1 normative specs live under `spec/`.
+* `spec/*.md` is the implementation source of truth for CLI behavior.
+* Any behavior change must update `spec/` first, then code, then tests.
+* `ROADMAP.md` remains strategic; `README.md` remains summary-level.
+
 ---
 
 ## 4. AI Collaboration Roadmap
@@ -112,7 +122,7 @@ Leveraging **GPT-5.3-Codex** (High Speed/Code Gen) and **Claude Opus 4.6** (High
 ### Phase 1: The CLI Foundation (Immediate)
 
 * **Role:** Architect (Claude) defines the `skills.yaml` schema, verification model, and "Agent Detection Strategy".
-* **Role:** Builder (GPT-5.3) writes the Python/Go CLI implementing `plan/apply/doctor/repair`.
+* **Role:** Builder (GPT-5.3) writes the **Rust CLI** implementing `plan/apply/doctor/repair` from `spec/`.
 * **Deliverable:** A deterministic installer that solves the "Last Mile Reliability" problem.
 
 ### Phase 2: The Data Engine (Mid-Term)
@@ -148,11 +158,12 @@ Leveraging **GPT-5.3-Codex** (High Speed/Code Gen) and **Claude Opus 4.6** (High
 ## 5. Next Steps (Action Items)
 
 1. [ ] **Initialize Repo:** Create `follow-edens-skills` (or `eden-skills`).
-2. [ ] **Draft Config:** Manually create a `skills.yaml` with 5 favorite skills and explicit `expected_path` + `verify` rules.
-3. [ ] **Prompt Engineering:** Construct the prompt for GPT-5.3 to write `plan/apply/doctor/repair` logic, not just symlink creation.
-4. [ ] **Test Matrix:** Validate behavior on macOS/Linux with fresh install, repeated apply, broken link, and moved source scenarios.
-5. [ ] **Crawler RFC:** Define sharding, incremental sync, deduplication keys, and API rate-limit handling before writing crawler code.
-6. [ ] **Curation RFC:** Freeze rubric weights + calibration process before enabling automatic quality scores in production.
-7. [ ] **Safety Gate MVP:** Implement license gate + risk label + no-exec mode in the initial CLI release.
+2. [ ] **Freeze Specs:** Maintain `spec/README.md` + `SPEC_SCHEMA.md` + `SPEC_AGENT_PATHS.md` + `SPEC_COMMANDS.md` + `SPEC_TEST_MATRIX.md` as the Phase 1 contract.
+3. [ ] **Draft Config:** Manually create a `skills.yaml` with 5 favorite skills and explicit `expected_path` + `verify` rules.
+4. [ ] **Rust CLI Build:** Implement `plan/apply/doctor/repair` strictly against `spec/` behavior.
+5. [ ] **Test Matrix:** Validate behavior on macOS/Linux with fresh install, repeated apply, broken link, and moved source scenarios.
+6. [ ] **Crawler RFC:** Define sharding, incremental sync, deduplication keys, and API rate-limit handling before writing crawler code.
+7. [ ] **Curation RFC:** Freeze rubric weights + calibration process before enabling automatic quality scores in production.
+8. [ ] **Safety Gate MVP:** Implement license gate + risk label + no-exec mode in the initial CLI release.
 
 > *"The goal is not just to download code; it is to configure the agent's environment seamlessly."*
