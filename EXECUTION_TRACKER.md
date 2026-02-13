@@ -30,14 +30,14 @@ Legend:
 - [x] Freeze Specs (`spec/README.md`, `SPEC_*` baseline established)
 - [x] Draft Config (`skills.toml` with 5 skills)
 - [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source clone/update wired; deep edge-case hardening pending)
-- [ ] Test Matrix completion (all required scenarios automated)
+- [~] Test Matrix completion (fresh/repeated/broken/moved/copy automated; invalid/permission/CI smoke pending)
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
 - [ ] Safety Gate MVP (license gate, risk labels, no-exec mode)
 - [~] CLI UX RFC (`init/add/remove/set/list/config export/import` contract captured in spec; code not started)
 - [ ] CLI framework refactor to `clap` (planned)
 
-Progress score (roadmap action items): `5 / 10 = 50%`
+Progress score (roadmap action items): `5.5 / 10 = 55%`
 
 ### 3.2 Phase 1 Mandatory Command Status (Spec)
 
@@ -55,10 +55,10 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 
 - [x] TOML parsing, defaults, and validation tests present
 - [x] CLI global arg parsing tests present
-- [ ] Full `SPEC_TEST_MATRIX.md` scenario automation
+- [~] `SPEC_TEST_MATRIX.md` scenario automation (5/7 scenarios covered by tests)
 - [ ] CI gate execution on Linux + macOS smoke
 
-Current automated tests: `5` (workspace unit tests).
+Current automated tests: `9` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -71,13 +71,16 @@ Current automated tests: `5` (workspace unit tests).
 - [x] Implemented baseline `doctor`.
 - [x] Implemented baseline `repair`.
 - [x] Implemented source repository sync (`clone/update`) in apply/repair path.
+- [x] Added local/offline git source support via `file://` URLs.
+- [x] Implemented copy-mode content diff detection in plan engine.
+- [x] Added end-to-end tests for fresh install, repeated apply, broken symlink repair, missing-source detection, and copy-mode update detection.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
 ### 5.1 Builder-Owned (GPT-5 Codex)
 
-- [ ] Implement robust copy-mode delta detection (`copy` update/noop correctness).
+- [~] Harden copy-mode delta detection for edge cases (symlink-in-tree, large-file strategy, permission anomalies).
 - [ ] Replace plan JSON stub with structured serializer (`serde_json`) and stable schema.
 - [ ] Add integration tests covering every scenario in `SPEC_TEST_MATRIX.md`.
 - [ ] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).

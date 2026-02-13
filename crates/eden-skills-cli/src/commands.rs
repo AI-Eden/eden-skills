@@ -330,3 +330,284 @@ fn copy_recursively(source: &Path, target: &Path) -> Result<(), EdenError> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::{Path, PathBuf};
+    use std::process::Command;
+
+    use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions};
+    use eden_skills_core::error::EdenError;
+    use eden_skills_core::plan::{build_plan, Action};
+    use tempfile::tempdir;
+
+    use super::{apply, doctor, repair, CommandOptions};
+
+    const SKILL_ID: &str = "demo-skill";
+
+    #[test]
+    fn fresh_and_repeated_apply_symlink() {
+        let temp = tempdir().expect("tempdir");
+        let origin_repo = init_origin_repo(temp.path());
+
+        let storage_root = temp.path().join("storage");
+        let target_root = temp.path().join("agent-skills");
+        let config_path = write_config(
+            temp.path(),
+            &as_file_url(&origin_repo),
+            "symlink",
+            &["path-exists", "target-resolves", "is-symlink"],
+            &storage_root,
+            &target_root,
+        );
+
+        apply(
+            config_path.to_str().expect("config path"),
+            default_options(),
+        )
+        .expect("first apply");
+        let target = expected_target_path(&target_root);
+        assert!(fs::symlink_metadata(&target)
+            .expect("target metadata")
+            .file_type()
+            .is_symlink());
+        assert_eq!(
+            resolved_symlink(&target),
+            expected_source_path(&storage_root)
+        );
+
+        apply(
+            config_path.to_str().expect("config path"),
+            default_options(),
+        )
+        .expect("second apply");
+        assert_eq!(
+            resolved_symlink(&target),
+            expected_source_path(&storage_root)
+        );
+    }
+
+    #[test]
+    fn repair_recovers_broken_symlink() {
+        let temp = tempdir().expect("tempdir");
+        let origin_repo = init_origin_repo(temp.path());
+
+        let storage_root = temp.path().join("storage");
+        let target_root = temp.path().join("agent-skills");
+        let config_path = write_config(
+            temp.path(),
+            &as_file_url(&origin_repo),
+            "symlink",
+            &["path-exists", "target-resolves", "is-symlink"],
+            &storage_root,
+            &target_root,
+        );
+
+        apply(
+            config_path.to_str().expect("config path"),
+            default_options(),
+        )
+        .expect("apply");
+        let target = expected_target_path(&target_root);
+        fs::remove_file(&target).expect("remove existing symlink");
+        create_symlink(Path::new("/tmp/eden-skills-broken"), &target).expect("broken symlink");
+
+        repair(
+            config_path.to_str().expect("config path"),
+            default_options(),
+        )
+        .expect("repair");
+        assert_eq!(
+            resolved_symlink(&target),
+            expected_source_path(&storage_root)
+        );
+    }
+
+    #[test]
+    fn doctor_strict_detects_missing_source() {
+        let temp = tempdir().expect("tempdir");
+        let origin_repo = init_origin_repo(temp.path());
+
+        let storage_root = temp.path().join("storage");
+        let target_root = temp.path().join("agent-skills");
+        let config_path = write_config(
+            temp.path(),
+            &as_file_url(&origin_repo),
+            "symlink",
+            &["path-exists", "target-resolves", "is-symlink"],
+            &storage_root,
+            &target_root,
+        );
+
+        apply(
+            config_path.to_str().expect("config path"),
+            default_options(),
+        )
+        .expect("apply");
+        fs::remove_dir_all(expected_source_path(&storage_root)).expect("remove source");
+
+        let err = doctor(
+            config_path.to_str().expect("config path"),
+            CommandOptions {
+                strict: true,
+                json: false,
+            },
+        )
+        .expect_err("doctor strict should fail");
+
+        assert!(matches!(err, EdenError::Conflict(_)));
+    }
+
+    #[test]
+    fn copy_mode_plan_detects_source_change() {
+        let temp = tempdir().expect("tempdir");
+        let origin_repo = init_origin_repo(temp.path());
+
+        let storage_root = temp.path().join("storage");
+        let target_root = temp.path().join("agent-skills");
+        let config_path = write_config(
+            temp.path(),
+            &as_file_url(&origin_repo),
+            "copy",
+            &["path-exists", "content-present"],
+            &storage_root,
+            &target_root,
+        );
+
+        apply(
+            config_path.to_str().expect("config path"),
+            default_options(),
+        )
+        .expect("apply");
+
+        let source_file = expected_source_path(&storage_root).join("README.txt");
+        fs::write(&source_file, "v2\n").expect("update source content");
+
+        let loaded = load_from_file(&config_path, LoadOptions::default()).expect("load config");
+        let config_dir = config_dir_from_path(&config_path);
+        let plan = build_plan(&loaded.config, &config_dir).expect("build plan");
+        let item = plan
+            .into_iter()
+            .find(|plan_item| plan_item.skill_id == SKILL_ID)
+            .expect("skill plan item");
+
+        assert!(matches!(item.action, Action::Update));
+    }
+
+    fn default_options() -> CommandOptions {
+        CommandOptions {
+            strict: false,
+            json: false,
+        }
+    }
+
+    fn init_origin_repo(base: &Path) -> PathBuf {
+        let repo = base.join("origin-repo");
+        fs::create_dir_all(repo.join("packages").join("browser")).expect("create repo tree");
+        fs::write(
+            repo.join("packages").join("browser").join("README.txt"),
+            "v1\n",
+        )
+        .expect("write seed file");
+
+        run_git(&repo, &["init"]);
+        run_git(&repo, &["config", "user.email", "test@example.com"]);
+        run_git(&repo, &["config", "user.name", "eden-skills-test"]);
+        run_git(&repo, &["add", "."]);
+        run_git(&repo, &["commit", "-m", "init"]);
+        run_git(&repo, &["branch", "-M", "main"]);
+        repo
+    }
+
+    fn run_git(cwd: &Path, args: &[&str]) {
+        let output = Command::new("git")
+            .args(args)
+            .current_dir(cwd)
+            .output()
+            .expect("spawn git");
+        if output.status.success() {
+            return;
+        }
+
+        panic!(
+            "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
+            args,
+            cwd.display(),
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim(),
+            String::from_utf8_lossy(&output.stdout).trim()
+        );
+    }
+
+    fn write_config(
+        base: &Path,
+        repo_url: &str,
+        install_mode: &str,
+        verify_checks: &[&str],
+        storage_root: &Path,
+        target_root: &Path,
+    ) -> PathBuf {
+        let checks = verify_checks
+            .iter()
+            .map(|check| format!("\"{check}\""))
+            .collect::<Vec<_>>()
+            .join(", ");
+        let config = format!(
+            "version = 1\n\n[storage]\nroot = \"{}\"\n\n[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"{}\"\nsubpath = \"packages/browser\"\nref = \"main\"\n\n[skills.install]\nmode = \"{}\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n\n[skills.verify]\nenabled = true\nchecks = [{}]\n\n[skills.safety]\nno_exec_metadata_only = false\n",
+            toml_escape(storage_root),
+            SKILL_ID,
+            toml_escape_str(repo_url),
+            install_mode,
+            toml_escape(target_root),
+            checks
+        );
+        let config_path = base.join("skills.toml");
+        fs::write(&config_path, config).expect("write config");
+        config_path
+    }
+
+    fn expected_source_path(storage_root: &Path) -> PathBuf {
+        storage_root.join(SKILL_ID).join("packages").join("browser")
+    }
+
+    fn expected_target_path(target_root: &Path) -> PathBuf {
+        target_root.join(SKILL_ID)
+    }
+
+    fn as_file_url(path: &Path) -> String {
+        format!("file://{}", path.display())
+    }
+
+    fn toml_escape(path: &Path) -> String {
+        path.display().to_string().replace('\\', "\\\\")
+    }
+
+    fn toml_escape_str(value: &str) -> String {
+        value.replace('\\', "\\\\").replace('"', "\\\"")
+    }
+
+    fn resolved_symlink(path: &Path) -> PathBuf {
+        let raw = fs::read_link(path).expect("read symlink");
+        if raw.is_absolute() {
+            raw
+        } else {
+            path.parent()
+                .expect("parent")
+                .join(raw)
+                .canonicalize()
+                .expect("canonicalize")
+        }
+    }
+
+    fn create_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(source, target)
+        }
+        #[cfg(windows)]
+        {
+            std::os::windows::fs::symlink_dir(source, target)
+        }
+    }
+}

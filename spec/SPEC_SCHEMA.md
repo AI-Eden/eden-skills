@@ -46,7 +46,7 @@ no_exec_metadata_only = false
 - `version` MUST be `1`
 - `skills` MUST exist and contain at least one item
 - For each skill item, `id` MUST be unique in file
-- For each skill item, `source.repo` MUST be a valid git URL (https or ssh)
+- For each skill item, `source.repo` MUST be a valid git URL (https, ssh, or file for local/offline workflows)
 - For each skill item, `targets` MUST contain at least one target
 - For `agent: custom`, `path` MUST be provided
 

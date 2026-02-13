@@ -7,6 +7,9 @@ license.workspace = true
 [dependencies]
 eden-skills-core = { path = "../eden-skills-core" }
 
+[dev-dependencies]
+tempfile = "3.14"
+
 [[bin]]
 name = "eden-skills"
 path = "src/main.rs"

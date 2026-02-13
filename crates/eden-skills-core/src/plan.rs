@@ -105,12 +105,62 @@ fn determine_action(
                     vec!["target is a symlink but install mode is copy".to_string()],
                 ));
             }
-            Ok((
-                Action::Noop,
-                vec!["target exists; copy diff check not implemented yet".to_string()],
-            ))
+            if copy_content_equal(source_path, target_path)? {
+                Ok((
+                    Action::Noop,
+                    vec!["target content matches source".to_string()],
+                ))
+            } else {
+                Ok((
+                    Action::Update,
+                    vec!["target content differs from source".to_string()],
+                ))
+            }
         }
     }
+}
+
+fn copy_content_equal(source: &Path, target: &Path) -> Result<bool, std::io::Error> {
+    let source_meta = fs::metadata(source)?;
+    let target_meta = fs::metadata(target)?;
+
+    if source_meta.is_file() != target_meta.is_file()
+        || source_meta.is_dir() != target_meta.is_dir()
+    {
+        return Ok(false);
+    }
+
+    if source_meta.is_file() {
+        if source_meta.len() != target_meta.len() {
+            return Ok(false);
+        }
+        let source_bytes = fs::read(source)?;
+        let target_bytes = fs::read(target)?;
+        return Ok(source_bytes == target_bytes);
+    }
+
+    let mut source_entries = fs::read_dir(source)?
+        .map(|entry| entry.map(|e| e.file_name()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let mut target_entries = fs::read_dir(target)?
+        .map(|entry| entry.map(|e| e.file_name()))
+        .collect::<Result<Vec<_>, _>>()?;
+    source_entries.sort();
+    target_entries.sort();
+
+    if source_entries != target_entries {
+        return Ok(false);
+    }
+
+    for name in source_entries {
+        let source_child = source.join(&name);
+        let target_child = target.join(&name);
+        if !copy_content_equal(&source_child, &target_child)? {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
 }
 
 fn read_symlink_target(target_path: &Path) -> Result<PathBuf, std::io::Error> {

@@ -358,11 +358,12 @@ fn validate_repo_url(url: &str, field_path: &str) -> Result<(), EdenError> {
     let is_https = url.starts_with("https://");
     let is_ssh = url.starts_with("ssh://");
     let is_scp_like = url.starts_with("git@") && url.contains(':');
-    if is_https || is_ssh || is_scp_like {
+    let is_file = url.starts_with("file://");
+    if is_https || is_ssh || is_scp_like || is_file {
         return Ok(());
     }
     Err(EdenError::Validation(format!(
-        "{field_path}: must be a valid git URL (https/ssh)"
+        "{field_path}: must be a valid git URL (https/ssh/file)"
     )))
 }
 
