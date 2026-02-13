@@ -12,7 +12,7 @@ fn main() -> ExitCode {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             eprintln!("{err}");
-            ExitCode::from(err.exit_code())
+            ExitCode::from(exit_code_for_error(&err))
         }
     }
 }
@@ -61,4 +61,12 @@ fn parse_config_path(args: &[String]) -> Result<String, EdenError> {
 
 fn print_usage() {
     println!("eden-skills <plan|apply|doctor|repair> [--config <path>]");
+}
+
+fn exit_code_for_error(err: &EdenError) -> u8 {
+    match err {
+        EdenError::InvalidArguments(_) | EdenError::Validation(_) => 2,
+        EdenError::Conflict(_) => 3,
+        EdenError::Runtime(_) | EdenError::Io(_) => 1,
+    }
 }

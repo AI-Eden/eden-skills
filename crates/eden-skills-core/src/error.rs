@@ -1,30 +1,15 @@
-use std::fmt::{Display, Formatter};
+use thiserror::Error;
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum EdenError {
+    #[error("invalid arguments: {0}")]
     InvalidArguments(String),
+    #[error("validation error: {0}")]
     Validation(String),
+    #[error("state conflict: {0}")]
+    Conflict(String),
+    #[error("runtime error: {0}")]
     Runtime(String),
+    #[error("io error: {0}")]
+    Io(#[from] std::io::Error),
 }
-
-impl EdenError {
-    pub fn exit_code(&self) -> u8 {
-        match self {
-            Self::InvalidArguments(_) => 2,
-            Self::Validation(_) => 2,
-            Self::Runtime(_) => 1,
-        }
-    }
-}
-
-impl Display for EdenError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidArguments(msg) => write!(f, "invalid arguments: {msg}"),
-            Self::Validation(msg) => write!(f, "validation error: {msg}"),
-            Self::Runtime(msg) => write!(f, "runtime error: {msg}"),
-        }
-    }
-}
-
-impl std::error::Error for EdenError {}
