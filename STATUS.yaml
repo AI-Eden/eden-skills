@@ -42,7 +42,11 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-012
+  - id: B-013
     owner: builder
-    task: implement_config_export_command
+    task: specify_and_test_list_json_schema_contract
+    source_spec: spec/SPEC_COMMANDS.md
+  - id: B-014
+    owner: builder
+    task: implement_config_import_command_with_dry_run
     source_spec: spec/SPEC_COMMANDS.md

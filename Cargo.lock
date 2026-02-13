@@ -124,6 +124,7 @@ dependencies = [
  "eden-skills-core",
  "serde_json",
  "tempfile",
+ "toml",
 ]
 
 [[package]]

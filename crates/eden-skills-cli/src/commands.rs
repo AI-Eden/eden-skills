@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use eden_skills_core::config::InstallMode;
 use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions};
+use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
@@ -557,12 +558,138 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     Ok(())
 }
 
-fn agent_kind_label(agent: &eden_skills_core::config::AgentKind) -> &'static str {
+fn agent_kind_label(agent: &AgentKind) -> &'static str {
     match agent {
-        eden_skills_core::config::AgentKind::ClaudeCode => "claude-code",
-        eden_skills_core::config::AgentKind::Cursor => "cursor",
-        eden_skills_core::config::AgentKind::Custom => "custom",
+        AgentKind::ClaudeCode => "claude-code",
+        AgentKind::Cursor => "cursor",
+        AgentKind::Custom => "custom",
     }
+}
+
+pub fn config_export(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
+    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path = config_path_buf.as_path();
+    let loaded = load_from_file(
+        config_path,
+        LoadOptions {
+            strict: options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+
+    let toml = normalized_config_toml(&loaded.config);
+
+    if options.json {
+        let payload = serde_json::json!({
+            "format": "toml",
+            "toml": toml,
+        });
+        let encoded = serde_json::to_string_pretty(&payload).map_err(|err| {
+            EdenError::Runtime(format!("failed to serialize config export json: {err}"))
+        })?;
+        println!("{encoded}");
+        return Ok(());
+    }
+
+    print!("{toml}");
+    Ok(())
+}
+
+fn normalized_config_toml(config: &Config) -> String {
+    let mut out = String::new();
+
+    out.push_str(&format!("version = {}\n\n", config.version));
+    out.push_str("[storage]\n");
+    out.push_str(&format!(
+        "root = \"{}\"\n\n",
+        toml_escape_str(&config.storage_root)
+    ));
+
+    for skill in &config.skills {
+        out.push_str(&normalized_skill_toml(skill));
+        out.push('\n');
+    }
+
+    out
+}
+
+fn normalized_skill_toml(skill: &SkillConfig) -> String {
+    let mut out = String::new();
+
+    out.push_str("[[skills]]\n");
+    out.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(&skill.id)));
+
+    out.push_str("[skills.source]\n");
+    out.push_str(&format!(
+        "repo = \"{}\"\n",
+        toml_escape_str(&skill.source.repo)
+    ));
+    out.push_str(&format!(
+        "subpath = \"{}\"\n",
+        toml_escape_str(&skill.source.subpath)
+    ));
+    out.push_str(&format!(
+        "ref = \"{}\"\n\n",
+        toml_escape_str(&skill.source.r#ref)
+    ));
+
+    out.push_str("[skills.install]\n");
+    out.push_str(&format!(
+        "mode = \"{}\"\n\n",
+        toml_escape_str(skill.install.mode.as_str())
+    ));
+
+    for target in &skill.targets {
+        out.push_str(&normalized_target_toml(target));
+        out.push('\n');
+    }
+
+    out.push_str("[skills.verify]\n");
+    out.push_str(&format!("enabled = {}\n", skill.verify.enabled));
+    out.push_str("checks = [");
+    out.push_str(
+        &skill
+            .verify
+            .checks
+            .iter()
+            .map(|c| format!("\"{}\"", toml_escape_str(c)))
+            .collect::<Vec<_>>()
+            .join(", "),
+    );
+    out.push_str("]\n\n");
+
+    out.push_str("[skills.safety]\n");
+    out.push_str(&format!(
+        "no_exec_metadata_only = {}\n",
+        skill.safety.no_exec_metadata_only
+    ));
+
+    out
+}
+
+fn normalized_target_toml(target: &TargetConfig) -> String {
+    let mut out = String::new();
+    out.push_str("[[skills.targets]]\n");
+    out.push_str(&format!(
+        "agent = \"{}\"\n",
+        toml_escape_str(agent_kind_label(&target.agent))
+    ));
+    if let Some(expected) = &target.expected_path {
+        out.push_str(&format!(
+            "expected_path = \"{}\"\n",
+            toml_escape_str(expected)
+        ));
+    }
+    if let Some(path) = &target.path {
+        out.push_str(&format!("path = \"{}\"\n", toml_escape_str(path)));
+    }
+    out
+}
+
+fn toml_escape_str(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('\"', "\\\"")
 }
 
 fn apply_plan_item(item: &PlanItem) -> Result<(), EdenError> {

@@ -15,6 +15,7 @@ Use this file to recover accurate context after compression.
 | CMD-REPAIR-001 | `SPEC_COMMANDS.md` 3.4 | `repair` recreates/relinks recoverable targets | `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/apply_repair.rs` (`repair_recovers_broken_symlink`) | implemented |
 | CMD-INIT-001 | `SPEC_COMMANDS.md` 4.1 | `init` creates default config when absent; fails unless `--force` when file exists | `crates/eden-skills-cli/src/commands.rs` + `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/init_command.rs` | implemented |
 | CMD-LIST-001 | `SPEC_COMMANDS.md` 4.5 | `list` displays skill inventory and key metadata | `crates/eden-skills-cli/src/commands.rs` + `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/list_command.rs` | implemented |
+| CMD-CONFIG-EXPORT-001 | `SPEC_COMMANDS.md` 4.6 | `config export` emits full normalized TOML config | `crates/eden-skills-cli/src/commands.rs` + `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/config_export.rs` | implemented |
 | CMD-EXIT-001 | `SPEC_COMMANDS.md` 5 | exit codes 0/1/2/3 mapped by error class | `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/invalid_config_exit.rs` + `crates/eden-skills-cli/tests/exit_code_matrix.rs` | implemented |
 
 ## 2. Schema Requirements

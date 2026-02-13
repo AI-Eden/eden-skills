@@ -55,6 +55,15 @@ pub fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 json: args.json,
             },
         ),
+        Commands::Config(cmd) => match cmd.command {
+            ConfigSubcommand::Export(args) => commands::config_export(
+                &args.config,
+                CommandOptions {
+                    strict: args.strict,
+                    json: args.json,
+                },
+            ),
+        },
     }
 }
 
@@ -82,6 +91,18 @@ enum Commands {
     Repair(CommonArgs),
     Init(InitArgs),
     List(CommonArgs),
+    Config(ConfigArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct ConfigArgs {
+    #[command(subcommand)]
+    command: ConfigSubcommand,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum ConfigSubcommand {
+    Export(CommonArgs),
 }
 
 #[derive(Debug, Clone, Args)]

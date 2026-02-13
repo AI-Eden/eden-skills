@@ -58,7 +58,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
 - [~] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), first hosted run pending
 
-Current automated tests: `36` (workspace unit/integration-style tests).
+Current automated tests: `38` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -85,6 +85,7 @@ Current automated tests: `36` (workspace unit/integration-style tests).
 - [x] Hardened symlink verification and plan matching to use canonical paths for comparisons.
 - [x] Migrated CLI parsing to `clap` and introduced `init` command with `--force`.
 - [x] Implemented `list` command (text + JSON inventory output).
+- [x] Implemented `config export` command (normalized TOML output + JSON wrapper).
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
