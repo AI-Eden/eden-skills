@@ -3,6 +3,7 @@ mod commands;
 use std::env;
 use std::process::ExitCode;
 
+use commands::CommandOptions;
 use eden_skills_core::error::EdenError;
 
 const DEFAULT_CONFIG_PATH: &str = "~/.config/eden-skills/skills.yaml";
@@ -27,40 +28,92 @@ fn run() -> Result<(), EdenError> {
     }
 
     let subcommand = args.remove(0);
-    let config_path = parse_config_path(&args)?;
+    if matches!(subcommand.as_str(), "--help" | "-h" | "help") {
+        print_usage();
+        return Ok(());
+    }
 
+    let parsed = parse_global_options(&args)?;
     match subcommand.as_str() {
-        "plan" => commands::plan(&config_path),
-        "apply" => commands::apply(&config_path),
-        "doctor" => commands::doctor(&config_path),
-        "repair" => commands::repair(&config_path),
-        "--help" | "-h" | "help" => {
-            print_usage();
-            Ok(())
-        }
+        "plan" => commands::plan(
+            &parsed.config_path,
+            CommandOptions {
+                strict: parsed.strict,
+                json: parsed.json,
+            },
+        ),
+        "apply" => commands::apply(
+            &parsed.config_path,
+            CommandOptions {
+                strict: parsed.strict,
+                json: parsed.json,
+            },
+        ),
+        "doctor" => commands::doctor(
+            &parsed.config_path,
+            CommandOptions {
+                strict: parsed.strict,
+                json: parsed.json,
+            },
+        ),
+        "repair" => commands::repair(
+            &parsed.config_path,
+            CommandOptions {
+                strict: parsed.strict,
+                json: parsed.json,
+            },
+        ),
         _ => Err(EdenError::InvalidArguments(format!(
             "unsupported subcommand: {subcommand}"
         ))),
     }
 }
 
-fn parse_config_path(args: &[String]) -> Result<String, EdenError> {
-    let mut iter = args.iter();
-    while let Some(arg) = iter.next() {
-        if arg == "--config" {
-            let Some(value) = iter.next() else {
-                return Err(EdenError::InvalidArguments(
-                    "missing value for --config".to_string(),
-                ));
-            };
-            return Ok(value.to_string());
+struct ParsedGlobalOptions {
+    config_path: String,
+    strict: bool,
+    json: bool,
+}
+
+fn parse_global_options(args: &[String]) -> Result<ParsedGlobalOptions, EdenError> {
+    let mut parsed = ParsedGlobalOptions {
+        config_path: DEFAULT_CONFIG_PATH.to_string(),
+        strict: false,
+        json: false,
+    };
+
+    let mut idx = 0usize;
+    while idx < args.len() {
+        match args[idx].as_str() {
+            "--config" => {
+                let Some(value) = args.get(idx + 1) else {
+                    return Err(EdenError::InvalidArguments(
+                        "missing value for --config".to_string(),
+                    ));
+                };
+                parsed.config_path = value.to_string();
+                idx += 2;
+            }
+            "--strict" => {
+                parsed.strict = true;
+                idx += 1;
+            }
+            "--json" => {
+                parsed.json = true;
+                idx += 1;
+            }
+            unknown => {
+                return Err(EdenError::InvalidArguments(format!(
+                    "unsupported option: {unknown}"
+                )));
+            }
         }
     }
-    Ok(DEFAULT_CONFIG_PATH.to_string())
+    Ok(parsed)
 }
 
 fn print_usage() {
-    println!("eden-skills <plan|apply|doctor|repair> [--config <path>]");
+    println!("eden-skills <plan|apply|doctor|repair> [--config <path>] [--strict] [--json]");
 }
 
 fn exit_code_for_error(err: &EdenError) -> u8 {
