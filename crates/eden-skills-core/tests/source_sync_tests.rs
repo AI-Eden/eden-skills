@@ -101,6 +101,81 @@ fn sync_sources_reports_checkout_failure_stage() {
     assert_eq!(summary.failures[0].stage, SyncFailureStage::Checkout);
 }
 
+#[test]
+fn sync_sources_continues_after_failure_and_aggregates_results() {
+    let temp = tempdir().expect("tempdir");
+    let origin_repo = init_origin_repo(temp.path());
+    let storage_root = temp.path().join("storage");
+    fs::create_dir_all(&storage_root).expect("create storage");
+
+    let missing_repo = temp.path().join("missing-origin");
+    let config = Config {
+        version: 1,
+        storage_root: storage_root.display().to_string(),
+        skills: vec![
+            SkillConfig {
+                id: "good-skill".to_string(),
+                source: SourceConfig {
+                    repo: as_file_url(&origin_repo),
+                    subpath: ".".to_string(),
+                    r#ref: "main".to_string(),
+                },
+                install: InstallConfig {
+                    mode: InstallMode::Symlink,
+                },
+                targets: vec![TargetConfig {
+                    agent: AgentKind::Custom,
+                    expected_path: None,
+                    path: Some(storage_root.join("targets").display().to_string()),
+                }],
+                verify: VerifyConfig {
+                    enabled: false,
+                    checks: vec![],
+                },
+                safety: SafetyConfig {
+                    no_exec_metadata_only: false,
+                },
+            },
+            SkillConfig {
+                id: "bad-skill".to_string(),
+                source: SourceConfig {
+                    repo: as_file_url(&missing_repo),
+                    subpath: ".".to_string(),
+                    r#ref: "main".to_string(),
+                },
+                install: InstallConfig {
+                    mode: InstallMode::Symlink,
+                },
+                targets: vec![TargetConfig {
+                    agent: AgentKind::Custom,
+                    expected_path: None,
+                    path: Some(storage_root.join("targets").display().to_string()),
+                }],
+                verify: VerifyConfig {
+                    enabled: false,
+                    checks: vec![],
+                },
+                safety: SafetyConfig {
+                    no_exec_metadata_only: false,
+                },
+            },
+        ],
+    };
+
+    let summary = sync_sources(&config, temp.path()).expect("sync summary");
+    assert_eq!(summary.cloned, 1);
+    assert_eq!(summary.updated, 0);
+    assert_eq!(summary.skipped, 0);
+    assert_eq!(summary.failed, 1);
+    assert_eq!(summary.failures.len(), 1);
+    assert_eq!(summary.failures[0].skill_id, "bad-skill");
+    assert_eq!(summary.failures[0].stage, SyncFailureStage::Clone);
+    assert!(
+        storage_root.join("good-skill").join(".git").exists(),
+        "successful skill should still be cloned when another skill fails"
+    );
+}
+
 fn init_origin_repo(base: &Path) -> PathBuf {
     let repo = base.join("origin-repo");
     fs::create_dir_all(repo.join("packages/browser")).expect("create repo tree");

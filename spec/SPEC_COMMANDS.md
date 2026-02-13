@@ -93,7 +93,12 @@ Rules:
 - `updated` MUST count skills whose synced repo `HEAD` changed during sync.
 - `skipped` MUST count skills that were already present and remained on the same `HEAD` after sync.
 - `failed` MUST count skills whose source sync failed at clone/fetch/checkout stages.
+- For mixed outcomes in one run, summary counters MUST include both successful and failed skills.
 - When `failed > 0`, `apply`/`repair` MUST fail with exit code `1` before target mutation and verification.
+- When multiple source sync failures occur, diagnostics MUST include one entry per failed skill in config order.
+- In `--strict` mode, source sync failure handling MUST take precedence over strict conflict exit behavior:
+  - if `failed > 0`, command MUST return exit code `1`;
+  - strict conflict exit code `3` applies only when `failed = 0`.
 - Failure diagnostics MUST include actionable context for each failed skill:
   - `skill=<skill_id>`
   - `stage=<clone|fetch|checkout>`

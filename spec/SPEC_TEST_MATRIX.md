@@ -90,3 +90,12 @@ These scenarios are recommended incremental coverage for source sync hardening a
 - Source clone failure reports exit code `1` and includes `skill`, `stage=clone`, and `repo_dir` diagnostics.
 - Source fetch failure reports exit code `1` and includes `skill`, `stage=fetch`, and `repo_dir` diagnostics.
 - Source checkout failure reports exit code `1` and includes `skill`, `stage=checkout`, and `repo_dir` diagnostics.
+- Multi-skill source sync failure diagnostics preserve config-order reporting (`skill A` before `skill B` when configured in that order).
+- Mixed source sync outcome (`cloned/skipped/updated` plus `failed`) reports all counters deterministically in one summary line.
+
+## 8. Incremental Strict-Mode Interaction Scenarios
+
+These scenarios are recommended incremental coverage for strict-mode interaction precedence:
+
+- `apply --strict` with source sync failures MUST return exit code `1` (runtime), even when other skills could produce plan conflicts.
+- `repair --strict` with source sync failures MUST return exit code `1` (runtime), even when other skills could produce plan conflicts.

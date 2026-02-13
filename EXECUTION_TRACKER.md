@@ -29,7 +29,7 @@ Legend:
 - [x] Initialize Repo (`Cargo workspace`, crates, toolchain)
 - [x] Freeze Specs (`spec/README.md`, `SPEC_*` baseline established)
 - [x] Draft Config (`skills.toml` with 5 skills)
-- [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source sync edge-case/error-reporting hardening completed; multi-skill strict-interaction hardening pending)
+- [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source sync edge-case/error-reporting + strict-interaction hardening completed; mixed no-exec/verify interaction hardening pending)
 - [x] Test Matrix completion (all 7 scenarios automated; CI hosted pass verified)
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
@@ -37,7 +37,7 @@ Legend:
 - [x] CLI UX RFC (`init/list/config export/config import/add/remove/set` implemented)
 - [x] CLI framework refactor to `clap` (subcommands + flags)
 
-Progress score (roadmap action items): `8.7 / 10 = 87%`
+Progress score (roadmap action items): `8.9 / 10 = 89%`
 
 ### 3.2 Phase 1 Mandatory Command Status (Spec)
 
@@ -58,7 +58,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
 - [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `21996981871`)
 
-Current automated tests: `63` (workspace unit/integration-style tests).
+Current automated tests: `67` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -98,6 +98,7 @@ Current automated tests: `63` (workspace unit/integration-style tests).
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
 - [x] Hardened source sync behavior with deterministic `cloned/updated/skipped/failed` reporting and actionable clone/fetch/checkout diagnostics.
+- [x] Hardened multi-skill source sync behavior and strict-mode interaction precedence (config-ordered failure aggregation; source sync runtime failure precedence over strict conflict exit).
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -110,6 +111,7 @@ Current automated tests: `63` (workspace unit/integration-style tests).
 - [x] Migrate CLI argument parsing to `clap` subcommands/flags.
 - [x] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `config import` -> `add/remove/set`.
 - [x] Harden source sync edge cases and error reporting (`clone/fetch/checkout` diagnostics + deterministic skipped/updated reporting).
+- [x] Harden multi-skill partial-failure and strict-mode interactions for `apply`/`repair`.
 
 ### 5.2 Architect-Owned (Claude Opus)
 
@@ -124,10 +126,10 @@ Current automated tests: `63` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Harden multi-skill partial-failure and strict-mode interactions in `apply`/`repair`.
+1. Harden multi-skill `no_exec_metadata_only` and verify interaction behavior in `apply`/`repair`.
 
-### 6.1 Builder Checklist (B-023)
+### 6.1 Builder Checklist (B-024)
 
-- Add multi-skill mixed-state tests (some skills sync-fail while others are clean) to verify deterministic failure aggregation.
-- Define and test strict-mode interaction contract when source sync failures and plan conflicts coexist.
-- Keep safety metadata/no-exec behavior unchanged while tightening failure-path reporting.
+- Add multi-skill mixed-mode tests combining `no_exec_metadata_only=true/false` skills in one config.
+- Verify that verify-check execution is skipped only for no-exec skills while remaining skills are still verified deterministically.
+- Ensure strict/non-strict behavior stays stable under mixed no-exec + conflict + verify-failure states.

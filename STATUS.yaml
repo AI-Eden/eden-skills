@@ -30,6 +30,8 @@ phase1:
   source_sync_hardening:
     deterministic_summary_reporting: implemented
     stage_diagnostics_clone_fetch_checkout: implemented
+    multiskill_partial_failure_aggregation: implemented
+    strict_mode_precedence_over_conflict_exit: implemented
   test_matrix:
     covered: 7
     total: 7
@@ -61,7 +63,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-023
+  - id: B-024
     owner: builder
-    task: harden_multiskill_partial_failure_and_strict_mode_interactions
+    task: harden_multiskill_no_exec_and_verify_interactions
     source_spec: spec/SPEC_COMMANDS.md
