@@ -43,8 +43,10 @@ Keywords are interpreted as:
 1. Update the relevant spec file first.
 2. Implement code to match the spec.
 3. Add or update tests from `SPEC_TEST_MATRIX.md`.
-4. Update `SPEC_TRACEABILITY.md` mappings.
-5. If behavior changed, update `STATUS.yaml`, `EXECUTION_TRACKER.md`, `README.md`, and `ROADMAP.md`.
+4. Run `cargo fmt --all`, `cargo clippy --workspace`, and `cargo test --workspace`.
+5. Fix clippy findings when possible; for unavoidable lints, use the smallest-scope `#[allow(...)]` with a brief justification.
+6. Update `SPEC_TRACEABILITY.md` mappings.
+7. If behavior changed, update `STATUS.yaml`, `EXECUTION_TRACKER.md`, `README.md`, and `ROADMAP.md`.
 
 ## Non-goal
 

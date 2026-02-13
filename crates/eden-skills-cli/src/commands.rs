@@ -561,25 +561,28 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     Ok(())
 }
 
-pub fn add(
-    config_path: &str,
-    id: &str,
-    repo: &str,
-    r#ref: &str,
-    subpath: &str,
-    mode: InstallMode,
-    target_specs: &[String],
-    verify_enabled: Option<bool>,
-    verify_checks: Option<&[String]>,
-    no_exec_metadata_only: Option<bool>,
-    options: CommandOptions,
-) -> Result<(), EdenError> {
-    let config_path_buf = resolve_config_path(config_path)?;
+#[derive(Debug, Clone)]
+pub struct AddRequest {
+    pub config_path: String,
+    pub id: String,
+    pub repo: String,
+    pub r#ref: String,
+    pub subpath: String,
+    pub mode: InstallMode,
+    pub target_specs: Vec<String>,
+    pub verify_enabled: Option<bool>,
+    pub verify_checks: Option<Vec<String>>,
+    pub no_exec_metadata_only: Option<bool>,
+    pub options: CommandOptions,
+}
+
+pub fn add(req: AddRequest) -> Result<(), EdenError> {
+    let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
         config_path,
         LoadOptions {
-            strict: options.strict,
+            strict: req.options.strict,
         },
     )?;
     for warning in loaded.warnings {
@@ -589,30 +592,32 @@ pub fn add(
     let config_dir = config_dir_from_path(config_path);
     let mut config = loaded.config;
 
-    if config.skills.iter().any(|s| s.id == id) {
+    if config.skills.iter().any(|s| s.id == req.id) {
         return Err(EdenError::InvalidArguments(format!(
-            "skill id already exists: `{id}`"
+            "skill id already exists: `{}`",
+            req.id
         )));
     }
 
-    let targets = parse_target_specs(target_specs)?;
-    let enabled = verify_enabled.unwrap_or(true);
-    let checks = verify_checks
-        .map(|v| v.to_vec())
-        .unwrap_or_else(|| default_verify_checks_for_mode(mode));
+    let targets = parse_target_specs(&req.target_specs)?;
+    let enabled = req.verify_enabled.unwrap_or(true);
+    let checks = req
+        .verify_checks
+        .clone()
+        .unwrap_or_else(|| default_verify_checks_for_mode(req.mode));
 
     let skill = SkillConfig {
-        id: id.to_string(),
+        id: req.id.clone(),
         source: eden_skills_core::config::SourceConfig {
-            repo: repo.to_string(),
-            subpath: subpath.to_string(),
-            r#ref: r#ref.to_string(),
+            repo: req.repo.clone(),
+            subpath: req.subpath.clone(),
+            r#ref: req.r#ref.clone(),
         },
-        install: eden_skills_core::config::InstallConfig { mode },
+        install: eden_skills_core::config::InstallConfig { mode: req.mode },
         targets,
         verify: eden_skills_core::config::VerifyConfig { enabled, checks },
         safety: eden_skills_core::config::SafetyConfig {
-            no_exec_metadata_only: no_exec_metadata_only.unwrap_or(false),
+            no_exec_metadata_only: req.no_exec_metadata_only.unwrap_or(false),
         },
     };
 
@@ -621,11 +626,11 @@ pub fn add(
     validate_config(&config, &config_dir)?;
     write_normalized_config(config_path, &config)?;
 
-    if options.json {
+    if req.options.json {
         let payload = serde_json::json!({
             "action": "add",
             "config_path": config_path.display().to_string(),
-            "skill_id": id,
+            "skill_id": req.id,
         });
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to serialize add json: {err}")))?;
@@ -679,40 +684,42 @@ pub fn remove(config_path: &str, skill_id: &str, options: CommandOptions) -> Res
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
-pub fn set(
-    config_path: &str,
-    skill_id: &str,
-    repo: Option<&str>,
-    r#ref: Option<&str>,
-    subpath: Option<&str>,
-    mode: Option<InstallMode>,
-    verify_enabled: Option<bool>,
-    verify_checks: Option<&[String]>,
-    target_specs: Option<&[String]>,
-    no_exec_metadata_only: Option<bool>,
-    options: CommandOptions,
-) -> Result<(), EdenError> {
-    let has_any_mutation = repo.is_some()
-        || r#ref.is_some()
-        || subpath.is_some()
-        || mode.is_some()
-        || verify_enabled.is_some()
-        || verify_checks.is_some()
-        || target_specs.is_some()
-        || no_exec_metadata_only.is_some();
+#[derive(Debug, Clone)]
+pub struct SetRequest {
+    pub config_path: String,
+    pub skill_id: String,
+    pub repo: Option<String>,
+    pub r#ref: Option<String>,
+    pub subpath: Option<String>,
+    pub mode: Option<InstallMode>,
+    pub verify_enabled: Option<bool>,
+    pub verify_checks: Option<Vec<String>>,
+    pub target_specs: Option<Vec<String>>,
+    pub no_exec_metadata_only: Option<bool>,
+    pub options: CommandOptions,
+}
+
+pub fn set(req: SetRequest) -> Result<(), EdenError> {
+    let has_any_mutation = req.repo.is_some()
+        || req.r#ref.is_some()
+        || req.subpath.is_some()
+        || req.mode.is_some()
+        || req.verify_enabled.is_some()
+        || req.verify_checks.is_some()
+        || req.target_specs.is_some()
+        || req.no_exec_metadata_only.is_some();
     if !has_any_mutation {
         return Err(EdenError::InvalidArguments(
             "set requires at least one mutation flag".to_string(),
         ));
     }
 
-    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
         config_path,
         LoadOptions {
-            strict: options.strict,
+            strict: req.options.strict,
         },
     )?;
     for warning in loaded.warnings {
@@ -722,45 +729,46 @@ pub fn set(
     let config_dir = config_dir_from_path(config_path);
     let mut config = loaded.config;
 
-    let Some(skill) = config.skills.iter_mut().find(|s| s.id == skill_id) else {
+    let Some(skill) = config.skills.iter_mut().find(|s| s.id == req.skill_id) else {
         return Err(EdenError::InvalidArguments(format!(
-            "unknown skill id: `{skill_id}`"
+            "unknown skill id: `{}`",
+            req.skill_id
         )));
     };
 
-    if let Some(repo) = repo {
-        skill.source.repo = repo.to_string();
+    if let Some(repo) = req.repo {
+        skill.source.repo = repo;
     }
-    if let Some(r#ref) = r#ref {
-        skill.source.r#ref = r#ref.to_string();
+    if let Some(r#ref) = req.r#ref {
+        skill.source.r#ref = r#ref;
     }
-    if let Some(subpath) = subpath {
-        skill.source.subpath = subpath.to_string();
+    if let Some(subpath) = req.subpath {
+        skill.source.subpath = subpath;
     }
-    if let Some(mode) = mode {
+    if let Some(mode) = req.mode {
         skill.install.mode = mode;
     }
-    if let Some(enabled) = verify_enabled {
+    if let Some(enabled) = req.verify_enabled {
         skill.verify.enabled = enabled;
     }
-    if let Some(checks) = verify_checks {
-        skill.verify.checks = checks.to_vec();
+    if let Some(checks) = req.verify_checks {
+        skill.verify.checks = checks;
     }
-    if let Some(target_specs) = target_specs {
-        skill.targets = parse_target_specs(target_specs)?;
+    if let Some(target_specs) = req.target_specs {
+        skill.targets = parse_target_specs(&target_specs)?;
     }
-    if let Some(flag) = no_exec_metadata_only {
+    if let Some(flag) = req.no_exec_metadata_only {
         skill.safety.no_exec_metadata_only = flag;
     }
 
     validate_config(&config, &config_dir)?;
     write_normalized_config(config_path, &config)?;
 
-    if options.json {
+    if req.options.json {
         let payload = serde_json::json!({
             "action": "set",
             "config_path": config_path.display().to_string(),
-            "skill_id": skill_id,
+            "skill_id": req.skill_id,
         });
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to serialize set json: {err}")))?;

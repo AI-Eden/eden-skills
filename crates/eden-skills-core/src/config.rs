@@ -366,9 +366,8 @@ pub fn validate_config(config: &Config, config_dir: &Path) -> Result<(), EdenErr
         )));
     }
 
-    resolve_path_string(&config.storage_root, config_dir).map_err(|err| {
-        EdenError::Validation(format!("storage.root: invalid path: {}", err.to_string()))
-    })?;
+    resolve_path_string(&config.storage_root, config_dir)
+        .map_err(|err| EdenError::Validation(format!("storage.root: invalid path: {err}")))?;
 
     if config.skills.is_empty() {
         return Err(EdenError::Validation(
@@ -402,17 +401,14 @@ pub fn validate_config(config: &Config, config_dir: &Path) -> Result<(), EdenErr
             }
             if let Some(path) = &target.path {
                 resolve_path_string(path, config_dir).map_err(|err| {
-                    EdenError::Validation(format!(
-                        "{target_path}.path: invalid path: {}",
-                        err.to_string()
-                    ))
+                    EdenError::Validation(format!("{target_path}.path: invalid path: {}", err))
                 })?;
             }
             if let Some(expected) = &target.expected_path {
                 resolve_path_string(expected, config_dir).map_err(|err| {
                     EdenError::Validation(format!(
                         "{target_path}.expected_path: invalid path: {}",
-                        err.to_string()
+                        err
                     ))
                 })?;
             }

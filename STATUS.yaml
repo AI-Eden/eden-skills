@@ -42,7 +42,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-016
+  - id: B-017
     owner: builder
-    task: harden_copy_mode_delta_detection_edge_cases
-    source_spec: spec/SPEC_TEST_MATRIX.md
+    task: implement_safety_gate_mvp_mechanics_license_risk_no_exec
+    source_spec: ROADMAP.md

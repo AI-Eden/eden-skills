@@ -1,5 +1,6 @@
 use std::fs;
 use std::io::ErrorKind;
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use serde::Serialize;
@@ -111,24 +112,50 @@ fn determine_action(
                     vec!["target is a symlink but install mode is copy".to_string()],
                 ));
             }
-            if copy_content_equal(source_path, target_path)? {
-                Ok((
+
+            match copy_content_equal(source_path, target_path) {
+                Ok(true) => Ok((
                     Action::Noop,
                     vec!["target content matches source".to_string()],
-                ))
-            } else {
-                Ok((
+                )),
+                Ok(false) => Ok((
                     Action::Update,
                     vec!["target content differs from source".to_string()],
-                ))
+                )),
+                Err(err) => Ok((
+                    Action::Conflict,
+                    vec![format!(
+                        "copy comparison failed: {}",
+                        copy_compare_error_cause(&err)
+                    )],
+                )),
             }
         }
     }
 }
 
-fn copy_content_equal(source: &Path, target: &Path) -> Result<bool, std::io::Error> {
-    let source_meta = fs::metadata(source)?;
-    let target_meta = fs::metadata(target)?;
+#[derive(Debug)]
+enum CopyCompareError {
+    SymlinkInTree,
+    Io(ErrorKind),
+}
+
+fn copy_compare_error_cause(err: &CopyCompareError) -> &'static str {
+    match err {
+        CopyCompareError::SymlinkInTree => "symlink in tree",
+        CopyCompareError::Io(ErrorKind::PermissionDenied) => "permission denied",
+        CopyCompareError::Io(ErrorKind::NotFound) => "not found",
+        CopyCompareError::Io(_) => "io error",
+    }
+}
+
+fn copy_content_equal(source: &Path, target: &Path) -> Result<bool, CopyCompareError> {
+    // Copy-mode comparisons must not follow symlinks (both for safety and for determinism).
+    let source_meta = fs::symlink_metadata(source).map_err(|e| CopyCompareError::Io(e.kind()))?;
+    let target_meta = fs::symlink_metadata(target).map_err(|e| CopyCompareError::Io(e.kind()))?;
+    if source_meta.file_type().is_symlink() || target_meta.file_type().is_symlink() {
+        return Err(CopyCompareError::SymlinkInTree);
+    }
 
     if source_meta.is_file() != target_meta.is_file()
         || source_meta.is_dir() != target_meta.is_dir()
@@ -140,19 +167,11 @@ fn copy_content_equal(source: &Path, target: &Path) -> Result<bool, std::io::Err
         if source_meta.len() != target_meta.len() {
             return Ok(false);
         }
-        let source_bytes = fs::read(source)?;
-        let target_bytes = fs::read(target)?;
-        return Ok(source_bytes == target_bytes);
+        return file_content_equal_streaming(source, target);
     }
 
-    let mut source_entries = fs::read_dir(source)?
-        .map(|entry| entry.map(|e| e.file_name()))
-        .collect::<Result<Vec<_>, _>>()?;
-    let mut target_entries = fs::read_dir(target)?
-        .map(|entry| entry.map(|e| e.file_name()))
-        .collect::<Result<Vec<_>, _>>()?;
-    source_entries.sort();
-    target_entries.sort();
+    let source_entries = read_dir_entry_names_no_symlink(source)?;
+    let target_entries = read_dir_entry_names_no_symlink(target)?;
 
     if source_entries != target_entries {
         return Ok(false);
@@ -161,12 +180,57 @@ fn copy_content_equal(source: &Path, target: &Path) -> Result<bool, std::io::Err
     for name in source_entries {
         let source_child = source.join(&name);
         let target_child = target.join(&name);
+
         if !copy_content_equal(&source_child, &target_child)? {
             return Ok(false);
         }
     }
 
     Ok(true)
+}
+
+fn read_dir_entry_names_no_symlink(
+    path: &Path,
+) -> Result<Vec<std::ffi::OsString>, CopyCompareError> {
+    let mut names = Vec::new();
+    for entry in fs::read_dir(path).map_err(|e| CopyCompareError::Io(e.kind()))? {
+        let entry = entry.map_err(|e| CopyCompareError::Io(e.kind()))?;
+        let file_type = entry
+            .file_type()
+            .map_err(|e| CopyCompareError::Io(e.kind()))?;
+        if file_type.is_symlink() {
+            return Err(CopyCompareError::SymlinkInTree);
+        }
+        names.push(entry.file_name());
+    }
+    names.sort();
+    Ok(names)
+}
+
+fn file_content_equal_streaming(source: &Path, target: &Path) -> Result<bool, CopyCompareError> {
+    let mut source_file = fs::File::open(source).map_err(|e| CopyCompareError::Io(e.kind()))?;
+    let mut target_file = fs::File::open(target).map_err(|e| CopyCompareError::Io(e.kind()))?;
+
+    let mut source_buf = vec![0u8; 64 * 1024];
+    let mut target_buf = vec![0u8; 64 * 1024];
+
+    loop {
+        let n1 = source_file
+            .read(&mut source_buf)
+            .map_err(|e| CopyCompareError::Io(e.kind()))?;
+        let n2 = target_file
+            .read(&mut target_buf)
+            .map_err(|e| CopyCompareError::Io(e.kind()))?;
+        if n1 != n2 {
+            return Ok(false);
+        }
+        if n1 == 0 {
+            return Ok(true);
+        }
+        if source_buf[..n1] != target_buf[..n2] {
+            return Ok(false);
+        }
+    }
 }
 
 fn read_symlink_target(target_path: &Path) -> Result<PathBuf, std::io::Error> {

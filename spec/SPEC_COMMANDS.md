@@ -57,6 +57,18 @@ The JSON output MUST be backwards compatible:
 - Adding new optional fields is allowed.
 - Removing or renaming required fields is not allowed.
 
+#### 3.1.2 Copy Mode Delta Detection (Edge Cases)
+
+When `install.mode=copy`, the plan engine MUST compare source and target content to decide between `noop` and `update`.
+
+Rules:
+
+- The comparison MUST use a streaming strategy for files (it MUST NOT require loading entire files into memory).
+- The comparison MUST NOT follow symlinks. If a symlink is encountered anywhere in the source or target tree, the plan item MUST be marked `conflict`.
+- If the comparison fails due to IO errors (permissions, unreadable paths, transient filesystem errors), the plan item MUST be marked `conflict` (the command MUST NOT abort the entire plan).
+- For copy-comparison conflicts, `reasons` MUST include a stable message of the form: `copy comparison failed: <cause>`.
+- `<cause>` MUST be one of: `permission denied`, `not found`, `symlink in tree`, `io error`.
+
 ### 3.2 `apply`
 
 Purpose: execute planned actions idempotently.

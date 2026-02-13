@@ -116,14 +116,13 @@ Current automated tests: `39` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Implement `add/remove/set` (config lifecycle mutation commands) while preserving deterministic TOML normalization rules.
+1. Harden copy-mode delta detection edge cases (symlink-in-tree, large-file strategy, permission anomalies).
 
-### 6.1 Builder Checklist (B-015)
+### 6.1 Builder Checklist (B-016)
 
-- Update `spec/SPEC_COMMANDS.md` to define `add/remove/set` CLI shape, validation rules, and output behavior.
-- Implement `eden-skills add` with deterministic append semantics and full config validation before write.
-- Implement `eden-skills remove <skill_id>` with "remove only the matching entry" semantics and error on missing id.
-- Implement `eden-skills set <skill_id> ...` to mutate only requested fields and require at least one mutation flag.
-- Add CLI integration tests for `add/remove/set` covering success paths and "no write on validation failure".
-- Close `SPEC_TRACEABILITY.md` item `SCH-URL-001` by adding direct negative URL validation tests in `eden-skills-core`.
-- Run `cargo fmt --all` and `cargo test --workspace` after each deliverable step.
+- Update `spec/SPEC_COMMANDS.md` to define deterministic copy-mode comparison failure behavior for `plan`.
+- Implement streaming file comparisons for copy-mode planning (no full-file reads).
+- Treat copy-mode comparison IO failures as `conflict` with stable reason strings.
+- Treat symlink-in-tree in copy mode as `conflict` (do not follow symlinks).
+- Add tests covering large files, permission-denied paths, and symlink-in-tree behavior.
+- Update `spec/SPEC_TRACEABILITY.md`, `STATUS.yaml`, and `EXECUTION_TRACKER.md` after completion.
