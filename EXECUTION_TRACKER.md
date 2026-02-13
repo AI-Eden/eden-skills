@@ -29,7 +29,7 @@ Legend:
 - [x] Initialize Repo (`Cargo workspace`, crates, toolchain)
 - [x] Freeze Specs (`spec/README.md`, `SPEC_*` baseline established)
 - [x] Draft Config (`skills.toml` with 5 skills)
-- [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source sync/no-exec/strict-vs-verify precedence hardening completed; closeout validation pending)
+- [x] Rust CLI Build (`plan/apply/doctor/repair` implemented; source sync/no-exec/strict-vs-verify precedence hardening completed; closeout audit completed)
 - [x] Test Matrix completion (all 7 scenarios automated; CI hosted pass verified)
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
@@ -37,7 +37,7 @@ Legend:
 - [x] CLI UX RFC (`init/list/config export/config import/add/remove/set` implemented)
 - [x] CLI framework refactor to `clap` (subcommands + flags)
 
-Progress score (roadmap action items): `9.3 / 10 = 93%`
+Progress score (roadmap action items, Builder scope): `10 / 10 = 100%`
 
 ### 3.2 Phase 1 Mandatory Command Status (Spec)
 
@@ -56,7 +56,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] TOML parsing, defaults, and validation tests present
 - [x] CLI global arg parsing tests present
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
-- [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `21996981871`)
+- [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `22000208004`)
 
 Current automated tests: `73` (workspace unit/integration-style tests).
 
@@ -93,7 +93,7 @@ Current automated tests: `73` (workspace unit/integration-style tests).
 - [x] Added doctor strict/non-strict payload parity and JSON required-field stability tests.
 - [x] Declared stable `list --json` output schema in spec and added a contract test.
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/clippy/test`).
-- [x] Verified hosted CI run success on both `ubuntu-latest` and `macos-latest` with clippy gate (`https://github.com/AI-Eden/eden-skills/actions/runs/21996981871`).
+- [x] Verified hosted CI run success on both `ubuntu-latest` and `macos-latest` with clippy gate (`https://github.com/AI-Eden/eden-skills/actions/runs/22000208004`).
 - [x] Updated CI workflow quality gate from `cargo check --workspace` to `cargo clippy --workspace`.
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
@@ -116,6 +116,7 @@ Current automated tests: `73` (workspace unit/integration-style tests).
 - [x] Harden multi-skill partial-failure and strict-mode interactions for `apply`/`repair`.
 - [x] Harden multi-skill no-exec and verify interactions for `apply`/`repair`.
 - [x] Harmonize strict conflict and verify-failure precedence for `apply`/`repair`.
+- [x] Complete Phase 1 Builder closeout audit (command-spec parity, traceability completeness, test-matrix consistency).
 
 ### 5.2 Architect-Owned (Claude Opus)
 
@@ -128,12 +129,13 @@ Current automated tests: `73` (workspace unit/integration-style tests).
 - [ ] Any change that mutates command semantics MUST be spec-first (`spec/` update before code).
 - [ ] Any Architect decision consumed by Builder MUST be recorded as explicit contract items before implementation.
 
-## 6. Next Execution Target (Builder)
+## 6. Builder State (Phase 1)
 
-1. Phase 1 Builder closeout validation and hosted CI reference refresh.
+1. No unresolved Builder-owned Phase 1 tasks at this checkpoint.
 
-### 6.1 Builder Checklist (B-026)
+### 6.1 Completed Checklist (B-027)
 
-- Trigger and record a hosted CI run on the latest branch head and update `STATUS.yaml` run reference fields.
-- Complete Builder closeout audit against `spec/SPEC_COMMANDS.md`, `spec/SPEC_TEST_MATRIX.md`, and `spec/SPEC_TRACEABILITY.md`.
-- Keep `spec/PHASE1_BUILDER_REMAINING.md` as the concise index of unresolved Builder tasks.
+- [x] Verified command-behavior parity against `spec/SPEC_COMMANDS.md` (no mismatches found).
+- [x] Verified `spec/SPEC_TRACEABILITY.md` requirement mappings remain complete and status-consistent.
+- [x] Verified `spec/SPEC_TEST_MATRIX.md` scenarios remain fully represented by automated tests.
+- [x] Updated `spec/PHASE1_BUILDER_REMAINING.md` as the concise index of unresolved Builder tasks.

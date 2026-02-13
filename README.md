@@ -54,7 +54,7 @@ Authoritative machine-readable status: `STATUS.yaml`.
 
 ## Local Commands
 
-- `cargo check --workspace`
+- `cargo clippy --workspace`
 - `cargo run -p eden-skills-cli -- plan --config ./skills.toml`
 
 ---
