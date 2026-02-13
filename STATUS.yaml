@@ -42,7 +42,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-011
+  - id: B-012
     owner: builder
-    task: implement_list_command_inventory_view
+    task: implement_config_export_command
     source_spec: spec/SPEC_COMMANDS.md

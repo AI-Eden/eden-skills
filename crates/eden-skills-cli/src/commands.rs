@@ -4,7 +4,7 @@ use std::path::{Path, PathBuf};
 use eden_skills_core::config::InstallMode;
 use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions};
 use eden_skills_core::error::EdenError;
-use eden_skills_core::paths::resolve_path_string;
+use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::source::sync_sources;
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
@@ -469,6 +469,100 @@ fn default_config_template() -> String {
         "",
     ]
     .join("\n")
+}
+
+pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
+    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path = config_path_buf.as_path();
+    let loaded = load_from_file(
+        config_path,
+        LoadOptions {
+            strict: options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+
+    let config_dir = config_dir_from_path(config_path);
+    let skills = &loaded.config.skills;
+
+    if options.json {
+        let payload = serde_json::json!({
+            "count": skills.len(),
+            "skills": skills.iter().map(|skill| {
+                let targets = skill.targets.iter().map(|target| {
+                    let resolved = resolve_target_path(target, &config_dir)
+                        .map(|p| p.display().to_string())
+                        .unwrap_or_else(|err| format!("ERROR: {err}"));
+
+                    serde_json::json!({
+                        "agent": agent_kind_label(&target.agent),
+                        "path": resolved,
+                    })
+                }).collect::<Vec<_>>();
+
+                serde_json::json!({
+                    "id": skill.id,
+                    "source": {
+                        "repo": skill.source.repo,
+                        "ref": skill.source.r#ref,
+                        "subpath": skill.source.subpath,
+                    },
+                    "install": {
+                        "mode": skill.install.mode.as_str(),
+                    },
+                    "verify": {
+                        "enabled": skill.verify.enabled,
+                        "checks": skill.verify.checks,
+                    },
+                    "targets": targets,
+                })
+            }).collect::<Vec<_>>(),
+        });
+
+        let encoded = serde_json::to_string_pretty(&payload)
+            .map_err(|err| EdenError::Runtime(format!("failed to serialize list json: {err}")))?;
+        println!("{encoded}");
+        return Ok(());
+    }
+
+    println!("list: {} skill(s)", skills.len());
+    for skill in skills {
+        println!(
+            "skill id={} mode={} repo={} ref={} subpath={}",
+            skill.id,
+            skill.install.mode.as_str(),
+            skill.source.repo,
+            skill.source.r#ref,
+            skill.source.subpath
+        );
+        println!(
+            "  verify enabled={} checks={}",
+            skill.verify.enabled,
+            skill.verify.checks.join(",")
+        );
+        for target in &skill.targets {
+            let resolved = resolve_target_path(target, &config_dir)
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|err| format!("ERROR: {err}"));
+            println!(
+                "  target agent={} path={}",
+                agent_kind_label(&target.agent),
+                resolved
+            );
+        }
+    }
+
+    Ok(())
+}
+
+fn agent_kind_label(agent: &eden_skills_core::config::AgentKind) -> &'static str {
+    match agent {
+        eden_skills_core::config::AgentKind::ClaudeCode => "claude-code",
+        eden_skills_core::config::AgentKind::Cursor => "cursor",
+        eden_skills_core::config::AgentKind::Custom => "custom",
+    }
 }
 
 fn apply_plan_item(item: &PlanItem) -> Result<(), EdenError> {

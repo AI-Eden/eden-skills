@@ -48,6 +48,13 @@ pub fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
             },
         ),
         Commands::Init(args) => commands::init(&args.config, args.force),
+        Commands::List(args) => commands::list(
+            &args.config,
+            CommandOptions {
+                strict: args.strict,
+                json: args.json,
+            },
+        ),
     }
 }
 
@@ -74,6 +81,7 @@ enum Commands {
     Doctor(CommonArgs),
     Repair(CommonArgs),
     Init(InitArgs),
+    List(CommonArgs),
 }
 
 #[derive(Debug, Clone, Args)]
