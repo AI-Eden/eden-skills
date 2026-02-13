@@ -7,13 +7,8 @@ This file is intentionally short and points to detailed sources.
 
 No unresolved Builder-owned Phase 1 tasks at this checkpoint.
 
-## Last Completed Item
-
-| ID | Task | Detail References |
-|---|---|---|
-| B-027 | Completed Phase 1 closeout audit for Builder scope: command behavior/spec parity, traceability completeness, and test-matrix coverage consistency. | `spec/SPEC_COMMANDS.md`, `spec/SPEC_TEST_MATRIX.md`, `spec/SPEC_TRACEABILITY.md`, `EXECUTION_TRACKER.md` (Section `6.1`) |
-
 ## Notes
 
 - Architect-owned tasks (taxonomy, rubric, crawler strategy RFC) are intentionally excluded.
-- If B-027 discovers functional gaps, add a new Builder task ID and link it here.
+- Historical completion details are tracked in `EXECUTION_TRACKER.md` (Section `6.1`).
+- If new Builder-owned Phase 1 gaps are discovered, add a new Builder task ID and link it here.
