@@ -19,10 +19,9 @@ phase1:
     doctor: implemented
     repair: implemented
   test_matrix:
-    covered: 6
+    covered: 7
     total: 7
-    missing:
-      - invalid_config_validation_errors
+    missing: []
   ci:
     workflow_defined: true
     linux_macos_smoke_configured: true
@@ -43,10 +42,6 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-001
-    owner: builder
-    task: cover_invalid_config_exit_code_2_scenario
-    source_spec: spec/SPEC_TEST_MATRIX.md
   - id: B-002
     owner: builder
     task: doctor_output_issue_code_severity_remediation_hint
@@ -54,4 +49,8 @@ next_execution_targets:
   - id: B-003
     owner: builder
     task: migrate_cli_parsing_to_clap_and_start_init_command
+    source_spec: spec/SPEC_COMMANDS.md
+  - id: B-004
+    owner: builder
+    task: add_exit_code_integration_coverage_for_runtime_and_conflict_paths
     source_spec: spec/SPEC_COMMANDS.md

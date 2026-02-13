@@ -30,7 +30,7 @@ Legend:
 - [x] Freeze Specs (`spec/README.md`, `SPEC_*` baseline established)
 - [x] Draft Config (`skills.toml` with 5 skills)
 - [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source clone/update wired; deep edge-case hardening pending)
-- [~] Test Matrix completion (fresh/repeated/broken/moved/copy/permission automated; invalid config + CI hosted pass pending)
+- [~] Test Matrix completion (all 7 scenarios automated; CI hosted pass pending)
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
 - [ ] Safety Gate MVP (license gate, risk labels, no-exec mode)
@@ -55,10 +55,10 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 
 - [x] TOML parsing, defaults, and validation tests present
 - [x] CLI global arg parsing tests present
-- [~] `SPEC_TEST_MATRIX.md` scenario automation (6/7 scenarios covered by tests)
+- [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
 - [~] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), first hosted run pending
 
-Current automated tests: `11` (workspace unit/integration-style tests).
+Current automated tests: `13` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -76,6 +76,7 @@ Current automated tests: `11` (workspace unit/integration-style tests).
 - [x] Added end-to-end tests for fresh install, repeated apply, broken symlink repair, missing-source detection, and copy-mode update detection.
 - [x] Replaced plan `--json` stub output with structured `serde_json` serialization (stable lowercase enums + reasons array).
 - [x] Added permission-denied target-path test for `apply`.
+- [x] Added invalid-config exit-code integration tests (`exit=2` + field-path assertions).
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
@@ -85,7 +86,7 @@ Current automated tests: `11` (workspace unit/integration-style tests).
 ### 5.1 Builder-Owned (GPT-5 Codex)
 
 - [~] Harden copy-mode delta detection for edge cases (symlink-in-tree, large-file strategy, permission anomalies).
-- [ ] Add integration tests covering every scenario in `SPEC_TEST_MATRIX.md`.
+- [~] Expand integration assertions depth (exit-code matrix, doctor structured findings, strict/non-strict behavior parity).
 - [ ] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).
 - [ ] Migrate CLI argument parsing to `clap` subcommands/flags.
 - [ ] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `add/remove/set` -> `config import`.

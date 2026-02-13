@@ -13,7 +13,7 @@ Use this file to recover accurate context after compression.
 | CMD-APPLY-002 | `SPEC_COMMANDS.md` 3.2 | `apply` executes only create/update actions | `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/apply_repair.rs` | implemented |
 | CMD-DOCTOR-001 | `SPEC_COMMANDS.md` 3.3 | `doctor` reports drift/conflict and strict-mode failure | `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/doctor_copy.rs` (`doctor_strict_detects_missing_source`) | partial (code/severity/remediation format pending) |
 | CMD-REPAIR-001 | `SPEC_COMMANDS.md` 3.4 | `repair` recreates/relinks recoverable targets | `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/apply_repair.rs` (`repair_recovers_broken_symlink`) | implemented |
-| CMD-EXIT-001 | `SPEC_COMMANDS.md` 5 | exit codes 0/1/2/3 mapped by error class | `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/src/lib.rs` (unit tests for arg errors only) | partial (explicit exit-code integration tests pending) |
+| CMD-EXIT-001 | `SPEC_COMMANDS.md` 5 | exit codes 0/1/2/3 mapped by error class | `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/invalid_config_exit.rs` | partial (code=2 integration covered; code=1/3 integration pending) |
 
 ## 2. Schema Requirements
 
@@ -21,7 +21,7 @@ Use this file to recover accurate context after compression.
 |---|---|---|---|---|---|
 | SCH-ROOT-001 | `SPEC_SCHEMA.md` 2 | `version` must be `1` and `skills` non-empty | `crates/eden-skills-core/src/config.rs` | `crates/eden-skills-core/tests/config_tests.rs` | implemented |
 | SCH-TARGET-001 | `SPEC_SCHEMA.md` 2 | `agent=custom` requires `path` | `crates/eden-skills-core/src/config.rs` | `crates/eden-skills-core/tests/config_tests.rs` (`reject_custom_target_without_path`) | implemented |
-| SCH-STRICT-001 | `SPEC_SCHEMA.md` 4 | unknown top-level keys warn by default, fail in strict mode | `crates/eden-skills-core/src/config.rs` | (needs dedicated strict-mode unknown-key test) | partial |
+| SCH-STRICT-001 | `SPEC_SCHEMA.md` 4 | unknown top-level keys warn by default, fail in strict mode | `crates/eden-skills-core/src/config.rs` | `crates/eden-skills-cli/tests/invalid_config_exit.rs` (`strict_mode_unknown_top_level_key_returns_exit_code_2`) | implemented |
 | SCH-URL-001 | `SPEC_SCHEMA.md` 2 | source repo URL allows https/ssh/file | `crates/eden-skills-core/src/config.rs` | (covered indirectly; direct negative test pending) | partial |
 
 ## 3. Path and Target Requirements
@@ -41,5 +41,5 @@ Use this file to recover accurate context after compression.
 | TM-003 | `SPEC_TEST_MATRIX.md` 2.3 | Broken symlink recovery | `crates/eden-skills-cli/tests/apply_repair.rs` (`repair_recovers_broken_symlink`) | covered |
 | TM-004 | `SPEC_TEST_MATRIX.md` 2.4 | Source moved or missing | `crates/eden-skills-cli/tests/doctor_copy.rs` (`doctor_strict_detects_missing_source`) | covered |
 | TM-005 | `SPEC_TEST_MATRIX.md` 2.5 | Copy mode verification | `crates/eden-skills-cli/tests/doctor_copy.rs` (`copy_mode_plan_detects_source_change`) | covered |
-| TM-006 | `SPEC_TEST_MATRIX.md` 2.6 | Invalid config validation errors | (not yet added) | missing |
+| TM-006 | `SPEC_TEST_MATRIX.md` 2.6 | Invalid config validation errors | `crates/eden-skills-cli/tests/invalid_config_exit.rs` (`invalid_config_returns_exit_code_2_and_field_path`) | covered |
 | TM-007 | `SPEC_TEST_MATRIX.md` 2.7 | Permission denied target path | `crates/eden-skills-cli/tests/apply_repair.rs` (`apply_fails_on_permission_denied_target_path`) | covered |
