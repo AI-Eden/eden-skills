@@ -40,6 +40,23 @@ Output MUST include, per target:
 
 `plan` MUST be deterministic for same config + same filesystem state.
 
+#### 3.1.1 Plan JSON Schema (`--json`)
+
+When `--json` is set, `plan` MUST emit a single JSON array to stdout.
+Each array entry MUST be a JSON object with:
+
+- `skill_id`: string
+- `source_path`: string
+- `target_path`: string
+- `install_mode`: string in `{symlink, copy}`
+- `action`: string in `{create, update, noop, conflict}`
+- `reasons`: array of strings
+
+The JSON output MUST be backwards compatible:
+
+- Adding new optional fields is allowed.
+- Removing or renaming required fields is not allowed.
+
 ### 3.2 `apply`
 
 Purpose: execute planned actions idempotently.

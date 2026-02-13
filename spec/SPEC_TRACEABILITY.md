@@ -8,7 +8,7 @@ Use this file to recover accurate context after compression.
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
 | CMD-PLAN-001 | `SPEC_COMMANDS.md` 3.1 | `plan` computes dry-run graph without mutation | `crates/eden-skills-core/src/plan.rs` | `crates/eden-skills-cli/tests/doctor_copy.rs` (`copy_mode_plan_detects_source_change`) | implemented |
-| CMD-PLAN-002 | `SPEC_COMMANDS.md` 3.1 | `plan` output includes `skill_id/source_path/target_path/install_mode/action/reasons` | `crates/eden-skills-core/src/plan.rs` + `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-core/tests/plan_json_contract.rs` | implemented |
+| CMD-PLAN-002 | `SPEC_COMMANDS.md` 3.1 | `plan` output includes `skill_id/source_path/target_path/install_mode/action/reasons` | `crates/eden-skills-core/src/plan.rs` + `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-core/tests/plan_json_contract.rs` + `crates/eden-skills-cli/tests/plan_json_contract.rs` | implemented |
 | CMD-APPLY-001 | `SPEC_COMMANDS.md` 3.2 | `apply` syncs source repos before install mutations | `crates/eden-skills-core/src/source.rs` + `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/apply_repair.rs` | implemented |
 | CMD-APPLY-002 | `SPEC_COMMANDS.md` 3.2 | `apply` executes only create/update actions | `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/apply_repair.rs` | implemented |
 | CMD-DOCTOR-001 | `SPEC_COMMANDS.md` 3.3 | `doctor` reports drift/conflict and strict-mode failure, including issue code/severity/remediation | `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/doctor_copy.rs` + `crates/eden-skills-cli/tests/doctor_output.rs` + `crates/eden-skills-cli/tests/doctor_json_contract.rs` | implemented |
@@ -30,7 +30,7 @@ Use this file to recover accurate context after compression.
 |---|---|---|---|---|---|
 | PATH-RESOLVE-001 | `SPEC_AGENT_PATHS.md` 3 | target path precedence: `path` -> `expected_path` -> defaults | `crates/eden-skills-core/src/paths.rs` | `crates/eden-skills-core/tests/paths_tests.rs` | implemented |
 | PATH-DERIVE-001 | `SPEC_AGENT_PATHS.md` 3.1 | effective install path is `<target_root>/<skill_id>` | `crates/eden-skills-core/src/plan.rs` | `crates/eden-skills-cli/tests/apply_repair.rs` | implemented |
-| PATH-NORM-001 | `SPEC_AGENT_PATHS.md` 4 | path normalization and `~` expansion | `crates/eden-skills-core/src/paths.rs` | `crates/eden-skills-core/tests/paths_tests.rs` | implemented |
+| PATH-NORM-001 | `SPEC_AGENT_PATHS.md` 4 | path normalization, `~` expansion, and canonical path comparisons for symlink verification | `crates/eden-skills-core/src/paths.rs` + `crates/eden-skills-core/src/verify.rs` | `crates/eden-skills-core/tests/paths_tests.rs` + `crates/eden-skills-core/tests/symlink_canonical_tests.rs` | implemented |
 
 ## 4. Test Matrix Coverage
 

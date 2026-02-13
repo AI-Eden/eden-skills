@@ -87,15 +87,51 @@ fn run_check(
         "target-resolves" => match fs::read_link(target_path) {
             Ok(current_target) => {
                 let resolved = resolve_symlink_target(target_path, &current_target);
-                if resolved != normalize_lexical(source_path) {
+                if !resolved.exists() {
+                    issues.push(issue(
+                        skill_id,
+                        target_path,
+                        check,
+                        "symlink target does not exist".to_string(),
+                    ));
+                    return Ok(());
+                }
+
+                let expected = normalize_lexical(source_path);
+                let resolved_canon = match fs::canonicalize(&resolved) {
+                    Ok(value) => value,
+                    Err(err) => {
+                        issues.push(issue(
+                            skill_id,
+                            target_path,
+                            check,
+                            format!("failed to canonicalize resolved symlink target: {err}"),
+                        ));
+                        return Ok(());
+                    }
+                };
+                let expected_canon = match fs::canonicalize(&expected) {
+                    Ok(value) => value,
+                    Err(err) => {
+                        issues.push(issue(
+                            skill_id,
+                            target_path,
+                            check,
+                            format!("failed to canonicalize expected source path: {err}"),
+                        ));
+                        return Ok(());
+                    }
+                };
+
+                if resolved_canon != expected_canon {
                     issues.push(issue(
                         skill_id,
                         target_path,
                         check,
                         format!(
                             "symlink resolves to `{}` but expected `{}`",
-                            resolved.display(),
-                            normalize_lexical(source_path).display()
+                            resolved_canon.display(),
+                            expected_canon.display()
                         ),
                     ));
                 }

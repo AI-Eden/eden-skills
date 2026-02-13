@@ -89,7 +89,10 @@ fn determine_action(
             }
 
             let current = read_symlink_target(target_path)?;
-            if current == normalize_lexical(source_path) {
+            let expected = normalize_lexical(source_path);
+            let current_cmp = fs::canonicalize(&current).unwrap_or(current);
+            let expected_cmp = fs::canonicalize(&expected).unwrap_or(expected);
+            if current_cmp == expected_cmp {
                 Ok((
                     Action::Noop,
                     vec!["target already points to source".to_string()],
