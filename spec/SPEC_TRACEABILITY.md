@@ -13,6 +13,7 @@ Use this file to recover accurate context after compression.
 | CMD-APPLY-002 | `SPEC_COMMANDS.md` 3.2 | `apply` executes only create/update actions | `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/apply_repair.rs` | implemented |
 | CMD-DOCTOR-001 | `SPEC_COMMANDS.md` 3.3 | `doctor` reports drift/conflict and strict-mode failure, including issue code/severity/remediation | `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/doctor_copy.rs` + `crates/eden-skills-cli/tests/doctor_output.rs` + `crates/eden-skills-cli/tests/doctor_json_contract.rs` | implemented |
 | CMD-REPAIR-001 | `SPEC_COMMANDS.md` 3.4 | `repair` recreates/relinks recoverable targets | `crates/eden-skills-cli/src/commands.rs` | `crates/eden-skills-cli/tests/apply_repair.rs` (`repair_recovers_broken_symlink`) | implemented |
+| CMD-INIT-001 | `SPEC_COMMANDS.md` 4.1 | `init` creates default config when absent; fails unless `--force` when file exists | `crates/eden-skills-cli/src/commands.rs` + `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/init_command.rs` | implemented |
 | CMD-EXIT-001 | `SPEC_COMMANDS.md` 5 | exit codes 0/1/2/3 mapped by error class | `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/invalid_config_exit.rs` + `crates/eden-skills-cli/tests/exit_code_matrix.rs` | implemented |
 
 ## 2. Schema Requirements

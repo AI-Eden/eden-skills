@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use eden_skills_core::config::InstallMode;
 use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions};
 use eden_skills_core::error::EdenError;
+use eden_skills_core::paths::resolve_path_string;
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::source::sync_sources;
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
@@ -24,8 +25,14 @@ struct DoctorFinding {
     remediation: String,
 }
 
+fn resolve_config_path(config_path: &str) -> Result<PathBuf, EdenError> {
+    let cwd = std::env::current_dir().map_err(EdenError::Io)?;
+    resolve_path_string(config_path, &cwd)
+}
+
 pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
-    let config_path = Path::new(config_path);
+    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
         config_path,
         LoadOptions {
@@ -47,7 +54,8 @@ pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
 }
 
 pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
-    let config_path = Path::new(config_path);
+    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
         config_path,
         LoadOptions {
@@ -110,7 +118,8 @@ pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError
 }
 
 pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
-    let config_path = Path::new(config_path);
+    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
         config_path,
         LoadOptions {
@@ -320,7 +329,8 @@ fn print_doctor_json(findings: &[DoctorFinding]) -> Result<(), EdenError> {
 }
 
 pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
-    let config_path = Path::new(config_path);
+    let config_path_buf = resolve_config_path(config_path)?;
+    let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
         config_path,
         LoadOptions {
@@ -404,6 +414,61 @@ fn action_label(action: Action) -> &'static str {
         Action::Noop => "noop",
         Action::Conflict => "conflict",
     }
+}
+
+pub fn init(config_path: &str, force: bool) -> Result<(), EdenError> {
+    let config_path = resolve_config_path(config_path)?;
+    if config_path.exists() && !force {
+        return Err(EdenError::Conflict(format!(
+            "config already exists: {} (use --force to overwrite)",
+            config_path.display()
+        )));
+    }
+
+    if let Some(parent) = config_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    fs::write(&config_path, default_config_template())?;
+    println!("init: wrote {}", config_path.display());
+    Ok(())
+}
+
+fn default_config_template() -> String {
+    // Keep this template valid and deterministic.
+    // Note: `skills` must be non-empty per `SPEC_SCHEMA.md`.
+    [
+        "version = 1",
+        "",
+        "[storage]",
+        "root = \"~/.local/share/eden-skills/repos\"",
+        "",
+        "[[skills]]",
+        "id = \"browser-tool\"",
+        "",
+        "[skills.source]",
+        "repo = \"https://github.com/vercel-labs/skills.git\"",
+        "subpath = \"packages/browser\"",
+        "ref = \"main\"",
+        "",
+        "[skills.install]",
+        "mode = \"symlink\"",
+        "",
+        "[[skills.targets]]",
+        "agent = \"claude-code\"",
+        "",
+        "[[skills.targets]]",
+        "agent = \"cursor\"",
+        "",
+        "[skills.verify]",
+        "enabled = true",
+        "checks = [\"path-exists\", \"target-resolves\", \"is-symlink\"]",
+        "",
+        "[skills.safety]",
+        "no_exec_metadata_only = false",
+        "",
+    ]
+    .join("\n")
 }
 
 fn apply_plan_item(item: &PlanItem) -> Result<(), EdenError> {

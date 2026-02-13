@@ -42,7 +42,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-003
+  - id: B-011
     owner: builder
-    task: migrate_cli_parsing_to_clap_and_start_init_command
+    task: implement_list_command_inventory_view
     source_spec: spec/SPEC_COMMANDS.md
