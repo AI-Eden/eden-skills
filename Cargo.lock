@@ -25,6 +25,7 @@ name = "eden-skills-cli"
 version = "0.1.0"
 dependencies = [
  "eden-skills-core",
+ "serde_json",
  "tempfile",
 ]
 

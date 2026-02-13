@@ -29,7 +29,7 @@ pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     let config_dir = config_dir_from_path(config_path);
     let plan = build_plan(&loaded.config, &config_dir)?;
     if options.json {
-        print_plan_json_stub(&plan);
+        print_plan_json(&plan)?;
     } else {
         print_plan_text(&plan);
     }
@@ -219,21 +219,11 @@ fn print_plan_text(items: &[PlanItem]) {
     }
 }
 
-fn print_plan_json_stub(items: &[PlanItem]) {
-    println!("[");
-    for (idx, item) in items.iter().enumerate() {
-        let suffix = if idx + 1 == items.len() { "" } else { "," };
-        println!(
-            "  {{\"skill_id\":\"{}\",\"source_path\":\"{}\",\"target_path\":\"{}\",\"install_mode\":\"{}\",\"action\":\"{}\"}}{}",
-            item.skill_id,
-            item.source_path,
-            item.target_path,
-            item.install_mode.as_str(),
-            action_label(item.action),
-            suffix
-        );
-    }
-    println!("]");
+fn print_plan_json(items: &[PlanItem]) -> Result<(), EdenError> {
+    let payload = serde_json::to_string_pretty(items)
+        .map_err(|err| EdenError::Runtime(format!("failed to serialize plan as json: {err}")))?;
+    println!("{payload}");
+    Ok(())
 }
 
 fn action_label(action: Action) -> &'static str {
@@ -334,12 +324,17 @@ fn copy_recursively(source: &Path, target: &Path) -> Result<(), EdenError> {
 #[cfg(test)]
 mod tests {
     use std::fs;
+    #[cfg(unix)]
+    use std::os::unix::fs::PermissionsExt;
     use std::path::{Path, PathBuf};
     use std::process::Command;
 
-    use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions};
+    use eden_skills_core::config::{
+        config_dir_from_path, load_from_file, InstallMode, LoadOptions,
+    };
     use eden_skills_core::error::EdenError;
-    use eden_skills_core::plan::{build_plan, Action};
+    use eden_skills_core::plan::{build_plan, Action, PlanItem};
+    use serde_json::json;
     use tempfile::tempdir;
 
     use super::{apply, doctor, repair, CommandOptions};
@@ -493,6 +488,72 @@ mod tests {
             .expect("skill plan item");
 
         assert!(matches!(item.action, Action::Update));
+    }
+
+    #[test]
+    fn plan_json_serialization_keeps_stable_fields() {
+        let item = PlanItem {
+            skill_id: "demo-skill".to_string(),
+            source_path: "/tmp/source".to_string(),
+            target_path: "/tmp/target".to_string(),
+            install_mode: InstallMode::Symlink,
+            action: Action::Create,
+            reasons: vec!["target path does not exist".to_string()],
+        };
+
+        let payload = serde_json::to_value(vec![item]).expect("serialize plan json");
+        let first = payload[0].as_object().expect("plan entry object");
+
+        assert_eq!(first.get("skill_id"), Some(&json!("demo-skill")));
+        assert_eq!(first.get("install_mode"), Some(&json!("symlink")));
+        assert_eq!(first.get("action"), Some(&json!("create")));
+        assert_eq!(
+            first.get("reasons"),
+            Some(&json!(["target path does not exist"]))
+        );
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn apply_fails_on_permission_denied_target_path() {
+        let temp = tempdir().expect("tempdir");
+        let origin_repo = init_origin_repo(temp.path());
+
+        let storage_root = temp.path().join("storage");
+        let restricted_parent = temp.path().join("restricted");
+        fs::create_dir_all(&restricted_parent).expect("create restricted parent");
+        let original_permissions = fs::metadata(&restricted_parent)
+            .expect("restricted metadata")
+            .permissions();
+
+        let mut read_exec_only = original_permissions.clone();
+        read_exec_only.set_mode(0o555);
+        fs::set_permissions(&restricted_parent, read_exec_only)
+            .expect("set restricted parent permissions");
+
+        let target_root = restricted_parent.join("agent-skills");
+        let config_path = write_config(
+            temp.path(),
+            &as_file_url(&origin_repo),
+            "symlink",
+            &["path-exists", "target-resolves", "is-symlink"],
+            &storage_root,
+            &target_root,
+        );
+
+        let result = apply(
+            config_path.to_str().expect("config path"),
+            default_options(),
+        );
+
+        fs::set_permissions(&restricted_parent, original_permissions)
+            .expect("restore restricted parent permissions");
+
+        let err = result.expect_err("apply should fail for permission denied target");
+        assert!(
+            matches!(err, EdenError::Io(_) | EdenError::Runtime(_)),
+            "unexpected error variant: {err}"
+        );
     }
 
     fn default_options() -> CommandOptions {

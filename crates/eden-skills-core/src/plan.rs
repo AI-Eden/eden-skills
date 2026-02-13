@@ -2,11 +2,14 @@ use std::fs;
 use std::io::ErrorKind;
 use std::path::{Path, PathBuf};
 
+use serde::Serialize;
+
 use crate::config::{Config, InstallMode};
 use crate::error::EdenError;
 use crate::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Action {
     Create,
     Update,
@@ -14,7 +17,7 @@ pub enum Action {
     Conflict,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct PlanItem {
     pub skill_id: String,
     pub source_path: String,

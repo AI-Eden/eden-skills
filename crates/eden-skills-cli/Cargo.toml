@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 eden-skills-core = { path = "../eden-skills-core" }
+serde_json = "1.0"
 
 [dev-dependencies]
 tempfile = "3.14"

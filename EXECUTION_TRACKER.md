@@ -30,14 +30,14 @@ Legend:
 - [x] Freeze Specs (`spec/README.md`, `SPEC_*` baseline established)
 - [x] Draft Config (`skills.toml` with 5 skills)
 - [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source clone/update wired; deep edge-case hardening pending)
-- [~] Test Matrix completion (fresh/repeated/broken/moved/copy automated; invalid/permission/CI smoke pending)
+- [~] Test Matrix completion (fresh/repeated/broken/moved/copy/permission automated; invalid config + CI hosted pass pending)
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
 - [ ] Safety Gate MVP (license gate, risk labels, no-exec mode)
 - [~] CLI UX RFC (`init/add/remove/set/list/config export/import` contract captured in spec; code not started)
 - [ ] CLI framework refactor to `clap` (planned)
 
-Progress score (roadmap action items): `5.5 / 10 = 55%`
+Progress score (roadmap action items): `6.5 / 10 = 65%`
 
 ### 3.2 Phase 1 Mandatory Command Status (Spec)
 
@@ -55,10 +55,10 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 
 - [x] TOML parsing, defaults, and validation tests present
 - [x] CLI global arg parsing tests present
-- [~] `SPEC_TEST_MATRIX.md` scenario automation (5/7 scenarios covered by tests)
-- [ ] CI gate execution on Linux + macOS smoke
+- [~] `SPEC_TEST_MATRIX.md` scenario automation (6/7 scenarios covered by tests)
+- [~] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), first hosted run pending
 
-Current automated tests: `9` (workspace unit/integration-style tests).
+Current automated tests: `11` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -74,6 +74,9 @@ Current automated tests: `9` (workspace unit/integration-style tests).
 - [x] Added local/offline git source support via `file://` URLs.
 - [x] Implemented copy-mode content diff detection in plan engine.
 - [x] Added end-to-end tests for fresh install, repeated apply, broken symlink repair, missing-source detection, and copy-mode update detection.
+- [x] Replaced plan `--json` stub output with structured `serde_json` serialization (stable lowercase enums + reasons array).
+- [x] Added permission-denied target-path test for `apply`.
+- [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
 
 ## 5. Pending Tasks with Planned LLM Ownership
@@ -81,7 +84,6 @@ Current automated tests: `9` (workspace unit/integration-style tests).
 ### 5.1 Builder-Owned (GPT-5 Codex)
 
 - [~] Harden copy-mode delta detection for edge cases (symlink-in-tree, large-file strategy, permission anomalies).
-- [ ] Replace plan JSON stub with structured serializer (`serde_json`) and stable schema.
 - [ ] Add integration tests covering every scenario in `SPEC_TEST_MATRIX.md`.
 - [ ] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).
 - [ ] Migrate CLI argument parsing to `clap` subcommands/flags.
@@ -100,6 +102,6 @@ Current automated tests: `9` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Complete test-matrix automation for Phase 1 scenarios.
-2. Harden `apply/doctor/repair` behavior on conflict and copy mode.
-3. Introduce `clap` and start lifecycle command implementation from `init`.
+1. Complete remaining invalid-config/exit-code scenario coverage from `SPEC_TEST_MATRIX.md`.
+2. Upgrade `doctor` output to include issue code + severity + remediation hint (spec-aligned).
+3. Migrate argument parsing to `clap` and start lifecycle commands from `init`.
