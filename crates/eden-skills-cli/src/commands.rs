@@ -12,7 +12,7 @@ use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::safety::{analyze_skills, persist_reports, LicenseStatus, SkillSafetyReport};
-use eden_skills_core::source::sync_sources;
+use eden_skills_core::source::{sync_sources, SyncSummary};
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -70,13 +70,13 @@ pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError
     )?;
     let config_dir = config_dir_from_path(config_path);
     let sync_summary = sync_sources(&loaded.config, &config_dir)?;
-    println!(
-        "source sync: cloned={} updated={} skipped={}",
-        sync_summary.cloned, sync_summary.updated, sync_summary.skipped
-    );
+    print_source_sync_summary(&sync_summary);
     let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
     persist_reports(&safety_reports)?;
     print_safety_summary(&safety_reports);
+    if let Some(err) = source_sync_failure_error(&sync_summary) {
+        return Err(err);
+    }
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
     let plan = build_plan(&loaded.config, &config_dir)?;
@@ -420,13 +420,13 @@ pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
     )?;
     let config_dir = config_dir_from_path(config_path);
     let sync_summary = sync_sources(&loaded.config, &config_dir)?;
-    println!(
-        "source sync: cloned={} updated={} skipped={}",
-        sync_summary.cloned, sync_summary.updated, sync_summary.skipped
-    );
+    print_source_sync_summary(&sync_summary);
     let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
     persist_reports(&safety_reports)?;
     print_safety_summary(&safety_reports);
+    if let Some(err) = source_sync_failure_error(&sync_summary) {
+        return Err(err);
+    }
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
     let plan = build_plan(&loaded.config, &config_dir)?;
@@ -483,6 +483,39 @@ fn no_exec_skill_ids(reports: &[SkillSafetyReport]) -> HashSet<&str> {
         .filter(|r| r.no_exec_metadata_only)
         .map(|r| r.skill_id.as_str())
         .collect()
+}
+
+fn print_source_sync_summary(summary: &SyncSummary) {
+    println!(
+        "source sync: cloned={} updated={} skipped={} failed={}",
+        summary.cloned, summary.updated, summary.skipped, summary.failed
+    );
+}
+
+fn source_sync_failure_error(summary: &SyncSummary) -> Option<EdenError> {
+    if summary.failed == 0 {
+        return None;
+    }
+
+    let details = summary
+        .failures
+        .iter()
+        .map(|failure| {
+            format!(
+                "skill={} stage={} repo_dir={} detail={}",
+                failure.skill_id,
+                failure.stage.as_str(),
+                failure.repo_dir,
+                failure.detail
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+
+    Some(EdenError::Runtime(format!(
+        "source sync failed for {} skill(s): {details}",
+        summary.failed
+    )))
 }
 
 fn print_safety_summary(reports: &[SkillSafetyReport]) {

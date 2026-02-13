@@ -80,3 +80,13 @@ These scenarios are recommended incremental coverage for doctor contract stabili
 - `doctor --strict` and `doctor` emit equivalent findings payloads for identical input state (text mode parity).
 - `doctor --strict --json` and `doctor --json` emit equivalent JSON payloads for identical input state.
 - doctor JSON payload under mixed warning/error findings preserves required fields (`summary.total/error/warning`, finding `code/severity/skill_id/target_path/message/remediation`).
+
+## 7. Incremental Source Sync Scenarios
+
+These scenarios are recommended incremental coverage for source sync hardening and diagnostics:
+
+- Repeated `apply` with unchanged upstream reports `source sync` summary with `skipped > 0` and `failed = 0`.
+- `apply` after upstream commit advance reports `source sync` summary with `updated > 0`.
+- Source clone failure reports exit code `1` and includes `skill`, `stage=clone`, and `repo_dir` diagnostics.
+- Source fetch failure reports exit code `1` and includes `skill`, `stage=fetch`, and `repo_dir` diagnostics.
+- Source checkout failure reports exit code `1` and includes `skill`, `stage=checkout`, and `repo_dir` diagnostics.

@@ -27,6 +27,9 @@ phase1:
   doctor_contract_hardening:
     strict_non_strict_payload_parity: implemented
     json_required_fields_mixed_findings: implemented
+  source_sync_hardening:
+    deterministic_summary_reporting: implemented
+    stage_diagnostics_clone_fetch_checkout: implemented
   test_matrix:
     covered: 7
     total: 7
@@ -58,7 +61,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-022
+  - id: B-023
     owner: builder
-    task: harden_source_sync_edge_cases_and_error_reporting
+    task: harden_multiskill_partial_failure_and_strict_mode_interactions
     source_spec: spec/SPEC_COMMANDS.md

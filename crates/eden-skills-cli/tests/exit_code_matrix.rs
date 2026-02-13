@@ -1,5 +1,6 @@
 mod common;
 
+use std::fs;
 use std::path::Path;
 use std::process::Command;
 
@@ -34,6 +35,155 @@ fn apply_returns_exit_code_1_on_runtime_git_failure() {
         Some(1),
         "expected runtime exit code 1, stderr={}",
         String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("source sync failed for 1 skill(s):"),
+        "stderr should include source sync failure summary, got: {stderr}"
+    );
+    assert!(
+        stderr.contains("skill=demo-skill"),
+        "stderr should include skill identifier, got: {stderr}"
+    );
+    assert!(
+        stderr.contains("stage=clone"),
+        "stderr should include clone failure stage, got: {stderr}"
+    );
+}
+
+#[test]
+fn apply_reports_skipped_source_sync_on_repeated_run() {
+    let temp = tempdir().expect("tempdir");
+    let origin_repo = init_origin_repo(temp.path());
+
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("agent-skills");
+    let config_path = write_config(
+        temp.path(),
+        &as_file_url(&origin_repo),
+        "symlink",
+        &["path-exists", "target-resolves", "is-symlink"],
+        &storage_root,
+        &target_root,
+    );
+
+    let first_apply = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["apply", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run first apply");
+    assert_eq!(
+        first_apply.status.code(),
+        Some(0),
+        "expected first apply success, stderr={}",
+        String::from_utf8_lossy(&first_apply.stderr)
+    );
+
+    let second_apply = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["apply", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run second apply");
+    assert_eq!(
+        second_apply.status.code(),
+        Some(0),
+        "expected second apply success, stderr={}",
+        String::from_utf8_lossy(&second_apply.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&second_apply.stdout);
+    assert!(
+        stdout.contains("source sync: cloned=0 updated=0 skipped=1 failed=0"),
+        "expected skipped source sync summary, got: {stdout}"
+    );
+}
+
+#[test]
+fn apply_returns_exit_code_1_with_fetch_failure_diagnostics() {
+    let temp = tempdir().expect("tempdir");
+    let origin_repo = init_origin_repo(temp.path());
+
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("agent-skills");
+    let config_path = write_config(
+        temp.path(),
+        &as_file_url(&origin_repo),
+        "symlink",
+        &["path-exists", "target-resolves", "is-symlink"],
+        &storage_root,
+        &target_root,
+    );
+
+    let fake_repo_dir = storage_root.join(common::SKILL_ID);
+    fs::create_dir_all(&fake_repo_dir).expect("create fake repo dir");
+    fs::write(fake_repo_dir.join(".git"), "not-a-repo").expect("write fake .git marker");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["apply", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run apply");
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "expected runtime exit code 1, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("skill=demo-skill"),
+        "stderr should include skill identifier, got: {stderr}"
+    );
+    assert!(
+        stderr.contains("stage=fetch"),
+        "stderr should include fetch failure stage, got: {stderr}"
+    );
+    assert!(
+        stderr.contains(&format!("repo_dir={}", fake_repo_dir.display())),
+        "stderr should include repo directory, got: {stderr}"
+    );
+}
+
+#[test]
+fn apply_returns_exit_code_1_with_checkout_failure_diagnostics() {
+    let temp = tempdir().expect("tempdir");
+    let origin_repo = init_origin_repo(temp.path());
+
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("agent-skills");
+    let config_path = write_config(
+        temp.path(),
+        &as_file_url(&origin_repo),
+        "symlink",
+        &["path-exists", "target-resolves", "is-symlink"],
+        &storage_root,
+        &target_root,
+    );
+
+    let config_text = fs::read_to_string(&config_path).expect("read config");
+    let invalid_ref_config = config_text.replace("ref = \"main\"", "ref = \"missing-ref\"");
+    fs::write(&config_path, invalid_ref_config).expect("rewrite config with invalid ref");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["apply", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run apply");
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "expected runtime exit code 1, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("skill=demo-skill"),
+        "stderr should include skill identifier, got: {stderr}"
+    );
+    assert!(
+        stderr.contains("stage=checkout"),
+        "stderr should include checkout failure stage, got: {stderr}"
     );
 }
 

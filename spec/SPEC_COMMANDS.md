@@ -81,6 +81,25 @@ Rules:
 - MUST run verification when `verify.enabled=true`.
 - Re-running `apply` with unchanged state MUST produce only `noop`.
 
+#### 3.2.1 Source Sync Reporting and Failure Contract (`apply` and `repair`)
+
+Source sync behavior MUST be deterministic and skill-scoped.
+
+Rules:
+
+- Source sync MUST attempt every configured skill in config order (it MUST NOT fail-fast on first skill error).
+- Commands MUST emit a single source sync summary line in text mode:
+  - `source sync: cloned=<n> updated=<n> skipped=<n> failed=<n>`
+- `updated` MUST count skills whose synced repo `HEAD` changed during sync.
+- `skipped` MUST count skills that were already present and remained on the same `HEAD` after sync.
+- `failed` MUST count skills whose source sync failed at clone/fetch/checkout stages.
+- When `failed > 0`, `apply`/`repair` MUST fail with exit code `1` before target mutation and verification.
+- Failure diagnostics MUST include actionable context for each failed skill:
+  - `skill=<skill_id>`
+  - `stage=<clone|fetch|checkout>`
+  - `repo_dir=<resolved_storage_repo_path>`
+  - `detail=<git_error_summary>`
+
 ### 3.3 `doctor`
 
 Purpose: inspect current state and report drift or risk.

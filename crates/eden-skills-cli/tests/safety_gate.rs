@@ -10,7 +10,7 @@ use tempfile::tempdir;
 
 use common::{
     as_file_url, default_options, expected_source_path, expected_target_path, init_origin_repo,
-    run_git_cmd, write_config_with_safety, SKILL_ID,
+    run_git_cmd, write_config, write_config_with_safety, SKILL_ID,
 };
 
 #[test]
@@ -118,4 +118,38 @@ fn doctor_reports_safety_findings() {
     assert!(has_license_unknown, "expected LICENSE_UNKNOWN in findings");
     assert!(has_risk_review, "expected RISK_REVIEW_REQUIRED in findings");
     assert!(has_no_exec, "expected NO_EXEC_METADATA_ONLY in findings");
+}
+
+#[test]
+fn apply_sync_failure_still_writes_safety_metadata() {
+    let temp = tempdir().expect("tempdir");
+    let missing_repo = temp.path().join("missing-origin-repo");
+
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("agent-skills");
+    let config_path = write_config(
+        temp.path(),
+        &as_file_url(&missing_repo),
+        InstallMode::Symlink.as_str(),
+        &["path-exists", "target-resolves", "is-symlink"],
+        &storage_root,
+        &target_root,
+    );
+
+    let output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["apply", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run apply");
+
+    assert_eq!(
+        output.status.code(),
+        Some(1),
+        "apply should fail with source sync error, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let metadata_path = storage_root.join(SKILL_ID).join(".eden-safety.toml");
+    let metadata = fs::read_to_string(&metadata_path).expect("read safety metadata");
+    assert!(metadata.contains("version = 1"));
+    assert!(metadata.contains("license_status = \"unknown\""));
 }
