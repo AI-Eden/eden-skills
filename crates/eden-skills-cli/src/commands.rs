@@ -109,6 +109,10 @@ pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError
                 noops += 1;
             }
             Action::Conflict => {
+                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                    skipped_no_exec += 1;
+                    continue;
+                }
                 conflicts += 1;
             }
         }
@@ -446,6 +450,10 @@ pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
                 repaired += 1;
             }
             Action::Conflict => {
+                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                    skipped_no_exec += 1;
+                    continue;
+                }
                 skipped_conflicts += 1;
             }
             Action::Noop => {}
@@ -456,6 +464,12 @@ pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
         "repair summary: repaired={repaired} skipped_conflicts={skipped_conflicts} skipped_no_exec={skipped_no_exec}"
     );
 
+    if options.strict && skipped_conflicts > 0 {
+        return Err(EdenError::Conflict(format!(
+            "repair skipped {skipped_conflicts} conflict entries in strict mode"
+        )));
+    }
+
     let verify_issues = verify_config_state(&loaded.config, &config_dir)?;
     if !verify_issues.is_empty() {
         return Err(EdenError::Runtime(format!(
@@ -464,12 +478,6 @@ pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
             verify_issues[0].check,
             verify_issues[0].skill_id,
             verify_issues[0].message
-        )));
-    }
-
-    if options.strict && skipped_conflicts > 0 {
-        return Err(EdenError::Conflict(format!(
-            "repair skipped {skipped_conflicts} conflict entries in strict mode"
         )));
     }
 

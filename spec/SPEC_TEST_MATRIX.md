@@ -72,6 +72,8 @@ These scenarios are recommended incremental coverage for Safety Gate MVP mechani
 - `apply` with `no_exec_metadata_only=true` syncs source and writes safety metadata, but does not mutate targets.
 - `doctor` emits safety warnings for license unknown/non-permissive and risk-review-required labels.
 - safety metadata file (`.eden-safety.toml`) includes required fields and stable enums.
+- In mixed-skill configs, verify checks are skipped only for `no_exec_metadata_only=true` skills; other skills are still verified.
+- In mixed-skill configs, strict conflict exit behavior ignores conflicts from `no_exec_metadata_only=true` skills.
 
 ## 6. Incremental Doctor Contract Scenarios
 
@@ -99,3 +101,5 @@ These scenarios are recommended incremental coverage for strict-mode interaction
 
 - `apply --strict` with source sync failures MUST return exit code `1` (runtime), even when other skills could produce plan conflicts.
 - `repair --strict` with source sync failures MUST return exit code `1` (runtime), even when other skills could produce plan conflicts.
+- `apply --strict` with both conflict and verify-failure conditions MUST return exit code `3` (strict conflict precedence).
+- `repair --strict` with both conflict and verify-failure conditions MUST return exit code `3` (strict conflict precedence).

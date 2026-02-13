@@ -37,6 +37,7 @@ Keywords are interpreted as:
 - `SPEC_COMMANDS.md`: CLI command contract and lifecycle command model
 - `SPEC_TEST_MATRIX.md`: minimum acceptance test matrix
 - `SPEC_TRACEABILITY.md`: requirement IDs mapped to code and tests
+- `PHASE1_BUILDER_REMAINING.md`: indexed list of remaining Builder-owned Phase 1 tasks
 
 ## Contributor Workflow
 

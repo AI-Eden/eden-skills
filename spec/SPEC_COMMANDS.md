@@ -160,6 +160,14 @@ Repair MUST attempt:
 
 Repair MUST NOT delete unknown user files unless `--force`.
 
+#### 3.4.1 Strict Conflict vs Verification Precedence (`apply` and `repair`)
+
+When source sync has no failures (`failed = 0`), strict conflict handling and verification handling MUST follow one consistent precedence for both `apply` and `repair`:
+
+- In `--strict` mode, if effective conflict count is greater than `0`, command MUST return strict conflict exit code `3` before post-mutation verification checks.
+- If strict conflict condition is not met, verification failures MUST return runtime exit code `1`.
+- Effective conflict count MUST exclude no-exec skills (`safety.no_exec_metadata_only=true`) as defined in section `3.5.3`.
+
 ### 3.5 Safety Gate MVP (Mechanics)
 
 Phase 1 safety mechanics MUST cover license/status metadata, risk labeling, and no-exec behavior.
@@ -198,6 +206,8 @@ When `skills.safety.no_exec_metadata_only=true`:
 - `apply` and `repair` MUST persist safety metadata.
 - `apply` and `repair` MUST NOT mutate install targets for that skill (create/update operations are skipped).
 - Verification checks for that skill MUST be skipped.
+- In mixed-skill configs, verification for skills with `no_exec_metadata_only=false` MUST still run normally.
+- Plan conflicts for `no_exec_metadata_only=true` skills MUST NOT contribute to strict conflict exits (`exit code 3`) in `apply` or `repair`.
 
 #### 3.5.4 Doctor Safety Findings
 

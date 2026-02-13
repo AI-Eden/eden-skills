@@ -32,6 +32,12 @@ phase1:
     stage_diagnostics_clone_fetch_checkout: implemented
     multiskill_partial_failure_aggregation: implemented
     strict_mode_precedence_over_conflict_exit: implemented
+  no_exec_verify_interactions:
+    mixed_skill_verify_skip_scoping: implemented
+    strict_conflict_ignores_no_exec_conflicts: implemented
+  strict_verify_precedence_hardening:
+    apply_repair_precedence_parity: implemented
+    strict_conflict_precedes_post_mutation_verify: implemented
   test_matrix:
     covered: 7
     total: 7
@@ -63,7 +69,9 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-024
+  - id: B-026
     owner: builder
-    task: harden_multiskill_no_exec_and_verify_interactions
+    task: phase1_builder_closeout_and_hosted_ci_refresh
     source_spec: spec/SPEC_COMMANDS.md
+
+phase1_builder_remaining_index: spec/PHASE1_BUILDER_REMAINING.md

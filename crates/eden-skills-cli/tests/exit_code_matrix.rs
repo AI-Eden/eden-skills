@@ -188,6 +188,83 @@ fn apply_returns_exit_code_1_with_checkout_failure_diagnostics() {
 }
 
 #[test]
+fn apply_strict_conflict_takes_precedence_over_verify_failure() {
+    let temp = tempdir().expect("tempdir");
+    let origin_repo = init_origin_repo(temp.path());
+
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("agent-skills");
+    let config_path = write_config(
+        temp.path(),
+        &as_file_url(&origin_repo),
+        "symlink",
+        &["content-present"],
+        &storage_root,
+        &target_root,
+    );
+
+    let conflicted_target = target_root.join(common::SKILL_ID);
+    fs::create_dir_all(&conflicted_target).expect("create conflicting directory target");
+    fs::write(conflicted_target.join("manual.txt"), "manual content").expect("write file");
+
+    let strict_apply = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["apply", "--strict", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run strict apply");
+
+    assert_eq!(
+        strict_apply.status.code(),
+        Some(3),
+        "strict conflict should take precedence over verify failure, stderr={}",
+        String::from_utf8_lossy(&strict_apply.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&strict_apply.stderr).contains("strict mode blocked apply"),
+        "stderr should include strict conflict message"
+    );
+}
+
+#[test]
+fn repair_strict_conflict_takes_precedence_over_verify_failure() {
+    let temp = tempdir().expect("tempdir");
+    let origin_repo = init_origin_repo(temp.path());
+
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("agent-skills");
+    let config_path = write_config(
+        temp.path(),
+        &as_file_url(&origin_repo),
+        "symlink",
+        &["content-present"],
+        &storage_root,
+        &target_root,
+    );
+
+    let conflicted_target = target_root.join(common::SKILL_ID);
+    fs::create_dir_all(&conflicted_target).expect("create conflicting directory target");
+    fs::write(conflicted_target.join("manual.txt"), "manual content").expect("write file");
+
+    let strict_repair = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["repair", "--strict", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run strict repair");
+
+    assert_eq!(
+        strict_repair.status.code(),
+        Some(3),
+        "strict conflict should take precedence over verify failure, stderr={}",
+        String::from_utf8_lossy(&strict_repair.stderr)
+    );
+    assert!(
+        String::from_utf8_lossy(&strict_repair.stderr)
+            .contains("repair skipped 1 conflict entries in strict mode"),
+        "stderr should include strict conflict message"
+    );
+}
+
+#[test]
 fn apply_aggregates_multiskill_source_failures_in_config_order() {
     let temp = tempdir().expect("tempdir");
     let storage_root = temp.path().join("storage");

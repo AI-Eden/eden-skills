@@ -29,7 +29,7 @@ Legend:
 - [x] Initialize Repo (`Cargo workspace`, crates, toolchain)
 - [x] Freeze Specs (`spec/README.md`, `SPEC_*` baseline established)
 - [x] Draft Config (`skills.toml` with 5 skills)
-- [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source sync edge-case/error-reporting + strict-interaction hardening completed; mixed no-exec/verify interaction hardening pending)
+- [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source sync/no-exec/strict-vs-verify precedence hardening completed; closeout validation pending)
 - [x] Test Matrix completion (all 7 scenarios automated; CI hosted pass verified)
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
@@ -37,7 +37,7 @@ Legend:
 - [x] CLI UX RFC (`init/list/config export/config import/add/remove/set` implemented)
 - [x] CLI framework refactor to `clap` (subcommands + flags)
 
-Progress score (roadmap action items): `8.9 / 10 = 89%`
+Progress score (roadmap action items): `9.3 / 10 = 93%`
 
 ### 3.2 Phase 1 Mandatory Command Status (Spec)
 
@@ -58,7 +58,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
 - [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `21996981871`)
 
-Current automated tests: `67` (workspace unit/integration-style tests).
+Current automated tests: `73` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -99,6 +99,8 @@ Current automated tests: `67` (workspace unit/integration-style tests).
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
 - [x] Hardened source sync behavior with deterministic `cloned/updated/skipped/failed` reporting and actionable clone/fetch/checkout diagnostics.
 - [x] Hardened multi-skill source sync behavior and strict-mode interaction precedence (config-ordered failure aggregation; source sync runtime failure precedence over strict conflict exit).
+- [x] Hardened mixed-skill no-exec verification and strict conflict interactions (verify skip scoping + strict conflict exclusion for no-exec conflicts).
+- [x] Harmonized strict conflict and post-mutation verification precedence across `apply` and `repair`.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -112,6 +114,8 @@ Current automated tests: `67` (workspace unit/integration-style tests).
 - [x] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `config import` -> `add/remove/set`.
 - [x] Harden source sync edge cases and error reporting (`clone/fetch/checkout` diagnostics + deterministic skipped/updated reporting).
 - [x] Harden multi-skill partial-failure and strict-mode interactions for `apply`/`repair`.
+- [x] Harden multi-skill no-exec and verify interactions for `apply`/`repair`.
+- [x] Harmonize strict conflict and verify-failure precedence for `apply`/`repair`.
 
 ### 5.2 Architect-Owned (Claude Opus)
 
@@ -126,10 +130,10 @@ Current automated tests: `67` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Harden multi-skill `no_exec_metadata_only` and verify interaction behavior in `apply`/`repair`.
+1. Phase 1 Builder closeout validation and hosted CI reference refresh.
 
-### 6.1 Builder Checklist (B-024)
+### 6.1 Builder Checklist (B-026)
 
-- Add multi-skill mixed-mode tests combining `no_exec_metadata_only=true/false` skills in one config.
-- Verify that verify-check execution is skipped only for no-exec skills while remaining skills are still verified deterministically.
-- Ensure strict/non-strict behavior stays stable under mixed no-exec + conflict + verify-failure states.
+- Trigger and record a hosted CI run on the latest branch head and update `STATUS.yaml` run reference fields.
+- Complete Builder closeout audit against `spec/SPEC_COMMANDS.md`, `spec/SPEC_TEST_MATRIX.md`, and `spec/SPEC_TRACEABILITY.md`.
+- Keep `spec/PHASE1_BUILDER_REMAINING.md` as the concise index of unresolved Builder tasks.
