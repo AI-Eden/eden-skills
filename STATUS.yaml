@@ -37,11 +37,11 @@ phase1:
     hosted_run_verified: true
     hosted_run_reference:
       workflow: CI
-      run_id: 21996401513
-      run_url: https://github.com/AI-Eden/eden-skills/actions/runs/21996401513
+      run_id: 21996981871
+      run_url: https://github.com/AI-Eden/eden-skills/actions/runs/21996981871
       branch: main
       event: push
-      completed_at: "2026-02-13T17:32:18Z"
+      completed_at: "2026-02-13T17:50:45Z"
 
 ownership:
   builder:
@@ -58,7 +58,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-021
+  - id: B-022
     owner: builder
-    task: verify_hosted_ci_after_clippy_gate_update
-    source_spec: .github/workflows/ci.yml
+    task: harden_source_sync_edge_cases_and_error_reporting
+    source_spec: spec/SPEC_COMMANDS.md

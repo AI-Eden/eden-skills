@@ -30,14 +30,14 @@ Legend:
 - [x] Freeze Specs (`spec/README.md`, `SPEC_*` baseline established)
 - [x] Draft Config (`skills.toml` with 5 skills)
 - [~] Rust CLI Build (`plan/apply/doctor/repair` implemented; source clone/update wired; deep edge-case hardening pending)
-- [~] Test Matrix completion (all 7 scenarios automated; CI hosted pass pending)
+- [x] Test Matrix completion (all 7 scenarios automated; CI hosted pass verified)
 - [ ] Crawler RFC (Claude-owned)
 - [ ] Curation RFC (Claude-owned)
 - [x] Safety Gate MVP mechanics (safety metadata persistence, risk labels, no-exec metadata-only enforcement)
 - [x] CLI UX RFC (`init/list/config export/config import/add/remove/set` implemented)
 - [x] CLI framework refactor to `clap` (subcommands + flags)
 
-Progress score (roadmap action items): `8 / 10 = 80%`
+Progress score (roadmap action items): `8.5 / 10 = 85%`
 
 ### 3.2 Phase 1 Mandatory Command Status (Spec)
 
@@ -48,7 +48,7 @@ Progress score (roadmap action items): `8 / 10 = 80%`
 
 Progress score (mandatory command availability): `4 / 4 = 100%`
 
-Quality note: baseline availability is complete; production hardening and test-matrix coverage remain incomplete.
+Quality note: baseline availability and test-matrix coverage are complete; production hardening remains ongoing.
 Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/...`) may be non-writable and cause `apply` failure unless overridden.
 
 ### 3.3 Verification and Testing
@@ -56,7 +56,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] TOML parsing, defaults, and validation tests present
 - [x] CLI global arg parsing tests present
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
-- [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `21996401513`)
+- [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `21996981871`)
 
 Current automated tests: `55` (workspace unit/integration-style tests).
 
@@ -93,7 +93,7 @@ Current automated tests: `55` (workspace unit/integration-style tests).
 - [x] Added doctor strict/non-strict payload parity and JSON required-field stability tests.
 - [x] Declared stable `list --json` output schema in spec and added a contract test.
 - [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/clippy/test`).
-- [x] Verified hosted CI run success on both `ubuntu-latest` and `macos-latest` (`https://github.com/AI-Eden/eden-skills/actions/runs/21996401513`).
+- [x] Verified hosted CI run success on both `ubuntu-latest` and `macos-latest` with clippy gate (`https://github.com/AI-Eden/eden-skills/actions/runs/21996981871`).
 - [x] Updated CI workflow quality gate from `cargo check --workspace` to `cargo clippy --workspace`.
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
@@ -122,10 +122,10 @@ Current automated tests: `55` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Verify a hosted CI run after the clippy-gate workflow update.
+1. Harden source sync edge cases and error reporting in `apply`/`repair`.
 
-### 6.1 Builder Checklist (B-021)
+### 6.1 Builder Checklist (B-022)
 
-- Trigger/observe one hosted run that executes updated CI steps (`fmt + clippy + test`) on Linux and macOS.
-- Record run URL and completion status in `STATUS.yaml`.
-- Confirm no regression in local gates (`cargo fmt --all`, `cargo clippy --workspace`, `cargo test --workspace`).
+- Add tests for clone/fetch/checkout failure paths with clearer action-context diagnostics.
+- Ensure source sync summary differentiates deterministic skip/update/failure reporting.
+- Keep safety metadata and no-exec flow unchanged while hardening git error handling.
