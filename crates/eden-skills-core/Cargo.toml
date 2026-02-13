@@ -1,0 +1,9 @@
+[package]
+name = "eden-skills-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[lib]
+name = "eden_skills_core"
+path = "src/lib.rs"

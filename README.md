@@ -41,6 +41,17 @@ Planning / specification phase (Phase 1 focus: CLI reliability baseline).
 - CLI spec set (source of truth for implementation): `spec/`
 - Sample config for local dev: `skills.yaml`
 
+## Workspace Layout
+
+- `crates/eden-skills-core`: shared domain models and core logic
+- `crates/eden-skills-cli`: Phase 1 binary (`eden-skills`)
+- `crates/eden-skills-indexer`: Phase 2 binary placeholder (crawler/data engine)
+
+## Local Commands
+
+- `cargo check --workspace`
+- `cargo run -p eden-skills-cli -- plan --config ./skills.yaml`
+
 ---
 
 AI Eden Organization Project  

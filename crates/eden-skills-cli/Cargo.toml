@@ -1,0 +1,12 @@
+[package]
+name = "eden-skills-cli"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+eden-skills-core = { path = "../eden-skills-core" }
+
+[[bin]]
+name = "eden-skills"
+path = "src/main.rs"
