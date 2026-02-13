@@ -1,10 +1,12 @@
 # AI Eden: The Next-Gen Agent Skills Ecosystem
 
-**Version:** 1.0 | **Date:** Feb 2026 | **Status:** Planning Phase
+**Version:** 1.0 | **Date:** Feb 2026 | **Status:** Execution In Progress (Phase 1)
 
 ---
 
 Execution tracking and model-boundary handoff log: `EXECUTION_TRACKER.md`
+Machine-readable execution status: `STATUS.yaml`
+Agent recovery/navigation entrypoint: `AGENTS.md`
 
 ---
 
@@ -170,10 +172,13 @@ Leveraging **GPT-5.3-Codex** (High Speed/Code Gen) and **Claude Opus 4.6** (High
 
 ## 5. Next Steps (Action Items)
 
-1. [ ] **Initialize Repo:** Create `follow-edens-skills` (or `eden-skills`).
-2. [ ] **Freeze Specs:** Maintain `spec/README.md` + `SPEC_SCHEMA.md` + `SPEC_AGENT_PATHS.md` + `SPEC_COMMANDS.md` + `SPEC_TEST_MATRIX.md` as the Phase 1 contract.
-3. [ ] **Draft Config:** Manually create a `skills.toml` with 5 favorite skills and explicit `expected_path` + `verify` rules.
-4. [ ] **Rust CLI Build:** Implement `plan/apply/doctor/repair` strictly against `spec/` behavior.
+Operational progress for these items is tracked in `STATUS.yaml` and `EXECUTION_TRACKER.md`.
+This section remains a strategic checklist.
+
+1. [x] **Initialize Repo:** Create `follow-edens-skills` (or `eden-skills`).
+2. [x] **Freeze Specs:** Maintain `spec/README.md` + `SPEC_SCHEMA.md` + `SPEC_AGENT_PATHS.md` + `SPEC_COMMANDS.md` + `SPEC_TEST_MATRIX.md` as the Phase 1 contract.
+3. [x] **Draft Config:** Manually create a `skills.toml` with 5 favorite skills and explicit `expected_path` + `verify` rules.
+4. [x] **Rust CLI Build:** Implement `plan/apply/doctor/repair` strictly against `spec/` behavior.
 5. [ ] **Test Matrix:** Validate behavior on macOS/Linux with fresh install, repeated apply, broken link, and moved source scenarios.
 6. [ ] **Crawler RFC:** Define sharding, incremental sync, deduplication keys, and API rate-limit handling before writing crawler code.
 7. [ ] **Curation RFC:** Freeze rubric weights + calibration process before enabling automatic quality scores in production.

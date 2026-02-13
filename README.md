@@ -32,14 +32,18 @@ In real-world setups, skill install paths and runtime discovery paths can drift 
 
 ## Status
 
-Planning / specification phase (Phase 1 focus: CLI reliability baseline).
+Active implementation (Phase 1 focus: CLI reliability baseline).
+Authoritative machine-readable status: `STATUS.yaml`.
 
 ## Docs
 
+- Agent handoff and recovery guide: `AGENTS.md`
+- Machine-readable status snapshot: `STATUS.yaml`
 - Full roadmap: `ROADMAP.md`
 - Execution tracker and model-boundary ownership: `EXECUTION_TRACKER.md`
 - Spec index and writing rules: `spec/README.md`
 - CLI spec set (source of truth for implementation): `spec/`
+- Requirement-to-code/test mapping: `spec/SPEC_TRACEABILITY.md`
 - Sample config for local dev: `skills.toml`
 
 ## Workspace Layout

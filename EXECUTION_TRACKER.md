@@ -1,6 +1,6 @@
 # EXECUTION_TRACKER.md
 
-Execution tracker linked to `ROADMAP.md` and `README.md`.
+Execution tracker linked to `ROADMAP.md`, `README.md`, `STATUS.yaml`, and `AGENTS.md`.
 This file quantifies implementation progress and enforces model responsibility boundaries.
 
 ## 1. Snapshot

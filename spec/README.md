@@ -17,8 +17,10 @@ This directory defines executable specifications for the CLI behavior.
 When documents disagree, follow this order:
 
 1. `spec/*.md` (normative behavior)
-2. `ROADMAP.md` (product strategy and milestones)
-3. `README.md` (project summary)
+2. `STATUS.yaml` (machine-readable execution status)
+3. `EXECUTION_TRACKER.md` (quantified progress and ownership)
+4. `ROADMAP.md` (product strategy and milestones)
+5. `README.md` (project summary)
 
 ## Normative Language
 
@@ -34,13 +36,15 @@ Keywords are interpreted as:
 - `SPEC_AGENT_PATHS.md`: agent detection and path resolution policy
 - `SPEC_COMMANDS.md`: CLI command contract and lifecycle command model
 - `SPEC_TEST_MATRIX.md`: minimum acceptance test matrix
+- `SPEC_TRACEABILITY.md`: requirement IDs mapped to code and tests
 
 ## Contributor Workflow
 
 1. Update the relevant spec file first.
 2. Implement code to match the spec.
 3. Add or update tests from `SPEC_TEST_MATRIX.md`.
-4. If behavior changed, update `README.md` and `ROADMAP.md` references.
+4. Update `SPEC_TRACEABILITY.md` mappings.
+5. If behavior changed, update `STATUS.yaml`, `EXECUTION_TRACKER.md`, `README.md`, and `ROADMAP.md`.
 
 ## Non-goal
 
