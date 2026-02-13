@@ -26,8 +26,8 @@ jobs:
       - name: Cargo fmt
         run: cargo fmt --all -- --check
 
-      - name: Cargo check
-        run: cargo check --workspace
+      - name: Cargo clippy
+        run: cargo clippy --workspace
 
       - name: Cargo test
         run: cargo test --workspace

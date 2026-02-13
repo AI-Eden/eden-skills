@@ -179,7 +179,7 @@ This section remains a strategic checklist.
 2. [x] **Freeze Specs:** Maintain `spec/README.md` + `SPEC_SCHEMA.md` + `SPEC_AGENT_PATHS.md` + `SPEC_COMMANDS.md` + `SPEC_TEST_MATRIX.md` as the Phase 1 contract.
 3. [x] **Draft Config:** Manually create a `skills.toml` with 5 favorite skills and explicit `expected_path` + `verify` rules.
 4. [x] **Rust CLI Build:** Implement `plan/apply/doctor/repair` strictly against `spec/` behavior.
-5. [ ] **Test Matrix:** Validate behavior on macOS/Linux with fresh install, repeated apply, broken link, and moved source scenarios.
+5. [x] **Test Matrix:** Validate behavior on macOS/Linux with fresh install, repeated apply, broken link, and moved source scenarios.
 6. [ ] **Crawler RFC:** Define sharding, incremental sync, deduplication keys, and API rate-limit handling before writing crawler code.
 7. [ ] **Curation RFC:** Freeze rubric weights + calibration process before enabling automatic quality scores in production.
 8. [x] **Safety Gate MVP Mechanics:** Implement safety metadata persistence + risk label detection + no-exec metadata-only mode in the initial CLI release.

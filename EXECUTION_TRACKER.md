@@ -56,7 +56,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] TOML parsing, defaults, and validation tests present
 - [x] CLI global arg parsing tests present
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
-- [~] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), first hosted run pending
+- [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `21996401513`)
 
 Current automated tests: `55` (workspace unit/integration-style tests).
 
@@ -92,7 +92,9 @@ Current automated tests: `55` (workspace unit/integration-style tests).
 - [x] Hardened copy-mode delta detection for edge cases (streaming compare + symlink/IO conflict reasons).
 - [x] Added doctor strict/non-strict payload parity and JSON required-field stability tests.
 - [x] Declared stable `list --json` output schema in spec and added a contract test.
-- [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/check/test`).
+- [x] Added CI smoke workflow for Linux + macOS (`cargo fmt/clippy/test`).
+- [x] Verified hosted CI run success on both `ubuntu-latest` and `macos-latest` (`https://github.com/AI-Eden/eden-skills/actions/runs/21996401513`).
+- [x] Updated CI workflow quality gate from `cargo check --workspace` to `cargo clippy --workspace`.
 - [x] Refactored test layout to Rust mixed strategy: small unit tests in source + scenario/integration tests in per-crate `tests/`.
 - [x] Introduced command-model spec for lifecycle commands (`init/add/remove/set/list/config export/import`).
 
@@ -103,6 +105,7 @@ Current automated tests: `55` (workspace unit/integration-style tests).
 - [x] Harden copy-mode delta detection for edge cases (symlink-in-tree, large-file strategy, permission anomalies).
 - [x] Expand integration assertions depth (doctor strict/non-strict parity and stable JSON contract fields).
 - [x] Implement Safety Gate MVP mechanics (license check wiring, risk flag scan, no-exec mode plumbing).
+- [x] Align CI workflow quality gate with local clippy-first process (`cargo clippy --workspace`).
 - [x] Migrate CLI argument parsing to `clap` subcommands/flags.
 - [x] Implement lifecycle commands incrementally: `init` -> `list` -> `config export` -> `config import` -> `add/remove/set`.
 
@@ -119,10 +122,10 @@ Current automated tests: `55` (workspace unit/integration-style tests).
 
 ## 6. Next Execution Target (Builder)
 
-1. Verify one hosted CI run and sync phase-1 status/doc metrics.
+1. Verify a hosted CI run after the clippy-gate workflow update.
 
-### 6.1 Builder Checklist (B-019)
+### 6.1 Builder Checklist (B-021)
 
-- Trigger one hosted workflow run (`fmt + clippy + test`) on default branch.
-- Record hosted run status and run URL/reference.
-- Update `STATUS.yaml` (`hosted_run_verified`) and tracker notes accordingly.
+- Trigger/observe one hosted run that executes updated CI steps (`fmt + clippy + test`) on Linux and macOS.
+- Record run URL and completion status in `STATUS.yaml`.
+- Confirm no regression in local gates (`cargo fmt --all`, `cargo clippy --workspace`, `cargo test --workspace`).

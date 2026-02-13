@@ -34,7 +34,14 @@ phase1:
   ci:
     workflow_defined: true
     linux_macos_smoke_configured: true
-    hosted_run_verified: false
+    hosted_run_verified: true
+    hosted_run_reference:
+      workflow: CI
+      run_id: 21996401513
+      run_url: https://github.com/AI-Eden/eden-skills/actions/runs/21996401513
+      branch: main
+      event: push
+      completed_at: "2026-02-13T17:32:18Z"
 
 ownership:
   builder:
@@ -51,7 +58,7 @@ ownership:
       - crawler_strategy_rfc
 
 next_execution_targets:
-  - id: B-019
+  - id: B-021
     owner: builder
-    task: verify_hosted_ci_run_and_sync_phase1_status
-    source_spec: ROADMAP.md
+    task: verify_hosted_ci_after_clippy_gate_update
+    source_spec: .github/workflows/ci.yml
