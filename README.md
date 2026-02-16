@@ -43,7 +43,7 @@ Authoritative machine-readable status: `STATUS.yaml`.
 - Execution tracker and model-boundary ownership: `EXECUTION_TRACKER.md`
 - Spec index and writing rules: `spec/README.md`
 - CLI spec set (source of truth for implementation): `spec/`
-- Requirement-to-code/test mapping: `spec/SPEC_TRACEABILITY.md`
+- Requirement-to-code/test mapping: `spec/phase1/SPEC_TRACEABILITY.md` (Phase 1), `spec/phase2/SPEC_TRACEABILITY.md` (Phase 2)
 - Sample config for local dev: `skills.toml`
 
 ## Workspace Layout

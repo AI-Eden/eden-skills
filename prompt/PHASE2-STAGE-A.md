@@ -11,10 +11,10 @@
 These rules apply to all Phase 2 design and implementation work. Sourced from `AGENTS.md` and project-wide conventions.
 
 1. **AGENTS.md Compliance:** Read and follow `AGENTS.md` first, especially Read Order, Authority Order, Role Boundaries, and Guardrails.
-2. **Authority Order:** When files conflict, resolution MUST follow: `spec/*.md` > `STATUS.yaml` > `EXECUTION_TRACKER.md` > `ROADMAP.md` > `README.md`.
+2. **Authority Order:** When files conflict, resolution MUST follow: `spec/**/*.md` > `STATUS.yaml` > `EXECUTION_TRACKER.md` > `ROADMAP.md` > `README.md`.
 3. **Responsibility Boundary:** Architect owns taxonomy, curation rubric, and crawler strategy. Builder owns implementation, tests, and refactors. Do not perform Builder-owned implementation work in Architect-owned deliverables, and vice versa.
 4. **Language Policy:** Talk to user in Chinese. All repository file content MUST be English-only.
-5. **Phase Isolation:** Do not alter Phase 1 CLI behavior contracts (`spec/SPEC_COMMANDS.md`, `spec/SPEC_SCHEMA.md`, etc.). Phase 2 contracts must be isolated and MUST NOT inject semantics into existing Phase 1 normative sections.
+5. **Phase Isolation:** Do not alter Phase 1 CLI behavior contracts (`spec/phase1/SPEC_COMMANDS.md`, `spec/phase1/SPEC_SCHEMA.md`, etc.). Phase 2 contracts must be isolated in `spec/phase2/` and MUST NOT inject semantics into existing Phase 1 normative sections.
 
 ---
 

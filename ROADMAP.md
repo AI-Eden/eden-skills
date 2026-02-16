@@ -124,7 +124,7 @@ checks = ["path-exists", "is-symlink", "target-resolves"]
 To keep implementation deterministic across human and AI contributors:
 
 * Phase 1 normative specs live under `spec/`.
-* `spec/*.md` is the implementation source of truth for CLI behavior.
+* `spec/**/*.md` is the implementation source of truth for CLI behavior.
 * Any behavior change must update `spec/` first, then code, then tests.
 * `ROADMAP.md` remains strategic; `README.md` remains summary-level.
 
@@ -188,7 +188,7 @@ This section remains a strategic checklist.
 ### Phase 1: Foundation (Completed)
 
 1. [x] **Initialize Repo:** Create `eden-skills`.
-2. [x] **Freeze Specs:** Define Phase 1 contracts (`spec/SPEC_SCHEMA.md`, etc.).
+2. [x] **Freeze Specs:** Define Phase 1 contracts (`spec/phase1/SPEC_SCHEMA.md`, etc.).
 3. [x] **Draft Config:** Create `skills.toml` with manual Git sources.
 4. [x] **Rust CLI Build:** Implement `plan/apply/doctor/repair` (Serial & Local).
 5. [x] **Safety Gate MVP:** Implement risk metadata persistence and checks.

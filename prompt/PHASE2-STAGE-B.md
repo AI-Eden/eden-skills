@@ -13,10 +13,10 @@
 These rules are binding on all roles (Architect and Builder) throughout Phase 2 execution. Violation of any rule below invalidates the affected deliverable.
 
 1. **AGENTS.md Compliance:** Read and follow `AGENTS.md` first, especially Read Order, Authority Order, Role Boundaries, and Guardrails.
-2. **Authority Order:** When files conflict, resolution MUST follow: `spec/*.md` > `STATUS.yaml` > `EXECUTION_TRACKER.md` > `ROADMAP.md` > `README.md`.
+2. **Authority Order:** When files conflict, resolution MUST follow: `spec/**/*.md` > `STATUS.yaml` > `EXECUTION_TRACKER.md` > `ROADMAP.md` > `README.md`.
 3. **Responsibility Boundary:** Architect owns taxonomy, curation rubric, and crawler strategy. Builder owns implementation, tests, and refactors. Neither role may finalize the other's deliverables without explicit user instruction.
 4. **Language Policy:** Talk to user in Chinese. All repository file content MUST be English-only.
-5. **Phase Isolation:** Do not alter Phase 1 CLI behavior contracts (`spec/SPEC_COMMANDS.md`, `spec/SPEC_SCHEMA.md`, etc.). Phase 2 contracts must be isolated in dedicated spec files and MUST NOT inject semantics into existing Phase 1 normative sections.
+5. **Phase Isolation:** Do not alter Phase 1 CLI behavior contracts (`spec/phase1/SPEC_COMMANDS.md`, `spec/phase1/SPEC_SCHEMA.md`, etc.). Phase 2 contracts must be isolated in `spec/phase2/` and MUST NOT inject semantics into existing Phase 1 normative sections.
 6. **No-Stop Constraint:** Do not stop at analysis or recommendation-only output. Deliverables must be directly created or updated in the repository in the same turn.
 
 ---
@@ -175,7 +175,7 @@ Any architecture decision in Phase 2 spec files must follow ADR format:
 Phase 2 spec work is considered complete when all of the following hold:
 
 1. Builder can understand implementation direction for every ARC requirement without guessing core intent.
-2. No conflict exists between Phase 2 contracts and current Phase 1 specs (`spec/SPEC_COMMANDS.md`, `spec/SPEC_SCHEMA.md`, `spec/SPEC_AGENT_PATHS.md`).
+2. No conflict exists between Phase 2 contracts and current Phase 1 specs (`spec/phase1/SPEC_COMMANDS.md`, `spec/phase1/SPEC_SCHEMA.md`, `spec/phase1/SPEC_AGENT_PATHS.md`).
 3. Every P0 requirement is traceable to a concrete verification condition.
 4. All written file content is English-only.
 5. Phase 2 success criteria (from Stage A: Performance, Versatility, Ecosystem) are achievable from this spec without additional architectural decisions.

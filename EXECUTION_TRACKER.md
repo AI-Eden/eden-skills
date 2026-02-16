@@ -27,7 +27,7 @@ Legend:
 ### 3.1 Roadmap Action Items
 
 - [x] Initialize Repo (`Cargo workspace`, crates, toolchain)
-- [x] Freeze Specs (`spec/README.md`, `SPEC_*` baseline established)
+- [x] Freeze Specs (`spec/README.md`, `spec/phase1/SPEC_*` baseline established)
 - [x] Draft Config (`skills.toml` with 5 skills)
 - [x] Rust CLI Build (`plan/apply/doctor/repair` implemented; source sync/no-exec/strict-vs-verify precedence hardening completed; closeout audit completed)
 - [x] Test Matrix completion (all 7 scenarios automated; CI hosted pass verified)
@@ -135,7 +135,7 @@ Current automated tests: `73` (workspace unit/integration-style tests).
 
 ### 6.1 Completed Checklist (B-027)
 
-- [x] Verified command-behavior parity against `spec/SPEC_COMMANDS.md` (no mismatches found).
-- [x] Verified `spec/SPEC_TRACEABILITY.md` requirement mappings remain complete and status-consistent.
-- [x] Verified `spec/SPEC_TEST_MATRIX.md` scenarios remain fully represented by automated tests.
-- [x] Updated `spec/PHASE1_BUILDER_REMAINING.md` as the concise index of unresolved Builder tasks.
+- [x] Verified command-behavior parity against `spec/phase1/SPEC_COMMANDS.md` (no mismatches found).
+- [x] Verified `spec/phase1/SPEC_TRACEABILITY.md` requirement mappings remain complete and status-consistent.
+- [x] Verified `spec/phase1/SPEC_TEST_MATRIX.md` scenarios remain fully represented by automated tests.
+- [x] Updated `spec/phase1/PHASE1_BUILDER_REMAINING.md` as the concise index of unresolved Builder tasks.

@@ -78,4 +78,4 @@ ownership:
 
 next_execution_targets: []
 
-phase1_builder_remaining_index: spec/PHASE1_BUILDER_REMAINING.md
+phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
