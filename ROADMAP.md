@@ -1,4 +1,4 @@
-# AI Eden: The Next-Gen Agent Skills Ecosystem
+# Eden-Skills: The Next-Gen Agent Skills Ecosystem
 
 **Version:** 1.0 | **Date:** Feb 2026 | **Status:** Execution In Progress (Phase 1)
 
@@ -140,7 +140,17 @@ Leveraging **GPT-5.3-Codex** (High Speed/Code Gen) and **Claude Opus 4.6** (High
 * **Role:** Builder (GPT-5.3) writes the **Rust CLI** implementing `plan/apply/doctor/repair` from `spec/`.
 * **Deliverable:** A deterministic installer that solves the "Last Mile Reliability" problem.
 
-### Phase 2: The Data Engine (Mid-Term)
+### Phase 2: The "Hyper-Loop" Core Upgrade (New Priority)
+
+* **Context:** Before scaling the data (crawler), we must scale the tool's capability to handle complexity and performance.
+* **Role:** Architect (Claude) defines the `TargetAdapter` interface and `AsyncReactor` pattern.
+* **Role:** Builder (GPT-5.3) refactors the CLI from serial-sync to parallel-async.
+* **Deliverables:**
+    1. **Concurrency:** `tokio`-based parallel download/update for registries.
+    2. **Environment Agnosticism:** `DockerAdapter` to inject skills into running containers.
+    3. **Registry Resolution:** Support for `official` (curated) and `forge` (community) double-track sources.
+
+### Phase 3: The Data Engine (Mid-Term)
 
 * **Role:** Architect (Claude) designs the **Double-Layer Taxonomy** (Categories vs. Tags).
 * **Role:** Builder (GPT-5.3) writes a **GitHub Crawler** (using official API) to find repositories with `SKILL.md`.
@@ -150,20 +160,20 @@ Leveraging **GPT-5.3-Codex** (High Speed/Code Gen) and **Claude Opus 4.6** (High
 * "Generate 3 optimized search tags."
 * "Score quality with rubric-backed dimensions, not a single opaque number."
 
-#### Phase 2 Engineering Constraints (GitHub API Reality)
+#### Phase 3 Engineering Constraints (GitHub API Reality)
 
 * **Search Ceiling:** GitHub Search endpoints cap query results at 1,000 items per search expression.
 * **Rate Limits:** Search and core APIs have distinct rate limits; crawler must implement token-aware throttling.
 * **Partial Results:** Some responses can be `incomplete_results=true`; pipeline must support retry and reconciliation.
 * **Design Requirement:** Use query sharding (time/range partition), incremental sync by `updated_at`, deduplication by repo ID + path, and exponential backoff.
 
-#### Phase 2 Curation Quality Controls
+#### Phase 3 Curation Quality Controls
 
 * **Scoring Rubric:** Break quality into weighted dimensions (documentation clarity, maintenance signals, safety posture, usability).
 * **Human Calibration:** Sample and manually review scored outputs each cycle; track inter-rater drift and adjust prompts/weights.
 * **Versioned Outputs:** Store `model_version`, `prompt_version`, and `rubric_version` with each record for reproducibility.
 
-### Phase 3: The Platform Launch (Long-Term)
+### Phase 4: The Platform Launch (Long-Term)
 
 * Merge the CLI with the new Dataset.
 * Launch the search interface.
@@ -175,15 +185,26 @@ Leveraging **GPT-5.3-Codex** (High Speed/Code Gen) and **Claude Opus 4.6** (High
 Operational progress for these items is tracked in `STATUS.yaml` and `EXECUTION_TRACKER.md`.
 This section remains a strategic checklist.
 
-1. [x] **Initialize Repo:** Create `follow-edens-skills` (or `eden-skills`).
-2. [x] **Freeze Specs:** Maintain `spec/README.md` + `SPEC_SCHEMA.md` + `SPEC_AGENT_PATHS.md` + `SPEC_COMMANDS.md` + `SPEC_TEST_MATRIX.md` as the Phase 1 contract.
-3. [x] **Draft Config:** Manually create a `skills.toml` with 5 favorite skills and explicit `expected_path` + `verify` rules.
-4. [x] **Rust CLI Build:** Implement `plan/apply/doctor/repair` strictly against `spec/` behavior.
-5. [x] **Test Matrix:** Validate behavior on macOS/Linux with fresh install, repeated apply, broken link, and moved source scenarios.
-6. [ ] **Crawler RFC:** Define sharding, incremental sync, deduplication keys, and API rate-limit handling before writing crawler code.
-7. [ ] **Curation RFC:** Freeze rubric weights + calibration process before enabling automatic quality scores in production.
-8. [x] **Safety Gate MVP Mechanics:** Implement safety metadata persistence + risk label detection + no-exec metadata-only mode in the initial CLI release.
-9. [x] **CLI UX RFC:** Define `init/add/remove/set/list/config export/import` command contract and file-backed behavior (`skills.toml` as source of truth).
-10. [x] **CLI Framework Refactor:** Adopt `clap`-based subcommand/flag parsing for command growth; keep CLI sync in Phase 1 and reserve async runtime for crawler/indexing workflows.
+### Phase 1: Foundation (Completed)
+
+1. [x] **Initialize Repo:** Create `eden-skills`.
+2. [x] **Freeze Specs:** Define Phase 1 contracts (`spec/SPEC_SCHEMA.md`, etc.).
+3. [x] **Draft Config:** Create `skills.toml` with manual Git sources.
+4. [x] **Rust CLI Build:** Implement `plan/apply/doctor/repair` (Serial & Local).
+5. [x] **Safety Gate MVP:** Implement risk metadata persistence and checks.
+6. [x] **CLI UX Refactor:** Adopt `clap` for robust subcommand parsing.
+
+### Phase 2: Core Upgrade (Immediate Focus)
+
+1. [ ] **Phase 2 Spec Freeze:** Execute Stage A/B workflow to freeze `SPEC-PHASE2.md` (TargetAdapter, AsyncReactor, Registry).
+2. [ ] **Registry RFC:** Define the TOML index structure for `official` and `forge` registries.
+3. [ ] **Async Refactor:** Port the serial `apply` loop to `tokio`-based concurrent `SkillReactor`.
+4. [ ] **Docker Adapter:** Implement `TargetAdapter` for Docker (`docker exec/cp`) to support containerized agents.
+5. [ ] **Registry Resolution:** Implement logic to resolve `name="google-search"` to a Git URL via the Registry Index.
+
+### Phase 3: Data Engine (Future)
+
+1. [ ] **Crawler RFC:** Define sharding and rate-limit handling for GitHub API.
+2. [ ] **Curation RFC:** Define quality scoring rubric and calibration process.
 
 > *"The goal is not just to download code; it is to configure the agent's environment seamlessly."*
