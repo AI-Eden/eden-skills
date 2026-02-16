@@ -8,6 +8,19 @@
 
 ---
 
+## 0. Guardrails (Non-Negotiable)
+
+These rules are binding on all roles (Architect and Builder) throughout Phase 2 execution. Violation of any rule below invalidates the affected deliverable.
+
+1. **AGENTS.md Compliance:** Read and follow `AGENTS.md` first, especially Read Order, Authority Order, Role Boundaries, and Guardrails.
+2. **Authority Order:** When files conflict, resolution MUST follow: `spec/*.md` > `STATUS.yaml` > `EXECUTION_TRACKER.md` > `ROADMAP.md` > `README.md`.
+3. **Responsibility Boundary:** Architect owns taxonomy, curation rubric, and crawler strategy. Builder owns implementation, tests, and refactors. Neither role may finalize the other's deliverables without explicit user instruction.
+4. **Language Policy:** Talk to user in Chinese. All repository file content MUST be English-only.
+5. **Phase Isolation:** Do not alter Phase 1 CLI behavior contracts (`spec/SPEC_COMMANDS.md`, `spec/SPEC_SCHEMA.md`, etc.). Phase 2 contracts must be isolated in dedicated spec files and MUST NOT inject semantics into existing Phase 1 normative sections.
+6. **No-Stop Constraint:** Do not stop at analysis or recommendation-only output. Deliverables must be directly created or updated in the repository in the same turn.
+
+---
+
 ## 1. Purpose
 
 To evolve `eden-skills` from a local file-linker (Phase 1) to a high-performance, environment-agnostic package manager capable of supporting the "Double-Track" registry system.
@@ -109,12 +122,43 @@ target = "docker:devin-container" # Triggers DockerAdapter
 
 ## 6. Traceability & Handoff Checklist
 
-### Builder Entry Criteria (Gate)
+### Builder Entry Criteria (Freeze Gate)
 
-* [ ] **ARC-001** to **ARC-203** are understood.
+Builder implementation can start only if **all** checks pass:
+
+* [ ] **ARC-001** to **ARC-203** are understood and accepted.
 * [ ] No breaking changes to Phase 1 `spec/` files (Backward Compatibility).
+* [ ] All requirement IDs are unique across all Phase 2 spec files.
+* [ ] Every **MUST** (P0) requirement has a verification entry.
+* [ ] All new or modified file content is English-only.
+* [ ] All open design questions are resolved or explicitly deferred with owner and due phase.
 
 ### Failure Semantics
 
 * **Network Failure:** Partial success allowed. Failed downloads reported at end (Exit Code 0).
 * **Injection Failure:** Critical. If `DockerAdapter` cannot connect, fail fast for that specific skill (Exit Code 1).
+
+### Normative Requirement Format
+
+Each requirement in Phase 2 spec files must include:
+
+| Field | Description |
+| :--- | :--- |
+| **ID** | Unique identifier (`ARC-xxx` for architecture, `REG-xxx` for registry, `ADT-xxx` for adapter). |
+| **Owner** | `Architect` \| `Builder` \| `Shared` |
+| **Priority** | `P0` (MUST) \| `P1` (SHOULD) \| `P2` (MAY) |
+| **Statement** | Normative requirement using RFC 2119 keywords. |
+| **Verification** | One testable condition proving compliance. |
+
+### Architecture Decision Discipline
+
+Any architecture decision in Phase 2 spec files must follow ADR format:
+
+| Field | Description |
+| :--- | :--- |
+| **Decision ID** | Unique identifier (e.g., `ADR-001`). |
+| **Context** | Problem or constraint motivating the decision. |
+| **Options** | At least 2 evaluated alternatives. |
+| **Chosen Option** | The selected approach with rationale. |
+| **Trade-offs** | Known downsides of the chosen option. |
+| **Rollback Trigger** | Condition under which the decision should be revisited. |
