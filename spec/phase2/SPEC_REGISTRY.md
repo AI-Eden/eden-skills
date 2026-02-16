@@ -5,7 +5,7 @@ Normative specification for the Phase 2 double-track registry system.
 ## 1. Purpose
 
 Define the registry resolution architecture that enables skill discovery and
-installation by name (e.g., `eden install google-search`) instead of requiring
+installation by name (e.g., `eden-skills install google-search`) instead of requiring
 explicit Git URLs. The system supports two tracks: `official` (curated) and
 `forge` (community).
 
@@ -14,7 +14,7 @@ explicit Git URLs. The system supports two tracks: `official` (curated) and
 - Registry configuration schema (`[registries]` table in `skills.toml`).
 - Registry index format (Git-based TOML index).
 - Resolution logic (priority-based fallback).
-- `eden update` behavior for registry synchronization.
+- `eden-skills update` behavior for registry synchronization.
 
 ## 3. Non-Goals
 
@@ -28,7 +28,7 @@ explicit Git URLs. The system supports two tracks: `official` (curated) and
 | :--- | :--- | :--- | :--- | :--- |
 | **ARC-201** | Builder | **P0** | Configuration MUST support multiple registry sources with priority weights. | `skills.toml` accepts `[registries]` table with `url` and `priority` per entry. |
 | **ARC-202** | Shared | **P0** | Resolution logic MUST follow `Official -> Forge -> Failure` fallback order by default (determined by priority weight). | Installing a skill present in both registries prefers the higher-priority one. |
-| **ARC-203** | Builder | **P1** | Registry indexes MUST be local Git repositories synchronized via `eden update`. | `~/.eden/registries/` contains cloned index repos after `eden update`. |
+| **ARC-203** | Builder | **P1** | Registry indexes MUST be local Git repositories synchronized via `eden-skills update`. | `~/.eden-skills/registries/` contains cloned index repos after `eden-skills update`. |
 
 ## 5. Data Model
 
@@ -71,8 +71,8 @@ license = "MIT"
 
 ### 5.3 Resolution Logic
 
-1. `eden update`: Pulls latest commits from all configured registry repos (concurrently via Reactor).
-2. `eden install <skill-name>`:
+1. `eden-skills update`: Pulls latest commits from all configured registry repos (concurrently via Reactor).
+2. `eden-skills install <skill-name>`:
    - Sort registries by priority (descending).
    - For each registry, check `index/<first-char>/<skill-name>.toml`.
    - On first match, read Git URL and version info.
@@ -81,7 +81,7 @@ license = "MIT"
 
 ## 6. Failure Semantics
 
-- **Registry Sync Failure:** `eden update` MUST report per-registry sync status.
+- **Registry Sync Failure:** `eden-skills update` MUST report per-registry sync status.
   Partial success is allowed (some registries updated, others failed).
 - **Skill Not Found:** Exit code `1` with message listing all searched registries.
 - **Ambiguous Version:** If requested version constraint matches no entry, fail
@@ -91,8 +91,8 @@ license = "MIT"
 
 ## 7. Acceptance Criteria
 
-1. `eden update` clones/pulls configured registry repos into `~/.eden/registries/`.
-2. `eden install browser-use` resolves the skill from the official registry index.
+1. `eden-skills update` clones/pulls configured registry repos into `~/.eden-skills/registries/`.
+2. `eden-skills install browser-use` resolves the skill from the official registry index.
 3. When a skill exists in both `official` and `forge`, the higher-priority
    registry wins.
 4. The `eden-official` registry repo exists (even if initially empty) and the

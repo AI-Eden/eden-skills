@@ -67,7 +67,7 @@ SkillReactor
 
 ## 8. Acceptance Criteria
 
-1. `eden apply` with 20 cached skills completes in < 2 seconds.
-2. `eden apply` with uncached skills saturates available network bandwidth.
+1. `eden-skills apply` with 20 cached skills completes in < 2 seconds.
+2. `eden-skills apply` with uncached skills saturates available network bandwidth.
 3. Phase 1 integration tests pass without modification under the new runtime.
 4. No race conditions observed in 100 repeated concurrent runs.
