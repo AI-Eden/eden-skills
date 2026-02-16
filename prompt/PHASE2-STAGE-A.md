@@ -126,8 +126,8 @@ registry-repo/
 
 * **Resolution Logic:**
 
-1. `eden update`: Pulls the latest commits from configured registry repos (concurrently).
-2. `eden install google-search`:
+1. `eden-skills update`: Pulls the latest commits from configured registry repos (concurrently).
+2. `eden-skills install google-search`:
 
 * Checks `official/index/g/google-search.toml`.
 * If not found, checks `forge/index/g/google-search.toml`.
@@ -157,6 +157,6 @@ registry-repo/
 
 ## 4. Success Criteria for Phase 2
 
-1. **Performance:** `eden update` with 20 skills takes < 2 seconds (assuming cached) or saturates network bandwidth (uncached).
-2. **Versatility:** Can install a skill into a running Docker container from the host machine via `eden install --target docker:container_name`.
+1. **Performance:** `eden-skills update` with 20 skills takes < 2 seconds (assuming cached) or saturates network bandwidth (uncached).
+2. **Versatility:** Can install a skill into a running Docker container from the host machine via `eden-skills install --target docker:container_name`.
 3. **Ecosystem:** The `eden-official` registry repo exists (even if empty) and the CLI can read from it.

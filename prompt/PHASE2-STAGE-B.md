@@ -59,7 +59,7 @@ To evolve `eden-skills` from a local file-linker (Phase 1) to a high-performance
 | **ARC-101** | **P0** | The system MUST define a `TargetAdapter` trait decoupling intent from syscalls. | Code contains `trait TargetAdapter { async fn inject(...) }`. |
 | **ARC-102** | **P0** | A `LocalAdapter` implementation MUST be provided for backward compatibility. | Phase 1 integration tests pass without modification. |
 | **ARC-103** | **P0** | A `DockerAdapter` implementation MUST be provided using `docker cli` or API. | Can install skill to a running container without volume mount. |
-| **ARC-104** | **P1** | The `DockerAdapter` MUST support `cp` (copy) injection strategy as the primary reliable method. | File appears in container after `eden install` even without shared volumes. |
+| **ARC-104** | **P1** | The `DockerAdapter` MUST support `cp` (copy) injection strategy as the primary reliable method. | File appears in container after `eden-skills install` even without shared volumes. |
 
 ### 3.3 Registry Resolution (The Resolver)
 
@@ -67,7 +67,7 @@ To evolve `eden-skills` from a local file-linker (Phase 1) to a high-performance
 | :--- | :--- | :--- | :--- |
 | **ARC-201** | **P0** | Configuration MUST support multiple registry sources with priority weights. | `config.toml` accepts `[registries]` table. |
 | **ARC-202** | **P0** | Resolution logic MUST follow `Official -> Forge -> Failure` fallback order by default. | Installing a skill present in both prefers the Official version. |
-| **ARC-203** | **P1** | Registry indexes MUST be local Git repositories synchronized via `eden update`. | `~/.eden/registries/` contains cloned index repos. |
+| **ARC-203** | **P1** | Registry indexes MUST be local Git repositories synchronized via `eden-skills update`. | `~/.eden-skills/registries/` contains cloned index repos. |
 
 ---
 
@@ -82,7 +82,7 @@ To evolve `eden-skills` from a local file-linker (Phase 1) to a high-performance
     3. *SSH/SCP:* Treat container as remote server.
 * **Decision:** **Option 2 (Docker CP)**.
 * **Rationale:** Least intrusive. Does not require restarting the container (which kills Agent state). Matches "Injection" paradigm.
-* **Trade-off:** Updates are not real-time (no symlink magic). `eden update` must re-copy files.
+* **Trade-off:** Updates are not real-time (no symlink magic). `eden-skills update` must re-copy files.
 
 ### ADR-002: Async Runtime Selection
 
@@ -189,7 +189,7 @@ Items below are unresolved or deferred. Each must be closed (with decision or ex
 | ID | Question | Owner | Due Phase | Status |
 | :--- | :--- | :--- | :--- | :--- |
 | **OQ-001** | What SemVer matching strategy should registry resolution use (exact, range `^`, prefix `~`)? | Architect | Phase 2 | Open |
-| **OQ-002** | What fields are required vs. optional in each registry index TOML entry (e.g., `description`, `license`, `min_eden_version`)? | Architect | Phase 2 | Open |
+| **OQ-002** | What fields are required vs. optional in each registry index TOML entry (e.g., `description`, `license`, `min_eden_skills_version`)? | Architect | Phase 2 | Open |
 | **OQ-003** | Should the concurrency limit (default: 10) be configurable via `skills.toml`, CLI flag, or environment variable? | Shared | Phase 2 | Open |
 | **OQ-004** | How should `DockerAdapter` handle permission errors inside the container (retry as root, fail, warn)? | Builder | Phase 2 | Open |
 | **OQ-005** | What is the rollback strategy if `docker cp` partially fails mid-injection (some files copied, others not)? | Shared | Phase 2 | Open |
