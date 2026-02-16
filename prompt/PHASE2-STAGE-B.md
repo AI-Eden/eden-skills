@@ -35,6 +35,13 @@ To evolve `eden-skills` from a local file-linker (Phase 1) to a high-performance
   * The Crawler Implementation (Moved to Phase 3).
   * Web UI / Search Interface.
 
+* **Non-Goals:**
+  * Real-time file synchronization for Docker targets. `docker cp` is a point-in-time snapshot; live symlink behavior inside containers is explicitly not pursued (see ADR-001).
+  * Dependency resolution between skills. The DAG structure is scaffolded for future use but MUST NOT block Phase 2 delivery.
+  * `SshAdapter` or any remote-server adapter beyond Docker. Deferred to Phase 3+.
+  * Backward-incompatible `skills.toml` schema migration. Phase 1 `source = { repo, ref }` syntax MUST continue to work.
+  * Automatic agent environment discovery. Users must explicitly specify target environments in configuration.
+
 ## 3. Normative Requirements (Norms)
 
 ### 3.1 Concurrency Model (The Reactor)
@@ -162,3 +169,27 @@ Any architecture decision in Phase 2 spec files must follow ADR format:
 | **Chosen Option** | The selected approach with rationale. |
 | **Trade-offs** | Known downsides of the chosen option. |
 | **Rollback Trigger** | Condition under which the decision should be revisited. |
+
+### Acceptance Criteria
+
+Phase 2 spec work is considered complete when all of the following hold:
+
+1. Builder can understand implementation direction for every ARC requirement without guessing core intent.
+2. No conflict exists between Phase 2 contracts and current Phase 1 specs (`spec/SPEC_COMMANDS.md`, `spec/SPEC_SCHEMA.md`, `spec/SPEC_AGENT_PATHS.md`).
+3. Every P0 requirement is traceable to a concrete verification condition.
+4. All written file content is English-only.
+5. Phase 2 success criteria (from Stage A: Performance, Versatility, Ecosystem) are achievable from this spec without additional architectural decisions.
+
+---
+
+## 7. Open Questions
+
+Items below are unresolved or deferred. Each must be closed (with decision or explicit deferral) before the relevant implementation milestone begins.
+
+| ID | Question | Owner | Due Phase | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **OQ-001** | What SemVer matching strategy should registry resolution use (exact, range `^`, prefix `~`)? | Architect | Phase 2 | Open |
+| **OQ-002** | What fields are required vs. optional in each registry index TOML entry (e.g., `description`, `license`, `min_eden_version`)? | Architect | Phase 2 | Open |
+| **OQ-003** | Should the concurrency limit (default: 10) be configurable via `skills.toml`, CLI flag, or environment variable? | Shared | Phase 2 | Open |
+| **OQ-004** | How should `DockerAdapter` handle permission errors inside the container (retry as root, fail, warn)? | Builder | Phase 2 | Open |
+| **OQ-005** | What is the rollback strategy if `docker cp` partially fails mid-injection (some files copied, others not)? | Shared | Phase 2 | Open |
