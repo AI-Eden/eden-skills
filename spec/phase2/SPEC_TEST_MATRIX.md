@@ -32,6 +32,25 @@ Minimum acceptance test matrix for Phase 2 features.
 - Phase 1 integration tests pass without modification under the new async runtime.
 - Serial behavior is preserved for disk I/O operations.
 
+### 2.5 Two-Phase Execution (NEW)
+
+- No install mutation occurs while any download is still in progress.
+- Verify by adding a slow-downloading skill and confirming install steps
+  only begin after all downloads complete (or fail).
+
+### 2.6 Concurrency Configuration (NEW)
+
+- `--concurrency 1` produces serial download behavior (one skill at a time).
+- `[reactor] concurrency = 5` in config limits to 5 concurrent downloads.
+- CLI `--concurrency` overrides config value.
+
+### 2.7 Spawn Blocking Safety (NEW)
+
+- No tokio "blocking the runtime" warnings during concurrent operations
+  with 20+ skills.
+- `spawn_blocking` tasks do not exhaust the blocking thread pool under
+  normal concurrency limits (1-100).
+
 ## 3. Adapter Scenarios
 
 ### 3.1 LocalAdapter Parity
@@ -53,6 +72,23 @@ Minimum acceptance test matrix for Phase 2 features.
 
 - When container filesystem is read-only at target path, copy fails with
   clear error message including container name and path.
+
+### 3.5 DockerAdapter Symlink Fallback (NEW)
+
+- When `install.mode = "symlink"` is configured for a Docker target,
+  a warning is emitted and copy mode is used instead.
+- Files are correctly installed despite mode mismatch.
+
+### 3.6 Adapter Selection Determinism (NEW)
+
+- `environment = "local"` always selects LocalAdapter.
+- `environment = "docker:test"` always selects DockerAdapter.
+- Unknown environment string fails at config validation time (exit code `2`).
+
+### 3.7 Docker Binary Missing (NEW)
+
+- When `docker` is not in PATH and a Docker target is configured,
+  error message clearly states Docker CLI is required.
 
 ## 4. Registry Scenarios
 
@@ -81,6 +117,40 @@ Minimum acceptance test matrix for Phase 2 features.
 - Mode A and Mode B entries can coexist in the same config.
 - Mixing `id`+`source` with `name` in one entry fails validation (exit code `2`).
 
+### 4.5 Offline Resolution (NEW)
+
+- With network disabled and registry cache present, `install <name>` resolves
+  from cached index without errors.
+- With network disabled and no registry cache, `install <name>` fails with
+  "Run `eden-skills update` first" message.
+
+### 4.6 Shallow Clone Efficiency (NEW)
+
+- `update` uses shallow clone (`--depth 1`) for initial clone.
+- Registry local directory does not contain full git history.
+
+### 4.7 Yanked Version Handling (NEW)
+
+- Yanked versions are excluded from constraint resolution.
+- When the only matching version is yanked, error lists available non-yanked versions.
+
+### 4.8 Registry Manifest Validation (NEW)
+
+- Registry with `manifest.toml` containing `format_version = 1` parses correctly.
+- Registry without `manifest.toml` logs a warning and assumes format version 1.
+
+### 4.9 Reactor Config Validation (NEW)
+
+- Config with `[reactor] concurrency = 5` validates correctly.
+- Config with `[reactor] concurrency = 0` fails validation (exit code `2`).
+- Config with `[reactor] concurrency = 101` fails validation (exit code `2`).
+
+### 4.10 Install Dry Run (NEW)
+
+- `install --dry-run <skill-name>` displays resolved source and target info.
+- No config file modification occurs.
+- No filesystem changes occur.
+
 ## 5. CI Gate (Phase 2)
 
 A release candidate MUST pass:
@@ -89,3 +159,4 @@ A release candidate MUST pass:
 - All Phase 2 reactor and registry scenario tests.
 - At least one Docker adapter smoke test (may require Docker-in-Docker or
   be marked as manual in CI).
+- Schema extension validation tests for new sections and error codes.
