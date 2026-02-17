@@ -1,3 +1,5 @@
+![](./images/EDEN-SKILLS-BANNER.png)
+
 # eden-skills
 
 Deterministic skill installation and reconciliation for agent environments.
