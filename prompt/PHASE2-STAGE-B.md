@@ -18,6 +18,7 @@ These rules are binding on all roles (Architect and Builder) throughout Phase 2 
 4. **Language Policy:** Talk to user in Chinese. All repository file content MUST be English-only.
 5. **Phase Isolation:** Do not alter Phase 1 CLI behavior contracts (`spec/phase1/SPEC_COMMANDS.md`, `spec/phase1/SPEC_SCHEMA.md`, etc.). Phase 2 contracts must be isolated in `spec/phase2/` and MUST NOT inject semantics into existing Phase 1 normative sections.
 6. **No-Stop Constraint:** Do not stop at analysis or recommendation-only output. Deliverables must be directly created or updated in the repository in the same turn.
+7. **Skill Resources:** The coding environment has Rust-related agent skills configured (e.g., Rust best practices, async patterns, anti-patterns, coding guidelines). When making architecture decisions or evaluating implementation trade-offs involving Rust idioms, concurrency patterns, error handling strategies, or performance considerations, you are STRONGLY ENCOURAGED to proactively read and reference any available skills you consider relevant. Use the skill descriptions in the environment to identify applicable resources.
 
 ---
 

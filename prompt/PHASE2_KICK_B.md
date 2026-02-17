@@ -19,6 +19,7 @@ You are executing Phase 2 Stage B: contract freeze for Builder handoff.
 - Phase 2 frozen contract is defined in the attached PHASE2-STAGE-B.md.
 - Stage A has been completed: spec/phase2/ files contain draft contracts with "Freeze Candidates" sections.
 - You MUST read ALL spec/phase2/ files before making any changes.
+- The coding environment has Rust-related agent skills configured (e.g., Rust best practices, async patterns, anti-patterns, coding guidelines). When resolving Freeze Candidates or making decisions involving Rust idioms, concurrency patterns, error handling, or performance trade-offs, you SHOULD proactively consult any available skills you consider relevant and necessary.
 
 [Pre-Flight Check]
 Before editing, verify Stage A output exists and is readable:
