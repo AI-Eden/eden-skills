@@ -13,6 +13,8 @@ Use this file to recover accurate context after compression.
 | ARC-004 | `SPEC_REACTOR.md` 4 | Concurrency limit SHOULD be configurable via config and CLI flag | -- | -- | planned |
 | ARC-005 | `SPEC_REACTOR.md` 4 | Reactor MUST implement two-phase execution (download then install) | -- | -- | planned |
 | ARC-006 | `SPEC_REACTOR.md` 4 | Sync git ops MUST use `spawn_blocking` or async process to avoid blocking runtime | -- | -- | planned |
+| ARC-007 | `SPEC_REACTOR.md` 4 | Reactor SHOULD support graceful cancellation via `CancellationToken` | -- | -- | planned |
+| ARC-008 | `SPEC_REACTOR.md` 4 | Phase 2 domain errors MUST use `thiserror`; `anyhow` only at binary entry point | -- | -- | planned |
 | ARC-101 | `SPEC_ADAPTER.md` 4 | System MUST define `TargetAdapter` trait decoupling intent from syscalls | -- | -- | planned |
 | ARC-102 | `SPEC_ADAPTER.md` 4 | `LocalAdapter` MUST be provided for backward compatibility | -- | -- | planned |
 | ARC-103 | `SPEC_ADAPTER.md` 4 | `DockerAdapter` MUST be provided using `docker` CLI | -- | -- | planned |
@@ -20,6 +22,7 @@ Use this file to recover accurate context after compression.
 | ARC-105 | `SPEC_ADAPTER.md` 4 | `DockerAdapter` MUST use `tokio::process::Command` for async interaction | -- | -- | planned |
 | ARC-106 | `SPEC_ADAPTER.md` 4 | Adapter selection MUST be deterministic from config `environment` field | -- | -- | planned |
 | ARC-107 | `SPEC_ADAPTER.md` 4 | `TargetAdapter` SHOULD include `uninstall` method | -- | -- | planned |
+| ARC-108 | `SPEC_ADAPTER.md` 4 | `TargetAdapter` MUST require `Send + Sync` bounds (for `JoinSet::spawn`) | -- | -- | planned |
 | ARC-201 | `SPEC_REGISTRY.md` 4 | Configuration MUST support multiple registries with priority weights | -- | -- | planned |
 | ARC-202 | `SPEC_REGISTRY.md` 4 | Resolution MUST follow priority-based fallback order | -- | -- | planned |
 | ARC-203 | `SPEC_REGISTRY.md` 4 | Registry indexes MUST be local Git repos synced via `eden update` | -- | -- | planned |

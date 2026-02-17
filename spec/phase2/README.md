@@ -28,8 +28,8 @@ When reading an `_EXT` file, always read the corresponding Phase 1 base file fir
 
 | File | Domain | Requirement IDs | ADRs | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `SPEC_REACTOR.md` | Concurrency | ARC-001 ~ ARC-006 | ADR-002, ADR-003, ADR-004 | tokio async runtime, bounded concurrency, two-phase execution, sync migration |
-| `SPEC_ADAPTER.md` | Environment | ARC-101 ~ ARC-107 | ADR-001, ADR-005, ADR-006 | TargetAdapter trait, LocalAdapter, DockerAdapter, adapter instantiation |
+| `SPEC_REACTOR.md` | Concurrency | ARC-001 ~ ARC-008 | ADR-002, ADR-003, ADR-004 | tokio async runtime, bounded concurrency, two-phase execution, cancellation, error strategy |
+| `SPEC_ADAPTER.md` | Environment | ARC-101 ~ ARC-108 | ADR-001, ADR-005, ADR-006 | TargetAdapter trait, LocalAdapter, DockerAdapter, instantiation, Send+Sync |
 | `SPEC_REGISTRY.md` | Registry | ARC-201 ~ ARC-207 | ADR-007, ADR-008, ADR-009 | Double-track registry, index format, resolution logic, version matching |
 | `SPEC_SCHEMA_EXT.md` | Config | SCH-P2-001 ~ SCH-P2-006 | -- | `skills.toml` extensions (registries, version, target, reactor config) |
 | `SPEC_COMMANDS_EXT.md` | CLI | CMD-P2-001 ~ CMD-P2-006 | -- | New commands: `update`, `install --target`, `--concurrency` flag |
@@ -57,11 +57,11 @@ Stage B must resolve these items before Builder implementation begins:
 | Domain | Count | IDs |
 | :--- | :--- | :--- |
 | Reactor | 4 | FC-R1, FC-R2, FC-R3, FC-R4 |
-| Adapter | 5 | FC-A1, FC-A2, FC-A3, FC-A4, FC-A5 |
+| Adapter | 4 | FC-A1, FC-A2, FC-A3, FC-A5 |
 | Registry | 6 | FC-REG1, FC-REG2, FC-REG3, FC-REG4, FC-REG5, FC-REG6 |
 | Schema | 3 | FC-S1, FC-S2, FC-S3 |
 | Commands | 3 | FC-C1, FC-C2, FC-C3 |
-| **Total** | **21** | |
+| **Total** | **20** | |
 
 ## Normative Language
 

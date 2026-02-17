@@ -34,6 +34,7 @@ without changing core logic.
 | **ARC-105** | Builder | **P1** | The `DockerAdapter` MUST use `tokio::process::Command` for async Docker CLI interaction. | Docker operations do not block the tokio runtime. |
 | **ARC-106** | Builder | **P0** | Adapter selection MUST be deterministic: the adapter type is derived solely from the `environment` field in config. | Same config always produces the same adapter instance. No runtime environment sniffing. |
 | **ARC-107** | Builder | **P1** | The `TargetAdapter` trait SHOULD include an `uninstall` method for removing previously installed skill targets. | `eden-skills remove` can clean up installed targets across adapter types. |
+| **ARC-108** | Builder | **P0** | The `TargetAdapter` trait MUST require `Send + Sync` bounds. This is mandatory for compatibility with `JoinSet::spawn` which requires `Send` on spawned futures. | `Box<dyn TargetAdapter>` compiles with `JoinSet::spawn`; no `Send` bound errors. |
 
 ## 5. Architecture Decisions
 
@@ -234,5 +235,10 @@ Items requiring Stage B resolution before Builder implementation begins:
 | **FC-A1** | `uninstall` method scope | Full cleanup (`rm -rf` target) vs symlink-only removal vs marker-based cleanup | Define what "uninstall" means for each adapter type. |
 | **FC-A2** | DockerAdapter retry policy | No retry (fail fast) vs 1 retry with backoff vs configurable retry count | Decide error recovery strategy for transient Docker failures. |
 | **FC-A3** | Docker Compose service name support | `docker:<service>` via `docker compose exec` vs container-name-only | Decide if we support Compose service names or require resolved container names. |
-| **FC-A4** | Adapter trait `Send + Sync` bounds | Required (needed for `JoinSet::spawn`) vs `Send` only (limits concurrency options) | Depends on Reactor coordination strategy; recommend `Send + Sync`. |
 | **FC-A5** | DockerAdapter symlink-to-copy fallback | Silent fallback vs warning + fallback vs error | Current recommendation: warning + fallback (Section 6 note). Needs confirmation. |
+
+**Note:** FC-A4 (Send + Sync bounds) was resolved and promoted to normative
+requirement ARC-108. `Send + Sync` is mandatory because `JoinSet::spawn`
+requires `Send` on spawned futures, and `Sync` is needed for `Arc<dyn TargetAdapter>`
+shared across tasks. This aligns with the `rust-async-patterns` best practice:
+"Don't forget Send bounds — For spawned futures."

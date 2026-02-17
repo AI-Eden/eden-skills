@@ -30,6 +30,8 @@ Define the runtime concurrency architecture that replaces Phase 1's serial
 | **ARC-004** | Builder | **P1** | The concurrency limit SHOULD be configurable via `[reactor]` config section and overridable by `--concurrency` CLI flag. | Setting concurrency to `1` produces serial behavior; setting to `50` allows 50 parallel downloads. |
 | **ARC-005** | Builder | **P0** | The Reactor MUST implement two-phase execution: Phase A (parallel source sync) completes before Phase B (serialized install mutations) begins. | No install mutation starts while any download is still in progress. |
 | **ARC-006** | Builder | **P0** | Synchronous git operations (clone/fetch/checkout) MUST be executed via `tokio::spawn_blocking` or async process invocation to avoid blocking the async runtime. | No tokio "blocking the runtime" warnings during concurrent operations. |
+| **ARC-007** | Builder | **P1** | The Reactor SHOULD support graceful cancellation via `tokio_util::CancellationToken`. When cancelled (e.g., Ctrl+C), in-flight tasks SHOULD be aborted and partial results reported. | Ctrl+C during concurrent download aborts cleanly without orphaned processes or corrupted state. |
+| **ARC-008** | Builder | **P0** | Phase 2 domain error types (Reactor, Adapter, Registry) MUST use `thiserror` for structured error variants. `anyhow` MUST NOT be used in library crates; it MAY be used only at the binary entry point. | `cargo clippy` passes; no `anyhow::Error` in library crate signatures. |
 
 ## 5. Architecture Decisions
 

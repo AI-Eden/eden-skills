@@ -9,7 +9,7 @@ This directory defines executable specifications for CLI behavior and architectu
 
 ## Directory Structure
 
-```
+```txt
 spec/
 ├── README.md              (this file - master index)
 ├── phase1/                (Phase 1: CLI Foundation - FROZEN)
@@ -46,8 +46,8 @@ Phase 1 specs are frozen. Content changes require explicit user approval.
 Phase 2 specs define the async runtime, environment adapter, and registry system.
 Files with `_EXT` suffix extend Phase 1 base contracts (read the base file first).
 
-- `phase2/SPEC_REACTOR.md`: tokio concurrency model, two-phase execution, task coordination (ARC-001~006)
-- `phase2/SPEC_ADAPTER.md`: TargetAdapter trait, LocalAdapter, DockerAdapter, instantiation (ARC-101~107)
+- `phase2/SPEC_REACTOR.md`: tokio concurrency model, two-phase execution, cancellation, error strategy (ARC-001~008)
+- `phase2/SPEC_ADAPTER.md`: TargetAdapter trait, LocalAdapter, DockerAdapter, instantiation, Send+Sync (ARC-101~108)
 - `phase2/SPEC_REGISTRY.md`: double-track registry, index format, resolution logic, version matching (ARC-201~207)
 - `phase2/SPEC_SCHEMA_EXT.md`: `skills.toml` Phase 2 extensions (registries, version, target, reactor config)
 - `phase2/SPEC_COMMANDS_EXT.md`: Phase 2 new commands (update, install --target, --concurrency flag)
