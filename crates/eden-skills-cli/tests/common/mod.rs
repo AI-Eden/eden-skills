@@ -125,6 +125,21 @@ pub fn restore_permissions(path: &Path, permissions: fs::Permissions) {
     fs::set_permissions(path, permissions).expect("restore original permissions");
 }
 
+#[cfg(windows)]
+pub fn make_read_only_dir(path: &Path) -> fs::Permissions {
+    fs::create_dir_all(path).expect("create restricted directory");
+    let original = fs::metadata(path)
+        .expect("restricted metadata")
+        .permissions();
+    run_icacls(path, &["/inheritance:r", "/grant:r", "*S-1-1-0:(OI)(CI)RX"]);
+    original
+}
+
+#[cfg(windows)]
+pub fn restore_permissions(path: &Path, _permissions: fs::Permissions) {
+    run_icacls(path, &["/reset", "/T", "/C"]);
+}
+
 #[cfg(unix)]
 pub fn create_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
     std::os::unix::fs::symlink(source, target)
@@ -133,6 +148,26 @@ pub fn create_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
 #[cfg(windows)]
 pub fn create_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
     std::os::windows::fs::symlink_dir(source, target)
+}
+
+#[cfg(windows)]
+fn run_icacls(path: &Path, args: &[&str]) {
+    let output = Command::new("icacls")
+        .arg(path)
+        .args(args)
+        .output()
+        .expect("spawn icacls");
+    if output.status.success() {
+        return;
+    }
+    panic!(
+        "icacls {:?} failed for {}: status={} stderr=`{}` stdout=`{}`",
+        args,
+        path.display(),
+        output.status,
+        String::from_utf8_lossy(&output.stderr).trim(),
+        String::from_utf8_lossy(&output.stdout).trim()
+    );
 }
 
 fn run_git(cwd: &Path, args: &[&str]) {

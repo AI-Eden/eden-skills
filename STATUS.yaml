@@ -1,8 +1,8 @@
 schema_version: 1
-updated_at: "2026-02-13"
+updated_at: "2026-02-18"
 project:
   name: eden-skills
-  phase: phase1_cli_foundation
+  phase: phase2_hyper_loop_core
   status: active_implementation
 
 authority_order:
@@ -120,8 +120,25 @@ phase2:
         - P1_all: ARC-003, ARC-004, ARC-007, ARC-104, ARC-105, ARC-107, ARC-110, ARC-203, ARC-204, ARC-205, ARC-206, SCH-P2-005, CMD-P2-004, CMD-P2-005, CMD-P2-006
     cross_track_dependency:
       - ARC-109_depends_on: WIN-001
+  builder_progress:
+    batch_1_track_a_win_001_004:
+      status: completed
+      completed_at: "2026-02-18"
+      notes:
+        - WIN-001 implemented with HOME -> USERPROFILE fallback and test coverage
+        - WIN-002 fixed Category A /tmp filesystem tests for portability
+        - WIN-003 verified Category B /tmp placeholders are string-only
+        - "WIN-004 added #[cfg(windows)] parity tests and Windows ACL helpers"
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+    batch_2_track_a_win_005:
+      status: pending
+      gate: WIN-001~004 completed and stable
 
 next_execution_targets:
-  - phase2_builder_implementation
+  - phase2_batch2_track_a_win005
+  - phase2_batch3_track_b_p0_reactor
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md

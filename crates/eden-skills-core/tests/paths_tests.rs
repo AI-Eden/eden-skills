@@ -1,10 +1,40 @@
 use std::env;
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
 
 use eden_skills_core::config::{AgentKind, TargetConfig};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
 use tempfile::tempdir;
+
+struct EnvVarReset {
+    key: &'static str,
+    original: Option<OsString>,
+}
+
+impl EnvVarReset {
+    fn capture(key: &'static str) -> Self {
+        Self {
+            key,
+            original: env::var_os(key),
+        }
+    }
+}
+
+impl Drop for EnvVarReset {
+    fn drop(&mut self) {
+        match &self.original {
+            Some(value) => env::set_var(self.key, value),
+            None => env::remove_var(self.key),
+        }
+    }
+}
+
+fn env_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
 
 #[test]
 fn resolve_target_path_prefers_explicit_path_over_expected_path() {
@@ -38,9 +68,14 @@ fn resolve_target_path_uses_expected_path_when_path_missing() {
 
 #[test]
 fn resolve_target_path_uses_default_agent_path_when_no_explicit_paths() {
+    let _env_guard = env_lock().lock().expect("lock env");
+    let _home_reset = EnvVarReset::capture("HOME");
+    let _userprofile_reset = EnvVarReset::capture("USERPROFILE");
+    let home = tempdir().expect("tempdir home");
+    env::set_var("HOME", home.path());
+
     let dir = tempdir().expect("tempdir");
     let config_dir = dir.path();
-    let home = env::var("HOME").expect("HOME must be set for tests");
 
     let target = TargetConfig {
         agent: AgentKind::ClaudeCode,
@@ -49,7 +84,7 @@ fn resolve_target_path_uses_default_agent_path_when_no_explicit_paths() {
     };
 
     let resolved = resolve_target_path(&target, config_dir).expect("resolve target path");
-    assert_eq!(resolved, PathBuf::from(home).join(".claude").join("skills"));
+    assert_eq!(resolved, home.path().join(".claude").join("skills"));
 }
 
 #[test]
@@ -70,12 +105,49 @@ fn resolve_target_path_fails_for_custom_without_paths() {
 
 #[test]
 fn resolve_path_string_expands_tilde_and_normalizes() {
+    let _env_guard = env_lock().lock().expect("lock env");
+    let _home_reset = EnvVarReset::capture("HOME");
+    let home = tempdir().expect("tempdir home");
+    env::set_var("HOME", home.path());
+
     let dir = tempdir().expect("tempdir");
     let config_dir = dir.path();
-    let home = env::var("HOME").expect("HOME must be set for tests");
 
     let resolved = resolve_path_string("~/a/./b/../c", config_dir).expect("resolve path string");
-    assert_eq!(resolved, PathBuf::from(home).join("a").join("c"));
+    assert_eq!(resolved, home.path().join("a").join("c"));
+}
+
+#[test]
+fn resolve_path_string_uses_userprofile_when_home_is_unset() {
+    let _env_guard = env_lock().lock().expect("lock env");
+    let _home_reset = EnvVarReset::capture("HOME");
+    let _userprofile_reset = EnvVarReset::capture("USERPROFILE");
+    env::remove_var("HOME");
+
+    let userprofile = tempdir().expect("tempdir userprofile");
+    env::set_var("USERPROFILE", userprofile.path());
+
+    let dir = tempdir().expect("tempdir");
+    let config_dir = dir.path();
+    let resolved = resolve_path_string("~/agent/skills", config_dir).expect("resolve path string");
+    assert_eq!(resolved, userprofile.path().join("agent").join("skills"));
+}
+
+#[test]
+fn resolve_path_string_prefers_home_when_home_and_userprofile_exist() {
+    let _env_guard = env_lock().lock().expect("lock env");
+    let _home_reset = EnvVarReset::capture("HOME");
+    let _userprofile_reset = EnvVarReset::capture("USERPROFILE");
+
+    let home = tempdir().expect("tempdir home");
+    let userprofile = tempdir().expect("tempdir userprofile");
+    env::set_var("HOME", home.path());
+    env::set_var("USERPROFILE", userprofile.path());
+
+    let dir = tempdir().expect("tempdir");
+    let config_dir = dir.path();
+    let resolved = resolve_path_string("~/agent/skills", config_dir).expect("resolve path string");
+    assert_eq!(resolved, home.path().join("agent").join("skills"));
 }
 
 #[test]
@@ -100,6 +172,15 @@ fn resolve_path_string_rejects_unsupported_tilde_forms() {
 
 #[test]
 fn normalize_lexical_collapses_dot_and_dotdot() {
-    let path = Path::new("/tmp/a/./b/../c");
-    assert_eq!(normalize_lexical(path), PathBuf::from("/tmp/a/c"));
+    #[cfg(unix)]
+    {
+        let path = Path::new("/tmp/a/./b/../c");
+        assert_eq!(normalize_lexical(path), PathBuf::from("/tmp/a/c"));
+    }
+
+    #[cfg(windows)]
+    {
+        let path = Path::new(r"C:\tmp\a\.\b\..\c");
+        assert_eq!(normalize_lexical(path), PathBuf::from(r"C:\tmp\a\c"));
+    }
 }

@@ -57,9 +57,15 @@ fn expand_tilde(input: &str) -> Result<PathBuf, EdenError> {
 }
 
 fn user_home_dir() -> Result<PathBuf, EdenError> {
-    let home = env::var("HOME")
-        .map_err(|_| EdenError::Validation("HOME is not set for path expansion".to_string()))?;
-    Ok(PathBuf::from(home))
+    if let Ok(home) = env::var("HOME") {
+        return Ok(PathBuf::from(home));
+    }
+    if let Ok(userprofile) = env::var("USERPROFILE") {
+        return Ok(PathBuf::from(userprofile));
+    }
+    Err(EdenError::Validation(
+        "HOME or USERPROFILE is not set for path expansion".to_string(),
+    ))
 }
 
 pub fn normalize_lexical(path: &Path) -> PathBuf {

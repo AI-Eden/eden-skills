@@ -1,7 +1,6 @@
 mod common;
 
 use std::fs;
-use std::path::Path;
 
 use eden_skills_cli::commands::{apply, repair};
 use eden_skills_core::error::EdenError;
@@ -77,7 +76,8 @@ fn repair_recovers_broken_symlink() {
     .expect("apply");
     let target = expected_target_path(&target_root);
     fs::remove_file(&target).expect("remove existing symlink");
-    create_symlink(Path::new("/tmp/eden-skills-broken"), &target).expect("broken symlink");
+    let broken_target = temp.path().join("eden-skills-broken");
+    create_symlink(&broken_target, &target).expect("broken symlink");
 
     repair(
         config_path.to_str().expect("config path"),
@@ -90,7 +90,7 @@ fn repair_recovers_broken_symlink() {
     );
 }
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 #[test]
 fn apply_fails_on_permission_denied_target_path() {
     let temp = tempdir().expect("tempdir");

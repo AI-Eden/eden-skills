@@ -5,7 +5,7 @@ This file quantifies implementation progress and enforces model responsibility b
 
 ## 1. Snapshot
 
-- Date: 2026-02-13
+- Date: 2026-02-18
 - Workspace: `eden-skills`
 - Primary implementation model this cycle: `GPT-5 Codex (Builder)`
 
@@ -58,7 +58,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] `SPEC_TEST_MATRIX.md` scenario automation (7/7 scenarios covered by tests)
 - [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `22000208004`)
 
-Current automated tests: `73` (workspace unit/integration-style tests).
+Current automated tests: `75` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -101,6 +101,7 @@ Current automated tests: `73` (workspace unit/integration-style tests).
 - [x] Hardened multi-skill source sync behavior and strict-mode interaction precedence (config-ordered failure aggregation; source sync runtime failure precedence over strict conflict exit).
 - [x] Hardened mixed-skill no-exec verification and strict conflict interactions (verify skip scoping + strict conflict exclusion for no-exec conflicts).
 - [x] Harmonized strict conflict and post-mutation verification precedence across `apply` and `repair`.
+- [x] Completed Phase 2 Track A Batch 1 (`WIN-001~WIN-004`): USERPROFILE fallback, portable test paths, Windows parity tests, and Windows ACL-based test helpers.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -169,8 +170,8 @@ These tasks fix Phase 1 implementation for Windows compatibility. They have
 (before or in parallel with Track B). ARC-109 (LocalAdapter cross-platform)
 depends on WIN-001 being completed first.
 
-1. **WIN-001~004**: Source and test fixes (USERPROFILE fallback, `/tmp` paths, `#[cfg(windows)]` equivalents)
-2. **WIN-005**: Enable `windows-latest` in CI (gate: WIN-001~004 pass first)
+1. **WIN-001~004**: Source and test fixes (USERPROFILE fallback, `/tmp` paths, `#[cfg(windows)]` equivalents) — **completed (Batch 1, 2026-02-18)**
+2. **WIN-005**: Enable `windows-latest` in CI (gate: WIN-001~004 pass first) — **pending (Batch 2)**
 
 #### Track B: Phase 2 Architecture Implementation (depends on frozen contracts)
 

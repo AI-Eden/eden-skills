@@ -83,8 +83,8 @@ Use this file to recover accurate context after compression.
 | TM-P2-022 | `SPEC_TEST_MATRIX.md` 4.9 | Reactor config validation | -- | planned |
 | TM-P2-023 | `SPEC_TEST_MATRIX.md` 4.10 | Install dry run | -- | planned |
 | TM-P2-024 | `SPEC_TEST_MATRIX.md` 3.4 | DockerAdapter permission handling | -- | planned |
-| TM-P2-025 | `SPEC_TEST_MATRIX.md` 5.1 | Tilde expansion portability (HOME/USERPROFILE) | -- | planned |
-| TM-P2-026 | `SPEC_TEST_MATRIX.md` 5.2 | Cross-platform symlink creation | -- | planned |
+| TM-P2-025 | `SPEC_TEST_MATRIX.md` 5.1 | Tilde expansion portability (HOME/USERPROFILE) | `crates/eden-skills-core/tests/paths_tests.rs` (`resolve_path_string_uses_userprofile_when_home_is_unset`, `resolve_path_string_prefers_home_when_home_and_userprofile_exist`) | implemented (linux verified; windows CI pending) |
+| TM-P2-026 | `SPEC_TEST_MATRIX.md` 5.2 | Cross-platform symlink creation | `crates/eden-skills-core/tests/symlink_canonical_tests.rs` (`#[cfg(unix)]` + `#[cfg(windows)]` parity modules), `crates/eden-skills-cli/tests/exit_code_matrix.rs` (`apply_strict_returns_exit_code_3_on_target_conflict` unix/windows variants) | implemented (linux verified; windows CI pending) |
 | TM-P2-027 | `SPEC_TEST_MATRIX.md` 5.3 | Windows symlink privilege error | -- | planned |
 | TM-P2-028 | `SPEC_TEST_MATRIX.md` 5.4 | Cross-platform path normalization | -- | planned |
 | TM-P2-029 | `SPEC_TEST_MATRIX.md` 5.5 | Windows safety detection graceful degradation | -- | planned |
@@ -106,8 +106,8 @@ on WIN-001 (USERPROFILE fallback) being completed first.
 
 | TASK_ID | Source | Task | Implementation | Status |
 |---|---|---|---|---|
-| WIN-001 | `SPEC_TEST_MATRIX.md` 6.1 | `user_home_dir()` USERPROFILE fallback | `crates/eden-skills-core/src/paths.rs` | planned |
-| WIN-002 | `SPEC_TEST_MATRIX.md` 6.2 | Fix hardcoded `/tmp` paths in tests (Category A: filesystem access) | `apply_repair.rs`, `paths_tests.rs` | planned |
-| WIN-003 | `SPEC_TEST_MATRIX.md` 6.2 | Verify `/tmp` string placeholders pass on Windows (Category B) | Multiple test files | planned |
-| WIN-004 | `SPEC_TEST_MATRIX.md` 6.3 | Add `#[cfg(windows)]` test equivalents for Unix-only tests | 5 test functions across 3 files | planned |
+| WIN-001 | `SPEC_TEST_MATRIX.md` 6.1 | `user_home_dir()` USERPROFILE fallback | `crates/eden-skills-core/src/paths.rs`; tests in `crates/eden-skills-core/tests/paths_tests.rs` | implemented |
+| WIN-002 | `SPEC_TEST_MATRIX.md` 6.2 | Fix hardcoded `/tmp` paths in tests (Category A: filesystem access) | `crates/eden-skills-cli/tests/apply_repair.rs` (broken symlink temp path), `crates/eden-skills-core/tests/paths_tests.rs` (platform-conditional normalization assertion) | implemented |
+| WIN-003 | `SPEC_TEST_MATRIX.md` 6.2 | Verify `/tmp` string placeholders pass on Windows (Category B) | Verified placeholder-only usages remain string/config literals in existing tests (no filesystem access) | verified (no code change required) |
+| WIN-004 | `SPEC_TEST_MATRIX.md` 6.3 | Add `#[cfg(windows)]` test equivalents for Unix-only tests | `crates/eden-skills-core/tests/symlink_canonical_tests.rs`, `crates/eden-skills-core/tests/plan_copy_edge_tests.rs`, `crates/eden-skills-cli/tests/apply_repair.rs`, `crates/eden-skills-cli/tests/exit_code_matrix.rs`, `crates/eden-skills-cli/tests/common/mod.rs` (Windows ACL helpers) | implemented (runtime verification pending Windows CI) |
 | WIN-005 | `SPEC_TEST_MATRIX.md` 6.4 | Enable `windows-latest` in CI workflow | `.github/workflows/ci.yml` | planned |
