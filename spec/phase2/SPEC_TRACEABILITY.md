@@ -88,3 +88,17 @@ Use this file to recover accurate context after compression.
 | TM-P2-027 | `SPEC_TEST_MATRIX.md` 5.3 | Windows symlink privilege error | -- | planned |
 | TM-P2-028 | `SPEC_TEST_MATRIX.md` 5.4 | Cross-platform path normalization | -- | planned |
 | TM-P2-029 | `SPEC_TEST_MATRIX.md` 5.5 | Windows safety detection graceful degradation | -- | planned |
+
+## 5. Phase 1 Windows Prerequisite Tasks
+
+These tasks fix Phase 1 implementation for Windows compatibility. They are
+tracked here because the Phase 2 CI Gate (Section 7) requires Phase 1 tests
+to pass on Windows. Phase 1 specs remain frozen; these are code-only changes.
+
+| TASK_ID | Source | Task | Implementation | Status |
+|---|---|---|---|---|
+| WIN-001 | `SPEC_TEST_MATRIX.md` 6.1 | `user_home_dir()` USERPROFILE fallback | `crates/eden-skills-core/src/paths.rs` | planned |
+| WIN-002 | `SPEC_TEST_MATRIX.md` 6.2 | Fix hardcoded `/tmp` paths in tests (Category A: filesystem access) | `apply_repair.rs`, `paths_tests.rs` | planned |
+| WIN-003 | `SPEC_TEST_MATRIX.md` 6.2 | Verify `/tmp` string placeholders pass on Windows (Category B) | Multiple test files | planned |
+| WIN-004 | `SPEC_TEST_MATRIX.md` 6.3 | Add `#[cfg(windows)]` test equivalents for Unix-only tests | 5 test functions across 3 files | planned |
+| WIN-005 | `SPEC_TEST_MATRIX.md` 6.4 | Enable `windows-latest` in CI workflow | `.github/workflows/ci.yml` | planned |

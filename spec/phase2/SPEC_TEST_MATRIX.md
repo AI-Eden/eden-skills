@@ -188,7 +188,66 @@ Minimum acceptance test matrix for Phase 2 features.
 - Other safety checks (ELF header, shebang, file extension) still produce
   correct risk labels on Windows.
 
-## 6. CI Gate (Phase 2)
+## 6. Phase 1 Windows Prerequisite Tasks
+
+The CI Gate (Section 7) requires Phase 1 tests to pass on Windows. The
+following Phase 1 implementation fixes MUST be completed by the Builder
+before Phase 2 Windows CI can be enabled. These are implementation-only
+changes; Phase 1 specs (`spec/phase1/`) remain frozen and do not require
+modification.
+
+### 6.1 Source Code Fix: `user_home_dir()` USERPROFILE Fallback
+
+- **File:** `crates/eden-skills-core/src/paths.rs` (function `user_home_dir`)
+- **Current:** `env::var("HOME")` only.
+- **Required:** Fallback to `env::var("USERPROFILE")` when `HOME` is unset.
+- **Scope:** 1 function, ~3 lines changed.
+
+### 6.2 Test Fixes: Hardcoded `/tmp` Paths (12+ instances)
+
+Replace hardcoded `/tmp/` paths in tests with platform-portable alternatives.
+Two categories:
+
+**Category A — Filesystem access (MUST fix):**
+
+| File | Line(s) | Current | Fix |
+| :--- | :--- | :--- | :--- |
+| `cli/tests/apply_repair.rs` | 80 | `Path::new("/tmp/eden-skills-broken")` | Use `tempdir()` |
+| `core/tests/paths_tests.rs` | 103-104 | `Path::new("/tmp/a/./b/../c")` | Platform-conditional assertion or `tempdir()` based path |
+
+**Category B — String placeholders (SHOULD verify, likely no change needed):**
+
+| File | Line(s) | Current | Risk |
+| :--- | :--- | :--- | :--- |
+| `core/tests/plan_json_contract.rs` | 9-10 | `"/tmp/source"`, `"/tmp/target"` | Low — string comparison only |
+| `core/tests/config_tests.rs` | 80 | `"file:///tmp/repo.git"` | Low — URL format validation only |
+| `core/tests/plan_copy_edge_tests.rs` | 40, 99, 162 | `"file:///tmp/placeholder"` | Low — config construction, not accessed |
+| `core/tests/symlink_canonical_tests.rs` | 34, 75 | `"file:///tmp/unused"` | Low — config construction, not accessed |
+| `cli/tests/list_json_contract.rs` | 23 | `"file:///tmp/unused"` | Low — config construction, not accessed |
+| `cli/tests/list_command.rs` | 23, 71 | `"file:///tmp/unused"` | Low — config construction, not accessed |
+| `core/tests/safety_tests.rs` | 106 | `"file:///tmp/origin.git"` | Low — config construction, not accessed |
+
+### 6.3 Test Fixes: `#[cfg(unix)]`-Only Tests Without Windows Equivalents
+
+The following test functions are `#[cfg(unix)]` only. On Windows they are
+silently skipped, reducing coverage. The Builder SHOULD add `#[cfg(windows)]`
+equivalents where the underlying behavior has a Windows counterpart.
+
+| File | Test Function | Unix Dependency | Windows Equivalent |
+| :--- | :--- | :--- | :--- |
+| `core/tests/symlink_canonical_tests.rs` | entire `mod unix` | `std::os::unix::fs::symlink` | Use `std::os::windows::fs::symlink_dir` |
+| `cli/tests/apply_repair.rs` | `apply_fails_on_permission_denied_target_path` | Unix `chmod 000` | Use `icacls` or Windows ACL denial |
+| `cli/tests/exit_code_matrix.rs` | `apply_strict_returns_exit_code_3_on_target_conflict` | Unix symlink for conflict setup | Use Windows symlink APIs |
+| `core/tests/plan_copy_edge_tests.rs` | `copy_mode_plan_conflict_on_unreadable_target_file` | Unix `set_mode(0o000)` | Use Windows ACL or read-only attribute |
+| `core/tests/plan_copy_edge_tests.rs` | `copy_mode_plan_conflict_on_symlink_in_tree` | Unix symlink API | Use Windows symlink APIs |
+
+### 6.4 CI Workflow Update
+
+- **File:** `.github/workflows/ci.yml`
+- **Required:** Uncomment `windows-latest` in the `matrix.os` array.
+- **Gate:** All tasks in 6.1-6.3 (Category A and MUST items) must pass first.
+
+## 7. CI Gate (Phase 2)
 
 A release candidate MUST pass:
 
@@ -198,3 +257,4 @@ A release candidate MUST pass:
   or be marked as manual in CI). Docker tests are NOT required on Windows CI.
 - Schema extension validation tests for new sections and error codes.
 - Cross-platform scenarios (Section 5) on all three OS platforms.
+- Phase 1 Windows prerequisite tasks (Section 6) completed and verified.
