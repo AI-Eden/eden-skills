@@ -104,6 +104,9 @@ Define the runtime concurrency architecture that replaces Phase 1's serial
 - **Trade-off:** More boilerplate than `buffer_unordered`. Developers must
   remember to acquire/release semaphore permits correctly. Mitigated by
   encapsulating the pattern in the `SkillReactor` struct.
+- **Rollback Trigger:** If the JoinSet + Semaphore boilerplate becomes a
+  maintenance burden or if `buffer_unordered` proves sufficient for all
+  Phase 2 use cases, consider migrating to the stream pipeline approach.
 
 ### ADR-004: Sync-to-Async Migration Strategy
 
@@ -138,6 +141,9 @@ Define the runtime concurrency architecture that replaces Phase 1's serial
   not required for Phase 2 scope.
 - **Trade-off:** Not fully async under the hood. Acceptable for Phase 2
   where concurrency is bounded to tens of tasks, not hundreds.
+- **Rollback Trigger:** If Phase 2 concurrency needs exceed 100
+  simultaneous git operations, or if `spawn_blocking` introduces measurable
+  latency under load, migrate to `tokio::process::Command` for git CLI.
 
 ## 6. Data Model
 
@@ -193,13 +199,11 @@ Priority: CLI flag > config file > built-in default (10).
 4. No race conditions observed in 100 repeated concurrent runs.
 5. Setting `--concurrency 1` produces behavior equivalent to Phase 1 serial execution.
 
-## 9. Freeze Candidates
+## 9. Resolved Design Decisions (Stage B)
 
-Items requiring Stage B resolution before Builder implementation begins:
-
-| ID | Item | Options Under Consideration | Resolution Needed |
+| ID | Item | Decision | Rationale |
 | :--- | :--- | :--- | :--- |
-| **FC-R1** | Default concurrency limit value | `10` (current spec) vs `num_cpus * 2` (architecture vision) vs `num_cpus` (conservative) | Pick one default and document rationale. |
-| **FC-R2** | Concurrency config surface | `[reactor]` config section + CLI flag (both) vs CLI flag only vs config only | Decide which surfaces are P0 vs P1. |
-| **FC-R3** | Phase boundary strictness | Strict barrier (all Phase A done before any Phase B) vs streaming (Phase B starts as each Phase A item completes) | Strict is simpler and safer; streaming is faster for large skill sets. |
-| **FC-R4** | Progress reporting UX | Per-skill progress bar (indicatif) vs summary-only vs streaming log lines | Decide minimum viable UX for Phase 2. |
+| **FC-R1** | Default concurrency limit value | **Fixed default: `10`**. Not `num_cpus`-based. | The bottleneck is network I/O, not CPU. A fixed default is predictable across environments and sufficient for typical workloads (10-50 skills). `num_cpus`-based defaults add non-determinism without meaningful benefit for I/O-bound work. |
+| **FC-R2** | Concurrency config surface | **Both** `[reactor]` config section (P1) AND `--concurrency` CLI flag (P1) are normative. | Config provides persistent defaults; CLI flag provides one-shot override. Matches Phase 1 precedence pattern (config < CLI flag). Covered by ARC-004. |
+| **FC-R3** | Phase boundary strictness | **Strict barrier**: all Phase A (source sync) completes before any Phase B (install mutation) begins. | Simpler to implement, easier to reason about correctness, safer for filesystem operations. Streaming optimization MAY be explored in Phase 3 if benchmarks justify it. Aligned with ARC-005. |
+| **FC-R4** | Progress reporting UX | **Streaming log lines** (P0 minimum): per-skill status lines (`downloading X...`, `downloaded X [1.2s]`). Per-skill progress bar via `indicatif` is P2 (MAY). | Streaming log lines provide adequate UX without introducing new dependencies. Progress bars improve UX for large skill sets but are not essential for Phase 2 delivery. |

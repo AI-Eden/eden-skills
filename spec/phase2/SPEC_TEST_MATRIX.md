@@ -155,6 +155,30 @@ Minimum acceptance test matrix for Phase 2 features.
 - No config file modification occurs.
 - No filesystem changes occur.
 
+### 4.11 Pre-Release Version Resolution (NEW)
+
+- Pre-release versions (e.g., `2.1.0-beta.1`) are allowed in registry index.
+- Caret constraint `^2.0` does NOT match `2.1.0-beta.1`.
+- Exact pin `2.1.0-beta.1` DOES match the pre-release entry.
+- Default resolution (no `--version`) selects the highest non-pre-release version.
+
+### 4.12 Registry Staleness Detection (NEW)
+
+- `doctor` emits `REGISTRY_STALE` finding when registry index was last
+  synced more than 7 days ago.
+- `doctor` does NOT emit `REGISTRY_STALE` when index was synced within 7 days.
+
+### 4.13 Mode A/B Identifier Collision (NEW)
+
+- Config with Mode A `id = "foo"` and Mode B `name = "foo"` fails validation
+  (exit code `2`) with `DUPLICATE_SKILL_ID` error.
+
+### 4.14 Install Config Persistence (NEW)
+
+- `eden-skills install <skill-name>` adds a Mode B entry to `skills.toml`.
+- Subsequent `apply` includes the installed skill without additional user action.
+- `install` with an already-present skill name updates the existing entry.
+
 ## 5. Cross-Platform Scenarios
 
 ### 5.1 Tilde Expansion Portability

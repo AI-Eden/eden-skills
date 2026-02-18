@@ -120,6 +120,7 @@ Current automated tests: `73` (workspace unit/integration-style tests).
 
 ### 5.2 Architect-Owned (Claude Opus)
 
+- [x] Phase 2 architecture contracts (Stage A: exploratory design, Stage B: contract freeze).
 - [ ] Finalize taxonomy model (L1 categories + L2 tags) for platform phase.
 - [ ] Finalize curation rubric dimensions/weights/calibration loop.
 - [ ] Finalize crawler strategy RFC constraints and governance policy.
@@ -139,3 +140,42 @@ Current automated tests: `73` (workspace unit/integration-style tests).
 - [x] Verified `spec/phase1/SPEC_TRACEABILITY.md` requirement mappings remain complete and status-consistent.
 - [x] Verified `spec/phase1/SPEC_TEST_MATRIX.md` scenarios remain fully represented by automated tests.
 - [x] Updated `spec/phase1/PHASE1_BUILDER_REMAINING.md` as the concise index of unresolved Builder tasks.
+
+## 7. Phase 2 Architect State
+
+### 7.1 Completed by Claude Opus (Architect)
+
+- [x] Phase 2 Stage A: exploratory architecture design (SPEC_REACTOR, SPEC_ADAPTER, SPEC_REGISTRY, SPEC_SCHEMA_EXT, SPEC_COMMANDS_EXT, SPEC_TEST_MATRIX, SPEC_TRACEABILITY).
+- [x] Phase 2 Stage B: contract freeze (2026-02-18).
+  - [x] Resolved 20 Freeze Candidates across 5 domains (Reactor, Adapter, Registry, Schema, Commands).
+  - [x] Resolved 5 Open Questions (OQ-001 through OQ-005).
+  - [x] Added Rollback Trigger to all ADRs missing it (ADR-003, ADR-004, ADR-005, ADR-006, ADR-007, ADR-008, ADR-009).
+  - [x] Added 4 new test scenarios (TM-P2-030 through TM-P2-033) from Stage B resolutions.
+  - [x] Updated SPEC_TRACEABILITY.md with all 33 test matrix entries.
+  - [x] Verified all requirement IDs unique across Phase 2.
+  - [x] Verified all P0 requirements have verification entries.
+  - [x] Verified no conflict with Phase 1 contracts.
+  - [x] Updated STATUS.yaml with Phase 2 frozen status and Builder entry criteria.
+
+### 7.2 Builder Handoff (Phase 2)
+
+Builder implementation can start. Recommended priority order (P0 first):
+
+1. **P0 Reactor**: ARC-001, ARC-002, ARC-005, ARC-006, ARC-008 (tokio runtime, bounded concurrency, two-phase execution, spawn_blocking, thiserror)
+2. **P0 Adapter**: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109 (TargetAdapter trait, Local, Docker, deterministic selection, Send+Sync, cross-platform)
+3. **P0 Registry**: ARC-201, ARC-202, ARC-207 (multi-registry config, priority fallback, semver crate)
+4. **P0 Schema**: SCH-P2-001~004, SCH-P2-006 (registries section, Mode B, environment, backward compat, error codes)
+5. **P0 Commands**: CMD-P2-001~003 (update, install, apply/repair Mode B support)
+6. **P1 All**: ARC-003, ARC-004, ARC-007, ARC-104, ARC-105, ARC-107, ARC-110, ARC-203~206, SCH-P2-005, CMD-P2-004~006
+7. **Windows Prerequisites**: WIN-001~005 (must complete before Windows CI gate)
+
+Key architectural decisions for Builder reference:
+
+- ADR-002: tokio async runtime
+- ADR-003: JoinSet + Semaphore for task coordination
+- ADR-004: spawn_blocking for sync-to-async migration
+- ADR-005: Docker CLI via tokio::process::Command
+- ADR-006: Factory function with match for adapter instantiation
+- ADR-007: First-character index bucketing
+- ADR-008: Shallow clone for registry sync
+- ADR-009: semver crate for version resolution

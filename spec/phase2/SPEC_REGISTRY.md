@@ -31,7 +31,7 @@ explicit Git URLs. The system supports two tracks: `official` (curated) and
 | :--- | :--- | :--- | :--- | :--- |
 | **ARC-201** | Builder | **P0** | Configuration MUST support multiple registry sources with priority weights. | `skills.toml` accepts `[registries]` table with `url` and `priority` per entry. |
 | **ARC-202** | Shared | **P0** | Resolution logic MUST follow priority-based fallback order (highest priority first). | Installing a skill present in both registries prefers the higher-priority one. |
-| **ARC-203** | Builder | **P1** | Registry indexes MUST be local Git repositories synchronized via `eden-skills update`. | `~/.eden-skills/registries/` contains cloned index repos after `eden-skills update`. |
+| **ARC-203** | Builder | **P1** | Registry indexes MUST be local Git repositories synchronized via `eden-skills update`. | `<storage.root>/registries/` contains cloned index repos after `eden-skills update`. |
 | **ARC-204** | Shared | **P1** | Each registry index MUST contain a root `manifest.toml` with a `format_version` field for forward compatibility. | `registry-repo/manifest.toml` exists with `format_version = 1`. |
 | **ARC-205** | Builder | **P1** | Registry sync SHOULD use shallow clone (`--depth 1`) for efficiency. | `git clone --depth 1` used for initial clone; `git fetch --depth 1` for updates. |
 | **ARC-206** | Builder | **P1** | Registry resolution MUST work offline using the locally cached index when available. | With network disabled, `install <name>` resolves from cached index without errors. |
@@ -68,7 +68,7 @@ explicit Git URLs. The system supports two tracks: `official` (curated) and
   bucketing is simple and sufficient. The `format_version` field (ARC-204)
   enables migration to two-character bucketing when the registry grows,
   without breaking existing clients.
-- **Migration Trigger:** When any single bucket exceeds 200 entries, bump
+- **Rollback Trigger:** When any single bucket exceeds 200 entries, bump
   `format_version` to `2` and migrate to two-character bucketing.
 
 ### ADR-008: Registry Sync Strategy
@@ -103,6 +103,9 @@ explicit Git URLs. The system supports two tracks: `official` (curated) and
   with thousands of TOML files syncs in seconds.
 - **Trade-off:** Cannot inspect index history locally. Acceptable since
   the registry repo's full history is available on the remote.
+- **Rollback Trigger:** If shallow clone/fetch proves unreliable with
+  certain Git hosting providers, or if index history is needed for audit
+  purposes, fall back to full clone.
 
 ### ADR-009: Version Resolution Library
 
@@ -132,6 +135,11 @@ explicit Git URLs. The system supports two tracks: `official` (curated) and
   bugs. The `semver` crate is tiny, correct, and well-maintained. It is
   already a transitive dependency of `cargo` and most Rust tooling. The
   cost of adding it is negligible compared to the cost of SemVer bugs.
+- **Trade-off:** Additional dependency (~15 KB compiled). Negligible
+  compared to the cost of hand-rolling SemVer parsing and matching.
+- **Rollback Trigger:** If the `semver` crate is abandoned or introduces
+  breaking changes, a custom implementation limited to exact + caret +
+  tilde matching is a viable fallback.
 
 ## 6. Data Model
 
@@ -231,7 +239,7 @@ in `skills.toml`. See FC-REG5 for Stage B confirmation.
 1. `eden-skills update`:
    - Read `[registries]` from config.
    - For each registry, shallow-clone (first run) or shallow-fetch (subsequent) into
-     `~/.eden-skills/registries/<registry-name>/`.
+     `<storage.root>/registries/<registry-name>/`.
    - Execute registry syncs concurrently via Reactor (bounded by ARC-002).
    - Report per-registry status.
 
@@ -276,7 +284,7 @@ in `skills.toml`. See FC-REG5 for Stage B confirmation.
 
 ## 8. Acceptance Criteria
 
-1. `eden-skills update` clones/pulls configured registry repos into `~/.eden-skills/registries/`.
+1. `eden-skills update` clones/pulls configured registry repos into `<storage.root>/registries/`.
 2. `eden-skills install browser-use` resolves the skill from the official registry index.
 3. When a skill exists in both `official` and `forge`, the higher-priority
    registry wins.
@@ -286,15 +294,13 @@ in `skills.toml`. See FC-REG5 for Stage B confirmation.
 6. Offline resolution works when registry is cached and network is unavailable.
 7. Yanked versions are excluded from resolution unless explicitly pinned.
 
-## 9. Freeze Candidates
+## 9. Resolved Design Decisions (Stage B)
 
-Items requiring Stage B resolution before Builder implementation begins:
-
-| ID | Item | Options Under Consideration | Resolution Needed |
+| ID | Item | Decision | Rationale |
 | :--- | :--- | :--- | :--- |
-| **FC-REG1** | Index entry required fields | Current draft fields (Section 6.3) vs minimal (`name`, `repo`, `versions` only) vs extended (add `keywords`, `min_eden_version`) | Finalize the exact required/optional field set for index entries. |
-| **FC-REG2** | SemVer pre-release policy | Allow pre-release versions in registry (`2.1.0-beta.1`) vs stable-only | Decide if pre-release versions are indexable and resolvable in Phase 2. |
-| **FC-REG3** | Registry cache staleness threshold | No staleness check vs time-based (warn if > 7 days since update) vs always-fresh (auto-update before resolve) | Decide `doctor` finding threshold for `REGISTRY_STALE` and whether `install` should auto-update. |
-| **FC-REG4** | Yanked version handling | Skip silently vs warn user vs error if explicitly pinned | Define UX for yanked versions. Current recommendation: skip silently for constraint resolution, error if exact pinned version is yanked. |
-| **FC-REG5** | Index version format | `[[versions]]` array (current draft) vs `[versions]` table keyed by version string | Array is recommended (Section 6.3 Design Note). Confirm in Stage B. |
-| **FC-REG6** | Registry storage path | `~/.eden-skills/registries/` vs `<storage.root>/registries/` (under existing config) | Decide if registry storage follows the `storage.root` config or uses a separate path. |
+| **FC-REG1** | Index entry required fields | **Current draft fields** (Section 6.3) confirmed. Required: `name`, `repo`, `[[versions]]` with `version`+`ref`+`commit`. SHOULD: `description`, `license`. MAY: `subpath`, `yanked`. NOT included: `keywords`, `min_eden_version` (deferred to Phase 3). | Covers the minimum needed for resolution and integrity verification. Extended fields add schema complexity without Phase 2 consumers. |
+| **FC-REG2** | SemVer pre-release policy | **Pre-release versions allowed** in the index but **excluded from default constraint resolution**. Explicit pre-release pins (e.g., exact `2.1.0-beta.1`) MUST work. | Pre-release versions are valid SemVer. The `semver` crate already implements correct pre-release matching semantics (e.g., `^2.0` does not match `2.1.0-beta.1`). Allowing indexing while excluding from default resolution matches cargo behavior. |
+| **FC-REG3** | Registry cache staleness threshold | **Time-based warning (7 days)**. `doctor` emits `REGISTRY_STALE` when index was last synced > 7 days ago. `install` does NOT auto-update; fails with "Run `eden-skills update` first" if no local cache exists. | Predictability over convenience. Auto-update before every resolve makes `install` non-deterministic and slow. The 7-day threshold is informative without being intrusive. |
+| **FC-REG4** | Yanked version handling | **Skip silently for constraint resolution**. **Error if exact pinned version is yanked**, listing available non-yanked versions. | When resolving `^2.0`, yanked versions should be invisible. When a user explicitly pins a yanked version, they need an error. Matches cargo/npm behavior. |
+| **FC-REG5** | Index version format | **`[[versions]]` array** (confirmed). | Preserves insertion ordering, supports per-version fields naturally (`yanked`, future `min_eden_version`), consistent with `[[skills]]` pattern in `skills.toml`. |
+| **FC-REG6** | Registry storage path | **`<storage.root>/registries/`** (under existing config). Default resolves to `~/.local/share/eden-skills/registries/`. | Consolidates all eden-skills data under `storage.root`. If the user moves `storage.root`, registries move with it. Respects the XDG-compliant default established in Phase 1. |

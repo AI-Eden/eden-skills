@@ -134,12 +134,12 @@ target = "docker:devin-container" # Triggers DockerAdapter
 
 Builder implementation can start only if **all** checks pass:
 
-* [ ] **ARC-001** to **ARC-203** are understood and accepted.
-* [ ] No breaking changes to Phase 1 `spec/` files (Backward Compatibility).
-* [ ] All requirement IDs are unique across all Phase 2 spec files.
-* [ ] Every **MUST** (P0) requirement has a verification entry.
-* [ ] All new or modified file content is English-only.
-* [ ] All open design questions are resolved or explicitly deferred with owner and due phase.
+* [x] **ARC-001** to **ARC-207** (and SCH-P2, CMD-P2) are understood and accepted.
+* [x] No breaking changes to Phase 1 `spec/` files (Backward Compatibility).
+* [x] All requirement IDs are unique across all Phase 2 spec files.
+* [x] Every **MUST** (P0) requirement has a verification entry.
+* [x] All new or modified file content is English-only.
+* [x] All open design questions are resolved or explicitly deferred with owner and due phase.
 
 ### Failure Semantics
 
@@ -187,10 +187,10 @@ Phase 2 spec work is considered complete when all of the following hold:
 
 Items below are unresolved or deferred. Each must be closed (with decision or explicit deferral) before the relevant implementation milestone begins.
 
-| ID | Question | Owner | Due Phase | Status |
-| :--- | :--- | :--- | :--- | :--- |
-| **OQ-001** | What SemVer matching strategy should registry resolution use (exact, range `^`, prefix `~`)? | Architect | Phase 2 | Open |
-| **OQ-002** | What fields are required vs. optional in each registry index TOML entry (e.g., `description`, `license`, `min_eden_skills_version`)? | Architect | Phase 2 | Open |
-| **OQ-003** | Should the concurrency limit (default: 10) be configurable via `skills.toml`, CLI flag, or environment variable? | Shared | Phase 2 | Open |
-| **OQ-004** | How should `DockerAdapter` handle permission errors inside the container (retry as root, fail, warn)? | Builder | Phase 2 | Open |
-| **OQ-005** | What is the rollback strategy if `docker cp` partially fails mid-injection (some files copied, others not)? | Shared | Phase 2 | Open |
+| ID | Question | Owner | Due Phase | Status | Resolution |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **OQ-001** | What SemVer matching strategy should registry resolution use (exact, range `^`, prefix `~`)? | Architect | Phase 2 | **Resolved** | Full SemVer via `semver` crate (ARC-207, ADR-009). Supports `^`, `~`, `*`, exact, ranges. Pre-release allowed in index, excluded from default resolution (FC-REG2). |
+| **OQ-002** | What fields are required vs. optional in each registry index TOML entry (e.g., `description`, `license`, `min_eden_skills_version`)? | Architect | Phase 2 | **Resolved** | Finalized in FC-REG1. Required: `name`, `repo`, `version`+`ref`+`commit`. SHOULD: `description`, `license`. `min_eden_version` deferred to Phase 3. |
+| **OQ-003** | Should the concurrency limit (default: 10) be configurable via `skills.toml`, CLI flag, or environment variable? | Shared | Phase 2 | **Resolved** | Config (`[reactor].concurrency`) + CLI flag (`--concurrency`). No env var. Priority: CLI > config > default (10). See ARC-004, FC-R1, FC-R2. |
+| **OQ-004** | How should `DockerAdapter` handle permission errors inside the container (retry as root, fail, warn)? | Builder | Phase 2 | **Resolved** | Fail fast with clear error message including container name and path. No retry (FC-A2). No escalation to root. |
+| **OQ-005** | What is the rollback strategy if `docker cp` partially fails mid-injection (some files copied, others not)? | Shared | Phase 2 | **Resolved** | Partial injection allowed but MUST be reported as warning. No automatic rollback. User can re-run `apply` to retry. See SPEC_ADAPTER.md Section 7. |

@@ -104,6 +104,9 @@ without changing core logic.
   of bollard do not justify its dependency cost for our use case.
 - **Trade-off:** Must parse CLI output. Mitigated by using `--format` flags
   for structured output (e.g., `docker inspect --format '{{.State.Running}}'`).
+- **Rollback Trigger:** If CLI output parsing becomes unreliable across
+  Docker versions, or if streaming operations (e.g., real-time build logs)
+  are needed, consider migrating to the `bollard` crate.
 
 ### ADR-006: Adapter Instantiation Pattern
 
@@ -130,6 +133,11 @@ without changing core logic.
   registry. The factory function is trivially extensible when Phase 3 adds
   `SshAdapter` (add one match arm). Migration to a registry pattern is
   straightforward if Phase 4+ needs it.
+- **Trade-off:** Adding new adapter types requires modifying the factory
+  function. Acceptable for 2 types; revisit at 4+.
+- **Rollback Trigger:** If Phase 3+ introduces more than 3 adapter types
+  or requires dynamic/plugin-based adapter loading, migrate to a registry
+  pattern (`HashMap<String, AdapterFactory>`).
 
 ## 6. Data Model
 
@@ -228,19 +236,12 @@ for a Docker target.
 5. `DockerAdapter` works with containers that do not have volume mounts.
 6. Symlink mode configured for Docker target emits a warning and falls back to copy.
 
-## 9. Freeze Candidates
+## 9. Resolved Design Decisions (Stage B)
 
-Items requiring Stage B resolution before Builder implementation begins:
-
-| ID | Item | Options Under Consideration | Resolution Needed |
+| ID | Item | Decision | Rationale |
 | :--- | :--- | :--- | :--- |
-| **FC-A1** | `uninstall` method scope | Full cleanup (`rm -rf` target) vs symlink-only removal vs marker-based cleanup | Define what "uninstall" means for each adapter type. |
-| **FC-A2** | DockerAdapter retry policy | No retry (fail fast) vs 1 retry with backoff vs configurable retry count | Decide error recovery strategy for transient Docker failures. |
-| **FC-A3** | Docker Compose service name support | `docker:<service>` via `docker compose exec` vs container-name-only | Decide if we support Compose service names or require resolved container names. |
-| **FC-A5** | DockerAdapter symlink-to-copy fallback | Silent fallback vs warning + fallback vs error | Current recommendation: warning + fallback (Section 6 note). Needs confirmation. |
-
-**Note:** FC-A4 (Send + Sync bounds) was resolved and promoted to normative
-requirement ARC-108. `Send + Sync` is mandatory because `JoinSet::spawn`
-requires `Send` on spawned futures, and `Sync` is needed for `Arc<dyn TargetAdapter>`
-shared across tasks. This aligns with the `rust-async-patterns` best practice:
-"Don't forget Send bounds — For spawned futures."
+| **FC-A1** | `uninstall` method scope | **Full cleanup** (reverse of install). `LocalAdapter`: remove symlink (`remove_file`) or `rm -rf` copied directory. `DockerAdapter`: `docker exec rm -rf <target>`. | `uninstall` should fully reverse `install`. No marker files needed. Simple, predictable behavior matching user expectations. |
+| **FC-A2** | DockerAdapter retry policy | **No retry (fail fast)** for Phase 2. | Docker operations communicate with the local daemon. Transient failures are rare; persistent issues (container stopped, permission denied) are not helped by retry. Builder MAY add configurable retry in Phase 3 if field reports indicate transient failures. |
+| **FC-A3** | Docker Compose service name support | **Container name only** for Phase 2. Compose service name support **deferred to Phase 3**. | Container names are unambiguous. Compose service resolution depends on project name, scaling, and orchestrator state. Users can find container names via `docker compose ps`. |
+| **FC-A4** | `Send + Sync` bounds | **Resolved in Stage A** → promoted to normative requirement **ARC-108**. | `JoinSet::spawn` requires `Send` on spawned futures. `Sync` is needed for `Arc<dyn TargetAdapter>` shared across tasks. |
+| **FC-A5** | DockerAdapter symlink-to-copy fallback | **Warning + fallback** (confirmed). Emit warning when `install.mode = "symlink"` is configured for a Docker target, then use copy mode. | Silent fallback hides misconfiguration. Error is too harsh when the operation can succeed with copy. Warning is the right balance. |

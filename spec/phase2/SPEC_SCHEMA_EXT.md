@@ -70,6 +70,8 @@ registry = "official"   # Optional: constrain to a specific registry
 - `version` string MUST be valid SemVer constraint syntax (exact, `^`, `~`, `*`).
 - When `registry` is specified, it MUST reference a name defined in `[registries]`.
 - Mode A and Mode B entries MAY coexist in the same `[[skills]]` array.
+- A Mode B `name` MUST NOT collide with any Mode A `id` in the same config
+  (duplicate identifier across modes MUST fail validation).
 
 ## 4. Extended `[[skills.targets]]` Fields
 
@@ -140,6 +142,7 @@ Additional Phase 2 validation error codes:
 | `INVALID_SEMVER` | `version` field is not a valid SemVer constraint. |
 | `INVALID_ENVIRONMENT` | `environment` field does not match `local` or `docker:<name>`. |
 | `INVALID_CONCURRENCY` | `concurrency` value is outside range `[1, 100]`. |
+| `DUPLICATE_SKILL_ID` | A Mode B `name` collides with a Mode A `id` (or duplicate `name`/`id` within the same mode). |
 
 ## 8. Normative Requirements
 
@@ -152,10 +155,10 @@ Additional Phase 2 validation error codes:
 | **SCH-P2-005** | Builder | **P1** | `[reactor]` section with `concurrency` field (optional, default 10). | Config with `[reactor] concurrency = 5` applies to Reactor behavior. |
 | **SCH-P2-006** | Builder | **P0** | Phase 2 validation errors MUST use stable error codes (Section 7 table). | Each error condition produces the documented error code. |
 
-## 9. Freeze Candidates
+## 9. Resolved Design Decisions (Stage B)
 
-| ID | Item | Options Under Consideration | Resolution Needed |
+| ID | Item | Decision | Rationale |
 | :--- | :--- | :--- | :--- |
-| **FC-S1** | Config `version` bump | Keep `version = 1` (current) vs bump to `version = 2` for Phase 2 features | Decide if new sections warrant a config version bump. Current recommendation: keep `1`. |
-| **FC-S2** | `auto_update` behavior | Implicit update before every `apply` vs update only if stale (> N days) | Define exact trigger semantics for `auto_update = true`. |
-| **FC-S3** | Mode B `id` generation | Auto-generate `id` from `name` vs require explicit `id` vs no `id` for Mode B | Mode B skills need an identifier for diagnostics and `skills.toml` deduplication. |
+| **FC-S1** | Config `version` bump | **Keep `version = 1`**. No bump for Phase 2. | Phase 2 extensions are additive. Phase 1 configs remain valid without changes. The `version` field indicates schema compatibility, not feature level. Since no breaking changes exist, no bump is needed. |
+| **FC-S2** | `auto_update` behavior | **Stale-based trigger**: when `auto_update = true` for a registry AND the local index was last synced > 7 days ago, `apply` triggers implicit `update` for that registry only. If network fails during auto-update, proceed with stale cache and emit a warning. | Always updating before `apply` is slow and network-dependent. Stale-based trigger balances freshness with performance. The 7-day threshold aligns with `REGISTRY_STALE` doctor finding (FC-REG3). |
+| **FC-S3** | Mode B `id` generation | **Auto-generate `id` from `name`**: the `name` field doubles as the skill identifier for deduplication and diagnostics. If both a Mode A skill with `id = "foo"` and a Mode B skill with `name = "foo"` exist, validation MUST fail (duplicate identifier). | Requiring explicit `id` for Mode B is redundant UX friction. The `name` already uniquely identifies the skill (it is the registry lookup key). Using `name` as the implicit `id` keeps config clean. |

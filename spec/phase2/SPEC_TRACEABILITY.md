@@ -88,6 +88,10 @@ Use this file to recover accurate context after compression.
 | TM-P2-027 | `SPEC_TEST_MATRIX.md` 5.3 | Windows symlink privilege error | -- | planned |
 | TM-P2-028 | `SPEC_TEST_MATRIX.md` 5.4 | Cross-platform path normalization | -- | planned |
 | TM-P2-029 | `SPEC_TEST_MATRIX.md` 5.5 | Windows safety detection graceful degradation | -- | planned |
+| TM-P2-030 | `SPEC_TEST_MATRIX.md` 4.11 | Pre-release version resolution | -- | planned |
+| TM-P2-031 | `SPEC_TEST_MATRIX.md` 4.12 | Registry staleness detection (doctor) | -- | planned |
+| TM-P2-032 | `SPEC_TEST_MATRIX.md` 4.13 | Mode A/B identifier collision validation | -- | planned |
+| TM-P2-033 | `SPEC_TEST_MATRIX.md` 4.14 | Install config persistence | -- | planned |
 
 ## 5. Phase 1 Windows Prerequisite Tasks
 

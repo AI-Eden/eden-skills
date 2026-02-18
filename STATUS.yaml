@@ -76,6 +76,45 @@ ownership:
       - curation_rubric
       - crawler_strategy_rfc
 
-next_execution_targets: []
+phase2:
+  contracts_frozen: true
+  frozen_at: "2026-02-18"
+  frozen_by: architect_claude_opus
+  spec_files:
+    - spec/phase2/SPEC_REACTOR.md
+    - spec/phase2/SPEC_ADAPTER.md
+    - spec/phase2/SPEC_REGISTRY.md
+    - spec/phase2/SPEC_SCHEMA_EXT.md
+    - spec/phase2/SPEC_COMMANDS_EXT.md
+    - spec/phase2/SPEC_TEST_MATRIX.md
+    - spec/phase2/SPEC_TRACEABILITY.md
+  freeze_candidates_resolved: 20
+  open_questions_resolved: 5
+  requirement_ids:
+    architecture: ARC-001~ARC-008, ARC-101~ARC-110, ARC-201~ARC-207
+    schema: SCH-P2-001~SCH-P2-006
+    commands: CMD-P2-001~CMD-P2-006
+  adrs: ADR-001~ADR-009
+  test_scenarios: TM-P2-001~TM-P2-033
+  builder_entry_criteria:
+    all_reqs_understood: true
+    no_phase1_breaking_changes: true
+    requirement_ids_unique: true
+    p0_verification_complete: true
+    english_only: true
+    all_design_questions_resolved: true
+  builder_priority_order:
+    - P0_reactor: ARC-001, ARC-002, ARC-005, ARC-006, ARC-008
+    - P0_adapter: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109
+    - P0_registry: ARC-201, ARC-202, ARC-207
+    - P0_schema: SCH-P2-001, SCH-P2-002, SCH-P2-003, SCH-P2-004, SCH-P2-006
+    - P0_commands: CMD-P2-001, CMD-P2-002, CMD-P2-003
+    - P1_all: ARC-003, ARC-004, ARC-007, ARC-104, ARC-105, ARC-107, ARC-110, ARC-203, ARC-204, ARC-205, ARC-206, SCH-P2-005, CMD-P2-004, CMD-P2-005, CMD-P2-006
+  windows_prerequisites:
+    tasks: WIN-001~WIN-005
+    gate: must_complete_before_windows_ci
+
+next_execution_targets:
+  - phase2_builder_implementation
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md

@@ -1,9 +1,9 @@
 # Phase 2 Specifications: Hyper-Loop Core Architecture
 
-**Status:** Stage A Complete (Exploratory Architecture Design)
+**Status:** CONTRACT_FROZEN (Stage B Complete)
 **Parent:** `spec/README.md`
 **Architecture Vision:** `prompt/PHASE2-STAGE-A.md`
-**Next:** Stage B (Freeze Contracts)
+**Frozen by:** Architect (Claude Opus), 2026-02-18
 
 ## Purpose
 
@@ -33,7 +33,7 @@ When reading an `_EXT` file, always read the corresponding Phase 1 base file fir
 | `SPEC_REGISTRY.md` | Registry | ARC-201 ~ ARC-207 | ADR-007, ADR-008, ADR-009 | Double-track registry, index format, resolution logic, version matching |
 | `SPEC_SCHEMA_EXT.md` | Config | SCH-P2-001 ~ SCH-P2-006 | -- | `skills.toml` extensions (registries, version, target, reactor config) |
 | `SPEC_COMMANDS_EXT.md` | CLI | CMD-P2-001 ~ CMD-P2-006 | -- | New commands: `update`, `install --target`, `--concurrency` flag |
-| `SPEC_TEST_MATRIX.md` | Testing | TM-P2-001 ~ TM-P2-029 | -- | Phase 2 acceptance test scenarios (incl. cross-platform) |
+| `SPEC_TEST_MATRIX.md` | Testing | TM-P2-001 ~ TM-P2-033 | -- | Phase 2 acceptance test scenarios (incl. cross-platform + Stage B additions) |
 | `SPEC_TRACEABILITY.md` | Traceability | -- | -- | Requirement-to-implementation mapping for Phase 2 |
 
 ## Architecture Decision Record Index
@@ -50,17 +50,18 @@ When reading an `_EXT` file, always read the corresponding Phase 1 base file fir
 | ADR-008 | Registry Sync Strategy | `SPEC_REGISTRY.md` 5 | Shallow clone (`--depth 1`) |
 | ADR-009 | Version Resolution Library | `SPEC_REGISTRY.md` 5 | `semver` crate |
 
-## Freeze Candidates Summary
+## Stage B Resolution Summary
 
-Stage B must resolve these items before Builder implementation begins:
+All 20 Freeze Candidates resolved on 2026-02-18. See "Resolved Design
+Decisions (Stage B)" section in each spec file for details.
 
-| Domain | Count | IDs |
+| Domain | Resolved | Key Decisions |
 | :--- | :--- | :--- |
-| Reactor | 4 | FC-R1, FC-R2, FC-R3, FC-R4 |
-| Adapter | 4 | FC-A1, FC-A2, FC-A3, FC-A5 |
-| Registry | 6 | FC-REG1, FC-REG2, FC-REG3, FC-REG4, FC-REG5, FC-REG6 |
-| Schema | 3 | FC-S1, FC-S2, FC-S3 |
-| Commands | 3 | FC-C1, FC-C2, FC-C3 |
+| Reactor | 4 (FC-R1~R4) | Fixed default 10; strict barrier; streaming log lines as P0 UX |
+| Adapter | 4 (FC-A1~A5) | Full cleanup uninstall; no retry; container-name-only; warning+fallback |
+| Registry | 6 (FC-REG1~REG6) | Current fields confirmed; pre-release allowed; 7-day staleness; storage under `storage.root` |
+| Schema | 3 (FC-S1~S3) | Keep version 1; stale-based auto-update; name-as-id for Mode B |
+| Commands | 3 (FC-C1~C3) | Explicit update required; update all registries; always persist install |
 | **Total** | **20** | |
 
 ## Normative Language

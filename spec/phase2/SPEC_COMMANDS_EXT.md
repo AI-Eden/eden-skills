@@ -24,8 +24,8 @@ CLI shape:
 Behavior:
 
 - MUST read `[registries]` from config.
-- MUST clone or pull each registry index repo into `~/.eden-skills/registries/<name>/`.
-  Path `~/.eden-skills/` MUST resolve via the same tilde expansion rules as
+- MUST clone or pull each registry index repo into `<storage.root>/registries/<name>/`.
+  The `storage.root` path MUST resolve via the same tilde expansion rules as
   Phase 1 (`SPEC_SCHEMA.md` Section 3), supporting both `HOME` (Unix) and
   `USERPROFILE` (Windows) environment variables.
 - MUST use shallow clone (`--depth 1`) for initial clone and shallow fetch for updates (ARC-205).
@@ -131,10 +131,10 @@ Priority: `--concurrency` flag > `[reactor].concurrency` config > default (10).
 | **CMD-P2-005** | Builder | **P1** | `--concurrency` global flag overrides reactor concurrency for `apply`, `repair`, `update`. | `--concurrency 1` produces serial behavior; `--concurrency 50` allows 50 parallel tasks. |
 | **CMD-P2-006** | Builder | **P1** | `install --dry-run` displays resolution and target info without side effects. | Dry-run produces output but does not modify config or filesystem. |
 
-## 6. Freeze Candidates
+## 6. Resolved Design Decisions (Stage B)
 
-| ID | Item | Options Under Consideration | Resolution Needed |
+| ID | Item | Decision | Rationale |
 | :--- | :--- | :--- | :--- |
-| **FC-C1** | `install` auto-update behavior | Auto-run `update` if index missing vs always require explicit `update` first vs prompt user | Decide if `install` should auto-sync registries. Current recommendation: fail with "run update first" for predictability. |
-| **FC-C2** | `update` default scope | Update all registries vs update only registries referenced by current config skills | Decide if `update` syncs all configured registries or only those needed. |
-| **FC-C3** | `install` config persistence | Always append to `skills.toml` vs append only with `--save` flag | Decide if `install` auto-persists to config or requires opt-in. Current recommendation: always persist. |
+| **FC-C1** | `install` auto-update behavior | **Require explicit `update` first**. If no local registry cache exists, `install` MUST fail with actionable error: "Registry index not found. Run `eden-skills update` first." | Predictability. Users should know when network operations happen. Auto-updating can be slow and surprising. Consistent with `auto_update` stale-based semantics (FC-S2). |
+| **FC-C2** | `update` default scope | **Update all configured registries**. | `update` is an explicit user action. Updating all registries is simpler, more predictable, and ensures the local cache is complete. Selective update adds complexity. Shallow clone (ARC-205) makes updating even unused registries cheap. |
+| **FC-C3** | `install` config persistence | **Always persist to `skills.toml`**. | `install` modifies system state; persisting to config ensures reproducibility (next `apply` includes this skill). Not persisting creates invisible state lost on next `apply`. Matches `cargo add` behavior. `--dry-run` is available for preview without side effects. |
