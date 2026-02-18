@@ -53,6 +53,7 @@ phase1:
   ci:
     workflow_defined: true
     linux_macos_smoke_configured: true
+    windows_smoke_configured: true
     hosted_run_verified: true
     hosted_run_reference:
       workflow: CI
@@ -134,11 +135,14 @@ phase2:
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
     batch_2_track_a_win_005:
-      status: pending
+      status: completed
+      completed_at: "2026-02-18"
       gate: WIN-001~004 completed and stable
+      notes:
+        - windows-latest enabled in .github/workflows/ci.yml matrix
+        - local gate passed; hosted Windows CI run pending verification
 
 next_execution_targets:
-  - phase2_batch2_track_a_win005
   - phase2_batch3_track_b_p0_reactor
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
