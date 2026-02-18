@@ -126,15 +126,34 @@ Read the full ADRs in spec files. Summary for implementation guidance:
   Section 3.
 
 [Testing Strategy]
-- Unit tests: place in source files (mod tests) for internal logic.
-- Integration tests: place in per-crate tests/ directories for end-to-end
-  CLI behavior and multi-component scenarios.
-- Test scenarios: implement all TM-P2-001 through TM-P2-033 from
-  spec/phase2/SPEC_TEST_MATRIX.md.
-- Phase 1 regression: ALL existing Phase 1 tests MUST continue to pass.
-- Docker tests: at least one smoke test on Linux CI. Docker tests are NOT
-  required on Windows CI.
-- Windows tests: see Track A tasks (WIN-001~005).
+IMPORTANT: Every requirement implemented in a batch MUST have corresponding
+tests written and passing in the SAME batch. Do NOT defer testing to a later
+batch.
+
+Follow the existing test file architecture established in Phase 1:
+- The project uses per-crate tests/ directories EXCLUSIVELY.
+  There are NO inline #[cfg(test)] mod tests blocks in source files.
+  MAINTAIN this convention. Place all new tests in the tests/ directory
+  of the appropriate crate.
+- eden-skills-core/tests/ — for library-level logic tests (config parsing,
+  plan generation, adapter behavior, registry resolution, reactor logic).
+- eden-skills-cli/tests/  — for CLI end-to-end integration tests (command
+  output, exit codes, flag behavior).
+- eden-skills-cli/tests/common/mod.rs — shared test utilities. Reuse and
+  extend this module for common setup helpers.
+- Naming convention: follow existing patterns (e.g., config_tests.rs,
+  apply_repair.rs, exit_code_matrix.rs). Use descriptive file names
+  reflecting the domain being tested.
+
+Before writing new tests, examine existing test files in both crates to
+understand helper patterns, assertion style, and fixture conventions.
+
+Test scenarios: implement all TM-P2-001 through TM-P2-033 from
+spec/phase2/SPEC_TEST_MATRIX.md.
+Phase 1 regression: ALL existing Phase 1 tests MUST continue to pass.
+Docker tests: at least one smoke test on Linux CI. Docker tests are NOT
+required on Windows CI.
+Windows tests: see Track A tasks (WIN-001~005).
 
 [Quality Gate — All Must Pass Before Marking a Batch Complete]
 - [ ] cargo fmt --all -- --check
