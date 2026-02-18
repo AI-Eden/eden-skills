@@ -1,17 +1,25 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::future::Future;
 use std::path::{Path, PathBuf};
+use std::process::Command;
+use std::time::Instant;
 
 use eden_skills_core::config::InstallMode;
 use eden_skills_core::config::{
-    config_dir_from_path, default_verify_checks_for_mode, load_from_file, validate_config,
-    LoadOptions,
+    config_dir_from_path, decode_registry_mode_repo, default_verify_checks_for_mode,
+    encode_registry_mode_repo, is_registry_mode_repo, load_from_file, validate_config, LoadOptions,
+    SourceConfig,
 };
 use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
+use eden_skills_core::reactor::{SkillReactor, DEFAULT_CONCURRENCY_LIMIT};
+use eden_skills_core::registry::{
+    parse_registry_specs_from_toml, resolve_skill_from_registry_sources,
+    sort_registry_specs_by_priority, RegistrySource,
+};
 use eden_skills_core::safety::{analyze_skills, persist_reports, LicenseStatus, SkillSafetyReport};
 use eden_skills_core::source::{sync_sources_async, SyncSummary};
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
@@ -30,6 +38,57 @@ struct DoctorFinding {
     target_path: String,
     message: String,
     remediation: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct UpdateRequest {
+    pub config_path: String,
+    pub concurrency: Option<usize>,
+    pub options: CommandOptions,
+}
+
+#[derive(Debug, Clone)]
+pub struct InstallRequest {
+    pub config_path: String,
+    pub skill_name: String,
+    pub version: Option<String>,
+    pub registry: Option<String>,
+    pub target: Option<String>,
+    pub options: CommandOptions,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum RegistrySyncStatus {
+    Cloned,
+    Updated,
+    Skipped,
+    Failed,
+}
+
+impl RegistrySyncStatus {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Cloned => "cloned",
+            Self::Updated => "updated",
+            Self::Skipped => "skipped",
+            Self::Failed => "failed",
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+struct RegistrySyncTask {
+    name: String,
+    url: String,
+    local_dir: PathBuf,
+}
+
+#[derive(Debug, Clone)]
+struct RegistrySyncResult {
+    name: String,
+    status: RegistrySyncStatus,
+    url: String,
+    detail: Option<String>,
 }
 
 fn resolve_config_path(config_path: &str) -> Result<PathBuf, EdenError> {
@@ -58,6 +117,303 @@ pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
         print_plan_text(&plan);
     }
     Ok(())
+}
+
+pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
+    let config_path_buf = resolve_config_path(&req.config_path)?;
+    let config_path = config_path_buf.as_path();
+    let loaded = load_from_file(
+        config_path,
+        LoadOptions {
+            strict: req.options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+
+    let raw_toml = fs::read_to_string(config_path)?;
+    let registry_specs = sort_registry_specs_by_priority(
+        &parse_registry_specs_from_toml(&raw_toml).map_err(EdenError::from)?,
+    );
+    if registry_specs.is_empty() {
+        eprintln!("warning: no registries configured; skipping update");
+        return Ok(());
+    }
+
+    let concurrency = req.concurrency.unwrap_or(DEFAULT_CONCURRENCY_LIMIT);
+    if !(1..=100).contains(&concurrency) {
+        return Err(EdenError::Validation(format!(
+            "INVALID_CONCURRENCY: update.concurrency: expected value in [1, 100], got {concurrency}"
+        )));
+    }
+
+    let config_dir = config_dir_from_path(config_path);
+    let storage_root = resolve_path_string(&loaded.config.storage_root, &config_dir)?;
+    let registries_root = storage_root.join("registries");
+    tokio::fs::create_dir_all(&registries_root).await?;
+
+    let tasks = registry_specs
+        .into_iter()
+        .map(|spec| {
+            let name = spec.name;
+            RegistrySyncTask {
+                name: name.clone(),
+                url: spec.url,
+                local_dir: registries_root.join(name),
+            }
+        })
+        .collect::<Vec<_>>();
+
+    let reactor = SkillReactor::new(concurrency).map_err(EdenError::from)?;
+    let started = Instant::now();
+    let outcomes = reactor
+        .run_phase_a(tasks, move |task| {
+            let reactor = reactor;
+            async move { sync_registry_task(task, reactor).await }
+        })
+        .await
+        .map_err(EdenError::from)?;
+    let elapsed_ms = started.elapsed().as_millis() as u64;
+
+    let mut results = Vec::new();
+    for outcome in outcomes {
+        match outcome.result {
+            Ok(result) | Err(result) => results.push(result),
+        }
+    }
+    results.sort_by(|left, right| left.name.cmp(&right.name));
+
+    let failed_count = results
+        .iter()
+        .filter(|result| matches!(result.status, RegistrySyncStatus::Failed))
+        .count();
+
+    if req.options.json {
+        let payload = serde_json::json!({
+            "registries": results.iter().map(|result| {
+                serde_json::json!({
+                    "name": result.name,
+                    "status": result.status.as_str(),
+                    "url": result.url,
+                    "detail": result.detail,
+                })
+            }).collect::<Vec<_>>(),
+            "failed": failed_count,
+            "elapsed_ms": elapsed_ms,
+        });
+        let encoded = serde_json::to_string_pretty(&payload)
+            .map_err(|err| EdenError::Runtime(format!("failed to encode update json: {err}")))?;
+        println!("{encoded}");
+    } else {
+        let status_fragments = results
+            .iter()
+            .map(|result| format!("{}={}", result.name, result.status.as_str()))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let elapsed_seconds = elapsed_ms as f64 / 1000.0;
+        println!(
+            "registry sync: {status_fragments} ({failed_count} failed) [{elapsed_seconds:.1}s]"
+        );
+        for result in results
+            .iter()
+            .filter(|result| matches!(result.status, RegistrySyncStatus::Failed))
+        {
+            if let Some(detail) = &result.detail {
+                eprintln!("warning: registry `{}` failed: {detail}", result.name);
+            }
+        }
+    }
+
+    Ok(())
+}
+
+pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
+    let config_path_buf = resolve_config_path(&req.config_path)?;
+    let config_path = config_path_buf.as_path();
+    let loaded = load_from_file(
+        config_path,
+        LoadOptions {
+            strict: req.options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+    let config_dir = config_dir_from_path(config_path);
+
+    let mut config = loaded.config;
+    let requested_constraint = req.version.clone().unwrap_or_else(|| "*".to_string());
+    upsert_mode_b_skill(
+        &mut config,
+        &req.skill_name,
+        &requested_constraint,
+        req.registry.as_deref(),
+        req.target.as_deref(),
+    )?;
+    validate_config(&config, &config_dir)?;
+
+    let mut single_skill_config = Config {
+        version: config.version,
+        storage_root: config.storage_root.clone(),
+        skills: config
+            .skills
+            .iter()
+            .find(|skill| skill.id == req.skill_name)
+            .cloned()
+            .into_iter()
+            .collect(),
+    };
+    if single_skill_config.skills.is_empty() {
+        return Err(EdenError::Runtime(format!(
+            "failed to select installed skill `{}`",
+            req.skill_name
+        )));
+    }
+
+    // Validate resolvability before sync/install, producing actionable errors when cache is missing.
+    let resolved_for_install =
+        resolve_registry_mode_skills_for_execution(config_path, &single_skill_config, &config_dir)?;
+    single_skill_config = resolved_for_install;
+
+    write_normalized_config(config_path, &config)?;
+
+    let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
+    print_source_sync_summary(&sync_summary);
+    if let Some(err) = source_sync_failure_error(&sync_summary) {
+        return Err(err);
+    }
+
+    let plan = build_plan(&single_skill_config, &config_dir)?;
+    let mut conflicts = 0usize;
+    for item in &plan {
+        match item.action {
+            Action::Create | Action::Update => apply_plan_item(item)?,
+            Action::Conflict => conflicts += 1,
+            Action::Noop => {}
+        }
+    }
+    if req.options.strict && conflicts > 0 {
+        return Err(EdenError::Conflict(format!(
+            "strict mode blocked install: {conflicts} conflict entries"
+        )));
+    }
+
+    if req.options.json {
+        let payload = serde_json::json!({
+            "skill": req.skill_name,
+            "version": requested_constraint,
+            "status": "installed",
+        });
+        let encoded = serde_json::to_string_pretty(&payload)
+            .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
+        println!("{encoded}");
+    } else {
+        println!("install: skill={} status=installed", req.skill_name);
+    }
+
+    Ok(())
+}
+
+async fn sync_registry_task(
+    task: RegistrySyncTask,
+    reactor: SkillReactor,
+) -> Result<RegistrySyncResult, RegistrySyncResult> {
+    let failed_name = task.name.clone();
+    let failed_url = task.url.clone();
+
+    let task_label = format!("sync registry `{}`", task.name);
+    match reactor
+        .run_blocking(&task_label, move || sync_registry_task_blocking(task))
+        .await
+    {
+        Ok(Ok(result)) => Ok(result),
+        Ok(Err(result)) => Err(result),
+        Err(err) => Err(RegistrySyncResult {
+            name: failed_name,
+            status: RegistrySyncStatus::Failed,
+            url: failed_url,
+            detail: Some(err.to_string()),
+        }),
+    }
+}
+
+fn sync_registry_task_blocking(
+    task: RegistrySyncTask,
+) -> Result<Result<RegistrySyncResult, RegistrySyncResult>, EdenError> {
+    let failed = |detail: String| RegistrySyncResult {
+        name: task.name.clone(),
+        status: RegistrySyncStatus::Failed,
+        url: task.url.clone(),
+        detail: Some(detail),
+    };
+
+    if let Some(parent) = task.local_dir.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let git_dir = task.local_dir.join(".git");
+    if !git_dir.exists() {
+        let clone_result = run_git_command(
+            Command::new("git")
+                .arg("clone")
+                .arg("--depth")
+                .arg("1")
+                .arg(&task.url)
+                .arg(&task.local_dir),
+            &format!("clone registry `{}`", task.name),
+        );
+        return Ok(match clone_result {
+            Ok(_) => Ok(RegistrySyncResult {
+                name: task.name,
+                status: RegistrySyncStatus::Cloned,
+                url: task.url,
+                detail: None,
+            }),
+            Err(detail) => Err(failed(detail)),
+        });
+    }
+
+    let head_before = read_head_sha(&task.local_dir);
+    let fetch_result = run_git_command(
+        Command::new("git")
+            .arg("-C")
+            .arg(&task.local_dir)
+            .arg("fetch")
+            .arg("--depth")
+            .arg("1")
+            .arg("origin"),
+        &format!("fetch registry `{}`", task.name),
+    );
+    if let Err(detail) = fetch_result {
+        return Ok(Err(failed(detail)));
+    }
+
+    let reset_result = run_git_command(
+        Command::new("git")
+            .arg("-C")
+            .arg(&task.local_dir)
+            .arg("reset")
+            .arg("--hard")
+            .arg("FETCH_HEAD"),
+        &format!("reset registry `{}`", task.name),
+    );
+    if let Err(detail) = reset_result {
+        return Ok(Err(failed(detail)));
+    }
+
+    let head_after = read_head_sha(&task.local_dir);
+    let status = if head_before.is_some() && head_before == head_after {
+        RegistrySyncStatus::Skipped
+    } else {
+        RegistrySyncStatus::Updated
+    };
+    Ok(Ok(RegistrySyncResult {
+        name: task.name,
+        status,
+        url: task.url,
+        detail: None,
+    }))
 }
 
 fn block_on_command_future<F>(future: F) -> Result<(), EdenError>
@@ -92,9 +448,11 @@ pub async fn apply_async(config_path: &str, options: CommandOptions) -> Result<(
         },
     )?;
     let config_dir = config_dir_from_path(config_path);
-    let sync_summary = sync_sources_async(&loaded.config, &config_dir).await?;
+    let execution_config =
+        resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir)?;
+    let sync_summary = sync_sources_async(&execution_config, &config_dir).await?;
     print_source_sync_summary(&sync_summary);
-    let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
+    let safety_reports = analyze_skills(&execution_config, &config_dir)?;
     persist_reports(&safety_reports)?;
     print_safety_summary(&safety_reports);
     if let Some(err) = source_sync_failure_error(&sync_summary) {
@@ -102,7 +460,7 @@ pub async fn apply_async(config_path: &str, options: CommandOptions) -> Result<(
     }
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
-    let plan = build_plan(&loaded.config, &config_dir)?;
+    let plan = build_plan(&execution_config, &config_dir)?;
 
     let mut created = 0usize;
     let mut updated = 0usize;
@@ -151,7 +509,7 @@ pub async fn apply_async(config_path: &str, options: CommandOptions) -> Result<(
         )));
     }
 
-    let verify_issues = verify_config_state(&loaded.config, &config_dir)?;
+    let verify_issues = verify_config_state(&execution_config, &config_dir)?;
     if !verify_issues.is_empty() {
         return Err(EdenError::Runtime(format!(
             "post-apply verification failed with {} issue(s); first: [{}] {} {}",
@@ -450,9 +808,11 @@ pub async fn repair_async(config_path: &str, options: CommandOptions) -> Result<
         },
     )?;
     let config_dir = config_dir_from_path(config_path);
-    let sync_summary = sync_sources_async(&loaded.config, &config_dir).await?;
+    let execution_config =
+        resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir)?;
+    let sync_summary = sync_sources_async(&execution_config, &config_dir).await?;
     print_source_sync_summary(&sync_summary);
-    let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
+    let safety_reports = analyze_skills(&execution_config, &config_dir)?;
     persist_reports(&safety_reports)?;
     print_safety_summary(&safety_reports);
     if let Some(err) = source_sync_failure_error(&sync_summary) {
@@ -460,7 +820,7 @@ pub async fn repair_async(config_path: &str, options: CommandOptions) -> Result<
     }
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
-    let plan = build_plan(&loaded.config, &config_dir)?;
+    let plan = build_plan(&execution_config, &config_dir)?;
 
     let mut repaired = 0usize;
     let mut skipped_conflicts = 0usize;
@@ -497,7 +857,7 @@ pub async fn repair_async(config_path: &str, options: CommandOptions) -> Result<
         )));
     }
 
-    let verify_issues = verify_config_state(&loaded.config, &config_dir)?;
+    let verify_issues = verify_config_state(&execution_config, &config_dir)?;
     if !verify_issues.is_empty() {
         return Err(EdenError::Runtime(format!(
             "post-repair verification failed with {} issue(s); first: [{}] {} {}",
@@ -551,6 +911,218 @@ fn source_sync_failure_error(summary: &SyncSummary) -> Option<EdenError> {
         "source sync failed for {} skill(s): {details}",
         summary.failed
     )))
+}
+
+fn resolve_registry_mode_skills_for_execution(
+    config_path: &Path,
+    config: &Config,
+    config_dir: &Path,
+) -> Result<Config, EdenError> {
+    if !config
+        .skills
+        .iter()
+        .any(|skill| is_registry_mode_repo(&skill.source.repo))
+    {
+        return Ok(config.clone());
+    }
+
+    let raw_toml = fs::read_to_string(config_path)?;
+    let sorted_specs = sort_registry_specs_by_priority(
+        &parse_registry_specs_from_toml(&raw_toml).map_err(EdenError::from)?,
+    );
+    if sorted_specs.is_empty() {
+        return Err(EdenError::Runtime(
+            "Registry index not found. Run `eden-skills update` first.".to_string(),
+        ));
+    }
+
+    let storage_root = resolve_path_string(&config.storage_root, config_dir)?;
+    let registries_root = storage_root.join("registries");
+    let registry_sources = sorted_specs
+        .into_iter()
+        .map(|spec| RegistrySource {
+            name: spec.name.clone(),
+            priority: spec.priority,
+            root: registries_root.join(spec.name),
+        })
+        .collect::<Vec<_>>();
+
+    let mut resolved = config.clone();
+    for skill in &mut resolved.skills {
+        if !is_registry_mode_repo(&skill.source.repo) {
+            continue;
+        }
+
+        let preferred_registry = decode_registry_mode_repo(&skill.source.repo)
+            .unwrap_or(None)
+            .unwrap_or_default();
+        let sources_for_skill = if preferred_registry.is_empty() {
+            registry_sources.clone()
+        } else {
+            registry_sources
+                .iter()
+                .filter(|source| source.name == preferred_registry)
+                .cloned()
+                .collect::<Vec<_>>()
+        };
+
+        if sources_for_skill.is_empty() {
+            let repo_dir = storage_root.join(&skill.id);
+            return Err(EdenError::Runtime(format!(
+                "source sync failed for 1 skill(s): skill={} stage=clone repo_dir={} detail=registry `{}` is not configured",
+                skill.id,
+                repo_dir.display(),
+                preferred_registry
+            )));
+        }
+        if sources_for_skill.iter().all(|source| !source.root.exists()) {
+            let repo_dir = storage_root.join(&skill.id);
+            return Err(EdenError::Runtime(format!(
+                "source sync failed for 1 skill(s): skill={} stage=clone repo_dir={} detail=Registry index not found. Run `eden-skills update` first.",
+                skill.id,
+                repo_dir.display()
+            )));
+        }
+
+        let resolved_skill = resolve_skill_from_registry_sources(
+            &sources_for_skill,
+            &skill.id,
+            Some(skill.source.r#ref.as_str()),
+        )
+        .map_err(|err| {
+            let repo_dir = storage_root.join(&skill.id);
+            EdenError::Runtime(format!(
+                "source sync failed for 1 skill(s): skill={} stage=clone repo_dir={} detail=registry resolution failed: {}",
+                skill.id,
+                repo_dir.display(),
+                err
+            ))
+        })?;
+
+        skill.source = SourceConfig {
+            repo: resolved_skill.repo,
+            subpath: resolved_skill.subpath,
+            r#ref: resolved_skill.git_ref,
+        };
+    }
+
+    Ok(resolved)
+}
+
+fn upsert_mode_b_skill(
+    config: &mut Config,
+    skill_name: &str,
+    version_constraint: &str,
+    registry: Option<&str>,
+    target_spec: Option<&str>,
+) -> Result<(), EdenError> {
+    let target_override = target_spec.map(parse_install_target_spec).transpose()?;
+    if let Some(skill) = config
+        .skills
+        .iter_mut()
+        .find(|skill| skill.id == skill_name)
+    {
+        skill.source = SourceConfig {
+            repo: encode_registry_mode_repo(registry),
+            subpath: ".".to_string(),
+            r#ref: version_constraint.to_string(),
+        };
+        if let Some(target) = target_override {
+            skill.targets = vec![target];
+        }
+        return Ok(());
+    }
+
+    let targets = if let Some(target) = target_override {
+        vec![target]
+    } else {
+        vec![default_install_target()]
+    };
+
+    config.skills.push(SkillConfig {
+        id: skill_name.to_string(),
+        source: SourceConfig {
+            repo: encode_registry_mode_repo(registry),
+            subpath: ".".to_string(),
+            r#ref: version_constraint.to_string(),
+        },
+        install: eden_skills_core::config::InstallConfig {
+            mode: InstallMode::Symlink,
+        },
+        targets,
+        verify: eden_skills_core::config::VerifyConfig {
+            enabled: true,
+            checks: default_verify_checks_for_mode(InstallMode::Symlink),
+        },
+        safety: eden_skills_core::config::SafetyConfig {
+            no_exec_metadata_only: false,
+        },
+    });
+    Ok(())
+}
+
+fn default_install_target() -> TargetConfig {
+    TargetConfig {
+        agent: AgentKind::ClaudeCode,
+        expected_path: None,
+        path: None,
+        environment: "local".to_string(),
+    }
+}
+
+fn parse_install_target_spec(spec: &str) -> Result<TargetConfig, EdenError> {
+    if spec == "local" {
+        return Ok(default_install_target());
+    }
+    if let Some(container_name) = spec.strip_prefix("docker:") {
+        if container_name.trim().is_empty() {
+            return Err(EdenError::InvalidArguments(
+                "invalid --target `docker:`: container name is required".to_string(),
+            ));
+        }
+        return Ok(TargetConfig {
+            agent: AgentKind::ClaudeCode,
+            expected_path: None,
+            path: None,
+            environment: spec.to_string(),
+        });
+    }
+    Err(EdenError::InvalidArguments(format!(
+        "invalid --target `{spec}` (expected `local` or `docker:<container>`)"
+    )))
+}
+
+fn run_git_command(command: &mut Command, context: &str) -> Result<String, String> {
+    let output = command
+        .output()
+        .map_err(|err| format!("git invocation failed while trying to {context}: {err}"))?;
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if output.status.success() {
+        return Ok(stdout);
+    }
+    Err(format!(
+        "git command failed while trying to {context}: status={} stderr=`{}` stdout=`{}`",
+        output.status, stderr, stdout
+    ))
+}
+
+fn read_head_sha(repo_dir: &Path) -> Option<String> {
+    let stdout = run_git_command(
+        Command::new("git")
+            .arg("-C")
+            .arg(repo_dir)
+            .arg("rev-parse")
+            .arg("HEAD"),
+        &format!("read HEAD for `{}`", repo_dir.display()),
+    )
+    .ok()?;
+    let sha = stdout.lines().next()?.trim();
+    if sha.is_empty() {
+        None
+    } else {
+        Some(sha.to_string())
+    }
 }
 
 fn print_safety_summary(reports: &[SkillSafetyReport]) {
@@ -982,11 +1554,13 @@ fn parse_target_specs(specs: &[String]) -> Result<Vec<TargetConfig>, EdenError> 
                 agent: AgentKind::ClaudeCode,
                 expected_path: None,
                 path: None,
+                environment: "local".to_string(),
             }),
             "cursor" => targets.push(TargetConfig {
                 agent: AgentKind::Cursor,
                 expected_path: None,
                 path: None,
+                environment: "local".to_string(),
             }),
             _ => {
                 if let Some(rest) = spec.strip_prefix("custom:") {
@@ -999,6 +1573,7 @@ fn parse_target_specs(specs: &[String]) -> Result<Vec<TargetConfig>, EdenError> 
                         agent: AgentKind::Custom,
                         expected_path: None,
                         path: Some(rest.to_string()),
+                        environment: "local".to_string(),
                     });
                     continue;
                 }
@@ -1012,7 +1587,8 @@ fn parse_target_specs(specs: &[String]) -> Result<Vec<TargetConfig>, EdenError> 
 }
 
 fn write_normalized_config(path: &Path, config: &Config) -> Result<(), EdenError> {
-    let toml = normalized_config_toml(config);
+    let registries = read_existing_registries(path)?;
+    let toml = normalized_config_toml(config, registries.as_ref());
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
@@ -1033,7 +1609,8 @@ pub fn config_export(config_path: &str, options: CommandOptions) -> Result<(), E
         eprintln!("warning: {warning}");
     }
 
-    let toml = normalized_config_toml(&loaded.config);
+    let registries = read_existing_registries(config_path)?;
+    let toml = normalized_config_toml(&loaded.config, registries.as_ref());
 
     if options.json {
         let payload = serde_json::json!({
@@ -1069,7 +1646,8 @@ pub fn config_import(
         eprintln!("warning: {warning}");
     }
 
-    let toml = normalized_config_toml(&loaded.config);
+    let registries = read_existing_registries(&from_path)?;
+    let toml = normalized_config_toml(&loaded.config, registries.as_ref());
 
     if dry_run {
         print!("{toml}");
@@ -1085,7 +1663,10 @@ pub fn config_import(
     Ok(())
 }
 
-fn normalized_config_toml(config: &Config) -> String {
+fn normalized_config_toml(
+    config: &Config,
+    registries: Option<&BTreeMap<String, ExistingRegistryConfig>>,
+) -> String {
     let mut out = String::new();
 
     out.push_str(&format!("version = {}\n\n", config.version));
@@ -1094,6 +1675,12 @@ fn normalized_config_toml(config: &Config) -> String {
         "root = \"{}\"\n\n",
         toml_escape_str(&config.storage_root)
     ));
+    if let Some(registries) = registries {
+        if !registries.is_empty() {
+            out.push_str(&render_registries_toml(registries));
+            out.push('\n');
+        }
+    }
 
     for skill in &config.skills {
         out.push_str(&normalized_skill_toml(skill));
@@ -1103,25 +1690,91 @@ fn normalized_config_toml(config: &Config) -> String {
     out
 }
 
+#[derive(Debug, Clone, serde::Deserialize)]
+struct ExistingRegistryFile {
+    #[serde(default)]
+    registries: BTreeMap<String, ExistingRegistryConfig>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct ExistingRegistryConfig {
+    url: String,
+    priority: Option<i64>,
+    auto_update: Option<bool>,
+}
+
+fn read_existing_registries(
+    path: &Path,
+) -> Result<Option<BTreeMap<String, ExistingRegistryConfig>>, EdenError> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(path)?;
+    let parsed: ExistingRegistryFile = match toml::from_str(&raw) {
+        Ok(value) => value,
+        Err(_) => return Ok(None),
+    };
+    if parsed.registries.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(parsed.registries))
+    }
+}
+
+fn render_registries_toml(registries: &BTreeMap<String, ExistingRegistryConfig>) -> String {
+    let mut out = String::new();
+    out.push_str("[registries]\n");
+    for (name, registry) in registries {
+        out.push_str(&format!(
+            "{} = {{ url = \"{}\"",
+            toml_escape_str(name),
+            toml_escape_str(&registry.url)
+        ));
+        if let Some(priority) = registry.priority {
+            out.push_str(&format!(", priority = {priority}"));
+        }
+        if let Some(auto_update) = registry.auto_update {
+            out.push_str(&format!(", auto_update = {auto_update}"));
+        }
+        out.push_str(" }\n");
+    }
+    out
+}
+
 fn normalized_skill_toml(skill: &SkillConfig) -> String {
     let mut out = String::new();
 
     out.push_str("[[skills]]\n");
-    out.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(&skill.id)));
+    if is_registry_mode_repo(&skill.source.repo) {
+        out.push_str(&format!("name = \"{}\"\n", toml_escape_str(&skill.id)));
+        out.push_str(&format!(
+            "version = \"{}\"\n",
+            toml_escape_str(&skill.source.r#ref)
+        ));
+        if let Some(Some(registry_name)) = decode_registry_mode_repo(&skill.source.repo) {
+            out.push_str(&format!(
+                "registry = \"{}\"\n",
+                toml_escape_str(&registry_name)
+            ));
+        }
+        out.push('\n');
+    } else {
+        out.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(&skill.id)));
 
-    out.push_str("[skills.source]\n");
-    out.push_str(&format!(
-        "repo = \"{}\"\n",
-        toml_escape_str(&skill.source.repo)
-    ));
-    out.push_str(&format!(
-        "subpath = \"{}\"\n",
-        toml_escape_str(&skill.source.subpath)
-    ));
-    out.push_str(&format!(
-        "ref = \"{}\"\n\n",
-        toml_escape_str(&skill.source.r#ref)
-    ));
+        out.push_str("[skills.source]\n");
+        out.push_str(&format!(
+            "repo = \"{}\"\n",
+            toml_escape_str(&skill.source.repo)
+        ));
+        out.push_str(&format!(
+            "subpath = \"{}\"\n",
+            toml_escape_str(&skill.source.subpath)
+        ));
+        out.push_str(&format!(
+            "ref = \"{}\"\n\n",
+            toml_escape_str(&skill.source.r#ref)
+        ));
+    }
 
     out.push_str("[skills.install]\n");
     out.push_str(&format!(
@@ -1172,6 +1825,12 @@ fn normalized_target_toml(target: &TargetConfig) -> String {
     }
     if let Some(path) = &target.path {
         out.push_str(&format!("path = \"{}\"\n", toml_escape_str(path)));
+    }
+    if target.environment != "local" {
+        out.push_str(&format!(
+            "environment = \"{}\"\n",
+            toml_escape_str(&target.environment)
+        ));
     }
     out
 }

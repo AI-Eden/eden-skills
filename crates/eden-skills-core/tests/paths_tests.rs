@@ -45,6 +45,7 @@ fn resolve_target_path_prefers_explicit_path_over_expected_path() {
         agent: AgentKind::ClaudeCode,
         expected_path: Some("/ignored/expected".to_string()),
         path: Some("./explicit/../final".to_string()),
+        environment: "local".to_string(),
     };
 
     let resolved = resolve_target_path(&target, config_dir).expect("resolve target path");
@@ -60,6 +61,7 @@ fn resolve_target_path_uses_expected_path_when_path_missing() {
         agent: AgentKind::Cursor,
         expected_path: Some("nested/./expected".to_string()),
         path: None,
+        environment: "local".to_string(),
     };
 
     let resolved = resolve_target_path(&target, config_dir).expect("resolve target path");
@@ -81,6 +83,7 @@ fn resolve_target_path_uses_default_agent_path_when_no_explicit_paths() {
         agent: AgentKind::ClaudeCode,
         expected_path: None,
         path: None,
+        environment: "local".to_string(),
     };
 
     let resolved = resolve_target_path(&target, config_dir).expect("resolve target path");
@@ -96,6 +99,7 @@ fn resolve_target_path_fails_for_custom_without_paths() {
         agent: AgentKind::Custom,
         expected_path: None,
         path: None,
+        environment: "local".to_string(),
     };
 
     let err = resolve_target_path(&target, config_dir).expect_err("expected error");

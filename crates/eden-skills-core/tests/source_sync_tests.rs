@@ -127,6 +127,7 @@ fn sync_sources_continues_after_failure_and_aggregates_results() {
                     agent: AgentKind::Custom,
                     expected_path: None,
                     path: Some(storage_root.join("targets").display().to_string()),
+                    environment: "local".to_string(),
                 }],
                 verify: VerifyConfig {
                     enabled: false,
@@ -150,6 +151,7 @@ fn sync_sources_continues_after_failure_and_aggregates_results() {
                     agent: AgentKind::Custom,
                     expected_path: None,
                     path: Some(storage_root.join("targets").display().to_string()),
+                    environment: "local".to_string(),
                 }],
                 verify: VerifyConfig {
                     enabled: false,
@@ -212,6 +214,7 @@ fn test_config(storage_root: &Path, repo_url: &str, reference: &str) -> Config {
                 agent: AgentKind::Custom,
                 expected_path: None,
                 path: Some(storage_root.join("targets").display().to_string()),
+                environment: "local".to_string(),
             }],
             verify: VerifyConfig {
                 enabled: false,

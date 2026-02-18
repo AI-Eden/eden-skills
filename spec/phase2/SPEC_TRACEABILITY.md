@@ -37,20 +37,20 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| SCH-P2-001 | `SPEC_SCHEMA_EXT.md` 2 | `[registries]` section with `url`, `priority`, optional `auto_update` | -- | -- | planned |
-| SCH-P2-002 | `SPEC_SCHEMA_EXT.md` 3 | Mode B skill entries (`name` + `version` + optional `registry`) | -- | -- | planned |
-| SCH-P2-003 | `SPEC_SCHEMA_EXT.md` 4 | `environment` field in targets (`local`, `docker:<name>`) | -- | -- | planned |
-| SCH-P2-004 | `SPEC_SCHEMA_EXT.md` 6 | Backward compatibility: Phase 1 configs remain valid without changes | -- | -- | planned |
+| SCH-P2-001 | `SPEC_SCHEMA_EXT.md` 2 | `[registries]` section with `url`, `priority`, optional `auto_update` | `crates/eden-skills-core/src/config.rs` (`RawConfig::into_config` registry parsing and validation) | `crates/eden-skills-core/tests/phase2_schema_tests.rs` (`mode_b_skill_with_registries_is_accepted`) | implemented |
+| SCH-P2-002 | `SPEC_SCHEMA_EXT.md` 3 | Mode B skill entries (`name` + `version` + optional `registry`) | `crates/eden-skills-core/src/config.rs` (`RawSkillConfig::into_skill`, Mode B mapping via `registry://` source encoding) | `crates/eden-skills-core/tests/phase2_schema_tests.rs` (`mode_b_skill_with_registries_is_accepted`, `mode_b_without_registries_returns_missing_registries_code`) | implemented |
+| SCH-P2-003 | `SPEC_SCHEMA_EXT.md` 4 | `environment` field in targets (`local`, `docker:<name>`) | `crates/eden-skills-core/src/config.rs` (`RawTargetConfig::into_target_config`, `validate_environment`, default `local`) | `crates/eden-skills-core/tests/phase2_schema_tests.rs` (`invalid_target_environment_returns_invalid_environment_code`) | implemented |
+| SCH-P2-004 | `SPEC_SCHEMA_EXT.md` 6 | Backward compatibility: Phase 1 configs remain valid without changes | `crates/eden-skills-core/src/config.rs` (Mode A path preserved; default behavior unchanged) | `crates/eden-skills-core/tests/config_tests.rs`, `crates/eden-skills-core/tests/phase2_schema_tests.rs` (`phase1_config_remains_valid_in_phase2_loader`) | implemented |
 | SCH-P2-005 | `SPEC_SCHEMA_EXT.md` 5 | `[reactor]` section with `concurrency` field (optional, default 10) | -- | -- | planned |
-| SCH-P2-006 | `SPEC_SCHEMA_EXT.md` 7 | Phase 2 validation errors MUST use stable error codes | -- | -- | planned |
+| SCH-P2-006 | `SPEC_SCHEMA_EXT.md` 7 | Phase 2 validation errors MUST use stable error codes | `crates/eden-skills-core/src/config.rs` (`phase2_validation_error` for `INVALID_SKILL_MODE`, `MISSING_REGISTRIES`, `UNKNOWN_REGISTRY`, `INVALID_SEMVER`, `INVALID_ENVIRONMENT`, `DUPLICATE_SKILL_ID`) | `crates/eden-skills-core/tests/phase2_schema_tests.rs` | implemented |
 
 ## 3. Command Extension Requirements
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| CMD-P2-001 | `SPEC_COMMANDS_EXT.md` 2.1 | `update` command syncs registry indexes concurrently | -- | -- | planned |
-| CMD-P2-002 | `SPEC_COMMANDS_EXT.md` 2.2 | `install` command resolves skills from registry by name | -- | -- | planned |
-| CMD-P2-003 | `SPEC_COMMANDS_EXT.md` 2.3 | `apply`/`repair` resolve Mode B skills through registry before source sync | -- | -- | planned |
+| CMD-P2-001 | `SPEC_COMMANDS_EXT.md` 2.1 | `update` command syncs registry indexes concurrently | `crates/eden-skills-cli/src/lib.rs` (`Commands::Update`), `crates/eden-skills-cli/src/commands.rs` (`update_async`, reactor-backed registry sync tasks) | `crates/eden-skills-cli/tests/phase2_commands.rs` (`update_clones_configured_registries`) | implemented |
+| CMD-P2-002 | `SPEC_COMMANDS_EXT.md` 2.2 | `install` command resolves skills from registry by name | `crates/eden-skills-cli/src/lib.rs` (`Commands::Install`), `crates/eden-skills-cli/src/commands.rs` (`install_async`, `upsert_mode_b_skill`, registry resolution before sync) | `crates/eden-skills-cli/tests/phase2_commands.rs` (`install_resolves_skill_from_registry_and_persists_mode_b_entry`) | implemented |
+| CMD-P2-003 | `SPEC_COMMANDS_EXT.md` 2.3 | `apply`/`repair` resolve Mode B skills through registry before source sync | `crates/eden-skills-cli/src/commands.rs` (`apply_async`/`repair_async` + `resolve_registry_mode_skills_for_execution`) | `crates/eden-skills-cli/tests/phase2_commands.rs` (`apply_and_repair_resolve_mode_b_skills_before_source_sync`) | implemented |
 | CMD-P2-004 | `SPEC_COMMANDS_EXT.md` 2.3 | `doctor` emits Phase 2 finding codes (`REGISTRY_STALE`, `ADAPTER_HEALTH_FAIL`, `DOCKER_NOT_FOUND`) | -- | -- | planned |
 | CMD-P2-005 | `SPEC_COMMANDS_EXT.md` 4 | `--concurrency` global flag overrides reactor concurrency | -- | -- | planned |
 | CMD-P2-006 | `SPEC_COMMANDS_EXT.md` 2.2 | `install --dry-run` displays resolution without side effects | -- | -- | planned |
@@ -66,10 +66,10 @@ Use this file to recover accurate context after compression.
 | TM-P2-005 | `SPEC_TEST_MATRIX.md` 3.1 | LocalAdapter parity | `crates/eden-skills-core/tests/adapter_tests.rs` (`local_adapter_install_copy_and_path_exists_work`, `local_adapter_symlink_supports_directory_and_file_sources`, `local_adapter_exec_runs_command`) | implemented (adapter core contract level) |
 | TM-P2-006 | `SPEC_TEST_MATRIX.md` 3.2 | DockerAdapter install | `crates/eden-skills-core/tests/adapter_tests.rs` (`docker_adapter_uses_docker_cli_for_health_install_and_exec`) | implemented (docker CLI stubbed integration) |
 | TM-P2-007 | `SPEC_TEST_MATRIX.md` 3.3 | DockerAdapter health check | `crates/eden-skills-core/tests/adapter_tests.rs` (`docker_adapter_health_check_fails_when_container_not_running`) | implemented |
-| TM-P2-008 | `SPEC_TEST_MATRIX.md` 4.1 | Registry update | -- | planned |
+| TM-P2-008 | `SPEC_TEST_MATRIX.md` 4.1 | Registry update | `crates/eden-skills-cli/tests/phase2_commands.rs` (`update_clones_configured_registries`) | implemented (clone path) |
 | TM-P2-009 | `SPEC_TEST_MATRIX.md` 4.2 | Registry resolution | `crates/eden-skills-core/tests/registry_tests.rs` (`resolve_skill_uses_priority_fallback_order`) | implemented (core resolver contract level) |
 | TM-P2-010 | `SPEC_TEST_MATRIX.md` 4.3 | Version constraint matching | `crates/eden-skills-core/tests/registry_tests.rs` (`resolve_skill_matches_semver_constraints`) | implemented |
-| TM-P2-011 | `SPEC_TEST_MATRIX.md` 4.4 | Schema extension validation | -- | planned |
+| TM-P2-011 | `SPEC_TEST_MATRIX.md` 4.4 | Schema extension validation | `crates/eden-skills-core/tests/phase2_schema_tests.rs` | implemented |
 | TM-P2-012 | `SPEC_TEST_MATRIX.md` 2.5 | Two-phase execution | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_enforces_two_phase_barrier`) | implemented |
 | TM-P2-013 | `SPEC_TEST_MATRIX.md` 2.6 | Concurrency configuration | -- | planned |
 | TM-P2-014 | `SPEC_TEST_MATRIX.md` 2.7 | Spawn blocking safety | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_converts_spawn_blocking_panic_to_structured_error`), `crates/eden-skills-core/src/source.rs` (`run_blocking` integration) | implemented |
@@ -90,8 +90,8 @@ Use this file to recover accurate context after compression.
 | TM-P2-029 | `SPEC_TEST_MATRIX.md` 5.5 | Windows safety detection graceful degradation | -- | planned |
 | TM-P2-030 | `SPEC_TEST_MATRIX.md` 4.11 | Pre-release version resolution | -- | planned |
 | TM-P2-031 | `SPEC_TEST_MATRIX.md` 4.12 | Registry staleness detection (doctor) | -- | planned |
-| TM-P2-032 | `SPEC_TEST_MATRIX.md` 4.13 | Mode A/B identifier collision validation | -- | planned |
-| TM-P2-033 | `SPEC_TEST_MATRIX.md` 4.14 | Install config persistence | -- | planned |
+| TM-P2-032 | `SPEC_TEST_MATRIX.md` 4.13 | Mode A/B identifier collision validation | `crates/eden-skills-core/tests/phase2_schema_tests.rs` (`mode_a_mode_b_identifier_collision_returns_duplicate_skill_id_code`) | implemented |
+| TM-P2-033 | `SPEC_TEST_MATRIX.md` 4.14 | Install config persistence | `crates/eden-skills-cli/tests/phase2_commands.rs` (`install_resolves_skill_from_registry_and_persists_mode_b_entry`) | implemented (add/persist path) |
 
 ## 5. Phase 1 Windows Prerequisite Tasks
 

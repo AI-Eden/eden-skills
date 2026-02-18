@@ -199,8 +199,23 @@ phase2:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    batch_6_track_b_p0_schema_commands:
+      status: completed
+      completed_at: "2026-02-18"
+      requirements: SCH-P2-001, SCH-P2-002, SCH-P2-003, SCH-P2-004, SCH-P2-006, CMD-P2-001, CMD-P2-002, CMD-P2-003
+      notes:
+        - extended config parsing for [registries], Mode B skills, and target environment (default local)
+        - enforced Phase 2 schema validation codes INVALID_SKILL_MODE, MISSING_REGISTRIES, UNKNOWN_REGISTRY, INVALID_SEMVER, INVALID_ENVIRONMENT, DUPLICATE_SKILL_ID
+        - implemented update command with concurrent registry sync, partial-failure tolerance, and summary output
+        - implemented install command to resolve registry skills by name and persist Mode B entries to skills.toml
+        - wired apply and repair to resolve Mode B skills from cached registries before source sync
+        - added Batch 6 test suites phase2_schema_tests and phase2_commands
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
-  - phase2_batch6_track_b_p0_schema_commands
+  - phase2_batch7_track_b_p1_all
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md

@@ -1,13 +1,15 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 
+use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 
 use crate::error::EdenError;
 use crate::paths::resolve_path_string;
 
 const DEFAULT_STORAGE_ROOT: &str = "~/.local/share/eden-skills/repos";
+const REGISTRY_MODE_REPO_PREFIX: &str = "registry://";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Config {
@@ -67,6 +69,7 @@ pub struct TargetConfig {
     pub agent: AgentKind,
     pub expected_path: Option<String>,
     pub path: Option<String>,
+    pub environment: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -121,7 +124,7 @@ fn collect_top_level_unknown_key_warnings(value: &toml::Value) -> Result<Vec<Str
     };
 
     let mut warnings = Vec::new();
-    let allowed_keys = ["version", "storage", "skills"];
+    let allowed_keys = ["version", "storage", "registries", "skills"];
     for key in map.keys() {
         if !allowed_keys.contains(&key.as_str()) {
             warnings.push(format!("unknown top-level key `{key}`"));
@@ -134,6 +137,7 @@ fn collect_top_level_unknown_key_warnings(value: &toml::Value) -> Result<Vec<Str
 struct RawConfig {
     version: Option<u32>,
     storage: Option<RawStorageConfig>,
+    registries: Option<BTreeMap<String, RawRegistryConfig>>,
     skills: Option<Vec<RawSkillConfig>>,
 }
 
@@ -152,6 +156,30 @@ impl RawConfig {
             .unwrap_or_else(|| DEFAULT_STORAGE_ROOT.to_string());
         resolve_path_string(&storage_root, config_dir)?;
 
+        let raw_registries = self.registries.unwrap_or_default();
+        let mut registry_names = HashSet::new();
+        for (registry_name, raw_registry) in raw_registries {
+            if registry_name.trim().is_empty() {
+                return Err(EdenError::Validation(
+                    "registries: registry name must not be empty".to_string(),
+                ));
+            }
+            validate_repo_url(
+                &raw_registry.url,
+                &format!("registries.{registry_name}.url"),
+            )?;
+            if let Some(priority) = raw_registry.priority {
+                if priority < 0 {
+                    return Err(EdenError::Validation(format!(
+                        "registries.{registry_name}.priority: must be non-negative"
+                    )));
+                }
+            }
+            let _auto_update = raw_registry.auto_update.unwrap_or(false);
+            registry_names.insert(registry_name);
+        }
+        let has_registries = !registry_names.is_empty();
+
         let raw_skills = required(self.skills, "skills")?;
         if raw_skills.is_empty() {
             return Err(EdenError::Validation(
@@ -163,12 +191,14 @@ impl RawConfig {
         let mut skills = Vec::with_capacity(raw_skills.len());
         for (idx, raw_skill) in raw_skills.into_iter().enumerate() {
             let skill_path = format!("skills[{idx}]");
-            let skill = raw_skill.into_skill(config_dir, &skill_path)?;
+            let skill =
+                raw_skill.into_skill(config_dir, &skill_path, has_registries, &registry_names)?;
             if !ids.insert(skill.id.clone()) {
-                return Err(EdenError::Validation(format!(
-                    "{skill_path}.id: duplicate id `{}`",
-                    skill.id
-                )));
+                return Err(phase2_validation_error(
+                    "DUPLICATE_SKILL_ID",
+                    &format!("{skill_path}.id"),
+                    &format!("duplicate id `{}`", skill.id),
+                ));
             }
             skills.push(skill);
         }
@@ -187,8 +217,18 @@ struct RawStorageConfig {
 }
 
 #[derive(Debug, Clone, Deserialize)]
+struct RawRegistryConfig {
+    url: String,
+    priority: Option<i64>,
+    auto_update: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
 struct RawSkillConfig {
     id: Option<String>,
+    name: Option<String>,
+    version: Option<String>,
+    registry: Option<String>,
     source: Option<RawSourceConfig>,
     install: Option<RawInstallConfig>,
     targets: Option<Vec<RawTargetConfig>>,
@@ -197,11 +237,70 @@ struct RawSkillConfig {
 }
 
 impl RawSkillConfig {
-    fn into_skill(self, config_dir: &Path, field_path: &str) -> Result<SkillConfig, EdenError> {
-        let id = required(self.id, &format!("{field_path}.id"))?;
-        let source = required(self.source, &format!("{field_path}.source"))?
-            .into_source_config(&format!("{field_path}.source"))?;
-        validate_repo_url(&source.repo, &format!("{field_path}.source.repo"))?;
+    fn into_skill(
+        self,
+        config_dir: &Path,
+        field_path: &str,
+        has_registries: bool,
+        registry_names: &HashSet<String>,
+    ) -> Result<SkillConfig, EdenError> {
+        let mode_a_present = self.id.is_some() || self.source.is_some();
+        let mode_b_present =
+            self.name.is_some() || self.version.is_some() || self.registry.is_some();
+
+        if self.name.is_some() && mode_a_present {
+            return Err(phase2_validation_error(
+                "INVALID_SKILL_MODE",
+                field_path,
+                "Mode B (`name`) cannot be mixed with Mode A (`id` + `source`)",
+            ));
+        }
+        if self.name.is_none() && mode_b_present {
+            return Err(phase2_validation_error(
+                "INVALID_SKILL_MODE",
+                field_path,
+                "Mode B fields require `name`",
+            ));
+        }
+
+        let (id, source) = if let Some(name) = self.name {
+            if !has_registries {
+                return Err(phase2_validation_error(
+                    "MISSING_REGISTRIES",
+                    field_path,
+                    "Mode B skill requires [registries] section",
+                ));
+            }
+
+            let version_constraint = self.version.unwrap_or_else(|| "*".to_string());
+            validate_semver_constraint(&version_constraint, &format!("{field_path}.version"))?;
+
+            let registry_name = self.registry;
+            if let Some(registry_name) = registry_name.as_ref() {
+                if !registry_names.contains(registry_name) {
+                    return Err(phase2_validation_error(
+                        "UNKNOWN_REGISTRY",
+                        &format!("{field_path}.registry"),
+                        &format!("unknown registry `{registry_name}`"),
+                    ));
+                }
+            }
+
+            (
+                name,
+                SourceConfig {
+                    repo: encode_registry_mode_repo(registry_name.as_deref()),
+                    subpath: ".".to_string(),
+                    r#ref: version_constraint,
+                },
+            )
+        } else {
+            let id = required(self.id, &format!("{field_path}.id"))?;
+            let source = required(self.source, &format!("{field_path}.source"))?
+                .into_source_config(&format!("{field_path}.source"))?;
+            validate_repo_url(&source.repo, &format!("{field_path}.source.repo"))?;
+            (id, source)
+        };
 
         let install_mode = self
             .install
@@ -279,6 +378,7 @@ struct RawTargetConfig {
     agent: Option<AgentKind>,
     expected_path: Option<String>,
     path: Option<String>,
+    environment: Option<String>,
 }
 
 impl RawTargetConfig {
@@ -300,11 +400,14 @@ impl RawTargetConfig {
         if let Some(expected_path) = &self.expected_path {
             resolve_path_string(expected_path, config_dir)?;
         }
+        let environment = self.environment.unwrap_or_else(|| "local".to_string());
+        validate_environment(&environment, &format!("{field_path}.environment"))?;
 
         Ok(TargetConfig {
             agent,
             expected_path: self.expected_path,
             path: self.path,
+            environment,
         })
     }
 }
@@ -343,6 +446,73 @@ fn required<T>(value: Option<T>, field_path: &str) -> Result<T, EdenError> {
     value.ok_or_else(|| EdenError::Validation(format!("{field_path}: missing required field")))
 }
 
+fn phase2_validation_error(code: &str, field_path: &str, detail: &str) -> EdenError {
+    EdenError::Validation(format!("{code}: {field_path}: {detail}"))
+}
+
+pub fn encode_registry_mode_repo(registry_name: Option<&str>) -> String {
+    match registry_name {
+        Some(name) if !name.trim().is_empty() => format!("{REGISTRY_MODE_REPO_PREFIX}{name}"),
+        _ => REGISTRY_MODE_REPO_PREFIX.to_string(),
+    }
+}
+
+pub fn decode_registry_mode_repo(repo: &str) -> Option<Option<String>> {
+    let rest = repo.strip_prefix(REGISTRY_MODE_REPO_PREFIX)?;
+    if rest.is_empty() {
+        Some(None)
+    } else {
+        Some(Some(rest.to_string()))
+    }
+}
+
+pub fn is_registry_mode_repo(repo: &str) -> bool {
+    repo.starts_with(REGISTRY_MODE_REPO_PREFIX)
+}
+
+fn validate_semver_constraint(value: &str, field_path: &str) -> Result<(), EdenError> {
+    let constraint = value.trim();
+    if constraint.is_empty() {
+        return Err(phase2_validation_error(
+            "INVALID_SEMVER",
+            field_path,
+            "version constraint must not be empty",
+        ));
+    }
+    if constraint == "*" {
+        return Ok(());
+    }
+    if Version::parse(constraint).is_ok() {
+        return Ok(());
+    }
+
+    VersionReq::parse(constraint).map_err(|err| {
+        phase2_validation_error(
+            "INVALID_SEMVER",
+            field_path,
+            &format!("invalid semver constraint `{constraint}`: {err}"),
+        )
+    })?;
+    Ok(())
+}
+
+fn validate_environment(environment: &str, field_path: &str) -> Result<(), EdenError> {
+    if environment == "local" {
+        return Ok(());
+    }
+    if let Some(container_name) = environment.strip_prefix("docker:") {
+        if !container_name.trim().is_empty() {
+            return Ok(());
+        }
+    }
+
+    Err(phase2_validation_error(
+        "INVALID_ENVIRONMENT",
+        field_path,
+        "expected `local` or `docker:<container>`",
+    ))
+}
+
 fn default_verify_checks(install_mode: InstallMode) -> Vec<String> {
     match install_mode {
         InstallMode::Symlink => vec![
@@ -379,13 +549,18 @@ pub fn validate_config(config: &Config, config_dir: &Path) -> Result<(), EdenErr
     for (idx, skill) in config.skills.iter().enumerate() {
         let skill_path = format!("skills[{idx}]");
         if !ids.insert(skill.id.clone()) {
-            return Err(EdenError::Validation(format!(
-                "{skill_path}.id: duplicate id `{}`",
-                skill.id
-            )));
+            return Err(phase2_validation_error(
+                "DUPLICATE_SKILL_ID",
+                &format!("{skill_path}.id"),
+                &format!("duplicate id `{}`", skill.id),
+            ));
         }
 
-        validate_repo_url(&skill.source.repo, &format!("{skill_path}.source.repo"))?;
+        if is_registry_mode_repo(&skill.source.repo) {
+            validate_semver_constraint(&skill.source.r#ref, &format!("{skill_path}.version"))?;
+        } else {
+            validate_repo_url(&skill.source.repo, &format!("{skill_path}.source.repo"))?;
+        }
 
         if skill.targets.is_empty() {
             return Err(EdenError::Validation(format!(
@@ -412,6 +587,7 @@ pub fn validate_config(config: &Config, config_dir: &Path) -> Result<(), EdenErr
                     ))
                 })?;
             }
+            validate_environment(&target.environment, &format!("{target_path}.environment"))?;
         }
 
         if skill.verify.enabled && skill.verify.checks.is_empty() {

@@ -114,6 +114,7 @@ fn test_config(storage_root: &Path) -> Config {
                 agent: AgentKind::Custom,
                 expected_path: None,
                 path: Some(storage_root.join("targets").display().to_string()),
+                environment: "local".to_string(),
             }],
             verify: VerifyConfig {
                 enabled: false,

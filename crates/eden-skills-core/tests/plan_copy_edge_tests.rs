@@ -94,6 +94,7 @@ fn copy_mode_plan_noop_streams_large_file() {
                 agent: AgentKind::Custom,
                 expected_path: None,
                 path: Some(target_root.display().to_string()),
+                environment: "local".to_string(),
             }],
             verify: VerifyConfig {
                 enabled: false,
@@ -153,6 +154,7 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
                 agent: AgentKind::Custom,
                 expected_path: None,
                 path: Some(target_root.display().to_string()),
+                environment: "local".to_string(),
             }],
             verify: VerifyConfig {
                 enabled: false,
@@ -216,6 +218,7 @@ fn copy_mode_plan_conflict_on_symlink_in_tree() {
                 agent: AgentKind::Custom,
                 expected_path: None,
                 path: Some(target_root.display().to_string()),
+                environment: "local".to_string(),
             }],
             verify: VerifyConfig {
                 enabled: false,
@@ -282,6 +285,7 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
                 agent: AgentKind::Custom,
                 expected_path: None,
                 path: Some(target_root.display().to_string()),
+                environment: "local".to_string(),
             }],
             verify: VerifyConfig {
                 enabled: false,
@@ -344,6 +348,7 @@ fn copy_mode_plan_conflict_on_symlink_in_tree() {
                 agent: AgentKind::Custom,
                 expected_path: None,
                 path: Some(target_root.display().to_string()),
+                environment: "local".to_string(),
             }],
             verify: VerifyConfig {
                 enabled: false,

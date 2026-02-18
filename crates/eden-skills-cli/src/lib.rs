@@ -54,6 +54,31 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
             )
             .await
         }
+        Commands::Update(args) => {
+            commands::update_async(commands::UpdateRequest {
+                config_path: args.config,
+                concurrency: args.concurrency,
+                options: CommandOptions {
+                    strict: args.strict,
+                    json: args.json,
+                },
+            })
+            .await
+        }
+        Commands::Install(args) => {
+            commands::install_async(commands::InstallRequest {
+                config_path: args.config,
+                skill_name: args.skill_name,
+                version: args.version,
+                registry: args.registry,
+                target: args.target,
+                options: CommandOptions {
+                    strict: args.strict,
+                    json: args.json,
+                },
+            })
+            .await
+        }
         Commands::Init(args) => commands::init(&args.config, args.force),
         Commands::List(args) => commands::list(
             &args.config,
@@ -145,6 +170,8 @@ enum Commands {
     Apply(CommonArgs),
     Doctor(CommonArgs),
     Repair(CommonArgs),
+    Update(UpdateArgs),
+    Install(InstallArgs),
     Init(InitArgs),
     List(CommonArgs),
     Add(AddArgs),
@@ -173,6 +200,36 @@ struct CommonArgs {
     strict: bool,
     #[arg(long)]
     json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct UpdateArgs {
+    #[arg(long, default_value = DEFAULT_CONFIG_PATH)]
+    config: String,
+    #[arg(long)]
+    strict: bool,
+    #[arg(long)]
+    json: bool,
+    #[arg(long)]
+    concurrency: Option<usize>,
+}
+
+#[derive(Debug, Clone, Args)]
+struct InstallArgs {
+    skill_name: String,
+
+    #[arg(long, default_value = DEFAULT_CONFIG_PATH)]
+    config: String,
+    #[arg(long)]
+    strict: bool,
+    #[arg(long)]
+    json: bool,
+    #[arg(long)]
+    version: Option<String>,
+    #[arg(long)]
+    registry: Option<String>,
+    #[arg(long)]
+    target: Option<String>,
 }
 
 #[derive(Debug, Clone, Args)]

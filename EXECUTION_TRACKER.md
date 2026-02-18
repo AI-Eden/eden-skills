@@ -59,7 +59,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `22000208004`)
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 
-Current automated tests: `87` (workspace unit/integration-style tests).
+Current automated tests: `102` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -107,6 +107,7 @@ Current automated tests: `87` (workspace unit/integration-style tests).
 - [x] Completed Phase 2 Track B Batch 3 (`ARC-001/002/005/006/008`): tokio runtime entrypoint, `SkillReactor` (JoinSet + Semaphore, default concurrency 10), two-phase barrier, `spawn_blocking` integration for git sync, and structured Phase 2 domain errors via `thiserror`.
 - [x] Completed Phase 2 Track B Batch 4 (`ARC-101/102/103/106/108/109`): added `TargetAdapter` contract (`Send + Sync`), implemented `LocalAdapter` and `DockerAdapter` (docker CLI via tokio process), deterministic adapter environment parsing/factory selection, and adapter contract tests (including missing docker CLI and stopped container health-check failure).
 - [x] Completed Phase 2 Track B Batch 5 (`ARC-201/202/207`): added registry core module (`registry.rs`) for multi-registry parsing, priority-ordered fallback resolution, and semver-based version matching, with dedicated registry tests.
+- [x] Completed Phase 2 Track B Batch 6 (`SCH-P2-001/002/003/004/006`, `CMD-P2-001/002/003`): extended schema parsing for `[registries]` + Mode B + target `environment` with stable Phase 2 validation codes, implemented `update`/`install` commands, and wired `apply`/`repair` to resolve Mode B skills from cached registries before source sync, with dedicated Phase 2 schema/command tests.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -126,6 +127,7 @@ Current automated tests: `87` (workspace unit/integration-style tests).
 - [x] Complete Phase 2 Track B Batch 3 P0 Reactor (`ARC-001/002/005/006/008`) with tests and quality gate.
 - [x] Complete Phase 2 Track B Batch 4 P0 Adapter (`ARC-101/102/103/106/108/109`) with tests and quality gate.
 - [x] Complete Phase 2 Track B Batch 5 P0 Registry (`ARC-201/202/207`) with tests and quality gate.
+- [x] Complete Phase 2 Track B Batch 6 P0 Schema + Commands (`SCH-P2-001/002/003/004/006`, `CMD-P2-001/002/003`) with tests and quality gate.
 
 ### 5.2 Architect-Owned (Claude Opus)
 
@@ -188,8 +190,8 @@ Recommended priority order (P0 first, sequential within track):
 1. **P0 Reactor**: ARC-001, ARC-002, ARC-005, ARC-006, ARC-008 (tokio runtime, bounded concurrency, two-phase execution, spawn_blocking, thiserror) — **completed (Batch 3, 2026-02-18)**
 2. **P0 Adapter**: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109 (TargetAdapter trait, Local, Docker, deterministic selection, Send+Sync, cross-platform — note: ARC-109 depends on WIN-001) — **completed (Batch 4, 2026-02-18)**
 3. **P0 Registry**: ARC-201, ARC-202, ARC-207 (multi-registry config, priority fallback, semver crate) — **completed (Batch 5, 2026-02-18)**
-4. **P0 Schema**: SCH-P2-001~004, SCH-P2-006 (registries section, Mode B, environment, backward compat, error codes)
-5. **P0 Commands**: CMD-P2-001~003 (update, install, apply/repair Mode B support)
+4. **P0 Schema**: SCH-P2-001~004, SCH-P2-006 (registries section, Mode B, environment, backward compat, error codes) — **completed (Batch 6, 2026-02-18)**
+5. **P0 Commands**: CMD-P2-001~003 (update, install, apply/repair Mode B support) — **completed (Batch 6, 2026-02-18)**
 6. **P1 All**: ARC-003, ARC-004, ARC-007, ARC-104, ARC-105, ARC-107, ARC-110, ARC-203~206, SCH-P2-005, CMD-P2-004~006
 
 #### Dependency Graph
