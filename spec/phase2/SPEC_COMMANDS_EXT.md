@@ -25,6 +25,9 @@ Behavior:
 
 - MUST read `[registries]` from config.
 - MUST clone or pull each registry index repo into `~/.eden-skills/registries/<name>/`.
+  Path `~/.eden-skills/` MUST resolve via the same tilde expansion rules as
+  Phase 1 (`SPEC_SCHEMA.md` Section 3), supporting both `HOME` (Unix) and
+  `USERPROFILE` (Windows) environment variables.
 - MUST use shallow clone (`--depth 1`) for initial clone and shallow fetch for updates (ARC-205).
 - MUST execute registry syncs concurrently (via Reactor, bounded by ARC-002).
 - MUST report per-registry sync status (`cloned`, `updated`, `skipped`, `failed`).

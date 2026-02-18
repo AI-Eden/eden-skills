@@ -23,6 +23,8 @@ Use this file to recover accurate context after compression.
 | ARC-106 | `SPEC_ADAPTER.md` 4 | Adapter selection MUST be deterministic from config `environment` field | -- | -- | planned |
 | ARC-107 | `SPEC_ADAPTER.md` 4 | `TargetAdapter` SHOULD include `uninstall` method | -- | -- | planned |
 | ARC-108 | `SPEC_ADAPTER.md` 4 | `TargetAdapter` MUST require `Send + Sync` bounds (for `JoinSet::spawn`) | -- | -- | planned |
+| ARC-109 | `SPEC_ADAPTER.md` 4 | `LocalAdapter` MUST work on Linux, macOS, and Windows (platform APIs + tilde expansion) | -- | -- | planned |
+| ARC-110 | `SPEC_ADAPTER.md` 4 | Windows symlink privilege error SHOULD include actionable remediation hint | -- | -- | planned |
 | ARC-201 | `SPEC_REGISTRY.md` 4 | Configuration MUST support multiple registries with priority weights | -- | -- | planned |
 | ARC-202 | `SPEC_REGISTRY.md` 4 | Resolution MUST follow priority-based fallback order | -- | -- | planned |
 | ARC-203 | `SPEC_REGISTRY.md` 4 | Registry indexes MUST be local Git repos synced via `eden update` | -- | -- | planned |
@@ -81,3 +83,8 @@ Use this file to recover accurate context after compression.
 | TM-P2-022 | `SPEC_TEST_MATRIX.md` 4.9 | Reactor config validation | -- | planned |
 | TM-P2-023 | `SPEC_TEST_MATRIX.md` 4.10 | Install dry run | -- | planned |
 | TM-P2-024 | `SPEC_TEST_MATRIX.md` 3.4 | DockerAdapter permission handling | -- | planned |
+| TM-P2-025 | `SPEC_TEST_MATRIX.md` 5.1 | Tilde expansion portability (HOME/USERPROFILE) | -- | planned |
+| TM-P2-026 | `SPEC_TEST_MATRIX.md` 5.2 | Cross-platform symlink creation | -- | planned |
+| TM-P2-027 | `SPEC_TEST_MATRIX.md` 5.3 | Windows symlink privilege error | -- | planned |
+| TM-P2-028 | `SPEC_TEST_MATRIX.md` 5.4 | Cross-platform path normalization | -- | planned |
+| TM-P2-029 | `SPEC_TEST_MATRIX.md` 5.5 | Windows safety detection graceful degradation | -- | planned |

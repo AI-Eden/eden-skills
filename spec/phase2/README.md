@@ -29,11 +29,11 @@ When reading an `_EXT` file, always read the corresponding Phase 1 base file fir
 | File | Domain | Requirement IDs | ADRs | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | `SPEC_REACTOR.md` | Concurrency | ARC-001 ~ ARC-008 | ADR-002, ADR-003, ADR-004 | tokio async runtime, bounded concurrency, two-phase execution, cancellation, error strategy |
-| `SPEC_ADAPTER.md` | Environment | ARC-101 ~ ARC-108 | ADR-001, ADR-005, ADR-006 | TargetAdapter trait, LocalAdapter, DockerAdapter, instantiation, Send+Sync |
+| `SPEC_ADAPTER.md` | Environment | ARC-101 ~ ARC-110 | ADR-001, ADR-005, ADR-006 | TargetAdapter trait, LocalAdapter, DockerAdapter, instantiation, Send+Sync, Windows portability |
 | `SPEC_REGISTRY.md` | Registry | ARC-201 ~ ARC-207 | ADR-007, ADR-008, ADR-009 | Double-track registry, index format, resolution logic, version matching |
 | `SPEC_SCHEMA_EXT.md` | Config | SCH-P2-001 ~ SCH-P2-006 | -- | `skills.toml` extensions (registries, version, target, reactor config) |
 | `SPEC_COMMANDS_EXT.md` | CLI | CMD-P2-001 ~ CMD-P2-006 | -- | New commands: `update`, `install --target`, `--concurrency` flag |
-| `SPEC_TEST_MATRIX.md` | Testing | TM-P2-001 ~ TM-P2-024 | -- | Phase 2 acceptance test scenarios |
+| `SPEC_TEST_MATRIX.md` | Testing | TM-P2-001 ~ TM-P2-029 | -- | Phase 2 acceptance test scenarios (incl. cross-platform) |
 | `SPEC_TRACEABILITY.md` | Traceability | -- | -- | Requirement-to-implementation mapping for Phase 2 |
 
 ## Architecture Decision Record Index

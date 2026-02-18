@@ -35,6 +35,8 @@ without changing core logic.
 | **ARC-106** | Builder | **P0** | Adapter selection MUST be deterministic: the adapter type is derived solely from the `environment` field in config. | Same config always produces the same adapter instance. No runtime environment sniffing. |
 | **ARC-107** | Builder | **P1** | The `TargetAdapter` trait SHOULD include an `uninstall` method for removing previously installed skill targets. | `eden-skills remove` can clean up installed targets across adapter types. |
 | **ARC-108** | Builder | **P0** | The `TargetAdapter` trait MUST require `Send + Sync` bounds. This is mandatory for compatibility with `JoinSet::spawn` which requires `Send` on spawned futures. | `Box<dyn TargetAdapter>` compiles with `JoinSet::spawn`; no `Send` bound errors. |
+| **ARC-109** | Builder | **P0** | `LocalAdapter` MUST work correctly on Linux, macOS, and Windows. Symlink creation MUST use platform-appropriate APIs (`std::os::unix::fs::symlink` on Unix, `std::os::windows::fs::symlink_dir`/`symlink_file` on Windows). Tilde (`~`) path expansion MUST resolve via `HOME` (Unix) with fallback to `USERPROFILE` (Windows). | `eden-skills apply` with symlink mode succeeds on all three OS platforms. |
+| **ARC-110** | Builder | **P1** | When symlink creation fails on Windows due to insufficient privileges, the error message SHOULD include an actionable remediation hint (e.g., "Enable Developer Mode or run as Administrator"). | On Windows without symlink privileges, error output contains remediation guidance. |
 
 ## 5. Architecture Decisions
 

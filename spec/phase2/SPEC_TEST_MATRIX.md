@@ -6,7 +6,11 @@ Minimum acceptance test matrix for Phase 2 features.
 
 - Linux (latest stable)
 - macOS (latest stable)
-- Docker Engine (for adapter tests)
+- Windows (latest stable) — symlink tests require Developer Mode or
+  `SeCreateSymbolicLinkPrivilege`; GitHub Actions Windows runners have
+  this privilege by default.
+- Docker Engine (for adapter tests; Linux/macOS CI only, Docker Desktop
+  on Windows is optional/manual)
 
 ## 2. Reactor Scenarios
 
@@ -151,12 +155,46 @@ Minimum acceptance test matrix for Phase 2 features.
 - No config file modification occurs.
 - No filesystem changes occur.
 
-## 5. CI Gate (Phase 2)
+## 5. Cross-Platform Scenarios
+
+### 5.1 Tilde Expansion Portability
+
+- `~/.claude/skills` resolves correctly using `HOME` on Linux/macOS.
+- `~/.claude/skills` resolves correctly using `USERPROFILE` on Windows
+  when `HOME` is unset.
+- When both `HOME` and `USERPROFILE` are set, `HOME` takes precedence.
+
+### 5.2 Cross-Platform Symlink Creation
+
+- `LocalAdapter` creates symlinks on Linux, macOS, and Windows.
+- On Windows, directory sources use `symlink_dir`, file sources use `symlink_file`.
+
+### 5.3 Windows Symlink Privilege Error
+
+- When symlink creation fails due to insufficient Windows privileges,
+  error message includes actionable remediation (Developer Mode / admin).
+- No panic or opaque OS error code shown to user.
+
+### 5.4 Cross-Platform Path Normalization
+
+- `normalize_lexical` correctly handles `\` path separators on Windows
+  and `/` separators on Unix.
+- `Component::Prefix` (Windows drive letter, e.g., `C:\`) is preserved.
+
+### 5.5 Windows Safety Detection Graceful Degradation
+
+- Unix executable permission check (`mode() & 0o111`) is skipped on Windows
+  without error.
+- Other safety checks (ELF header, shebang, file extension) still produce
+  correct risk labels on Windows.
+
+## 6. CI Gate (Phase 2)
 
 A release candidate MUST pass:
 
-- All Phase 1 scenario tests (regression gate).
-- All Phase 2 reactor and registry scenario tests.
-- At least one Docker adapter smoke test (may require Docker-in-Docker or
-  be marked as manual in CI).
+- All Phase 1 scenario tests (regression gate) on Linux, macOS, and Windows.
+- All Phase 2 reactor and registry scenario tests on Linux, macOS, and Windows.
+- At least one Docker adapter smoke test on Linux (may require Docker-in-Docker
+  or be marked as manual in CI). Docker tests are NOT required on Windows CI.
 - Schema extension validation tests for new sections and error codes.
+- Cross-platform scenarios (Section 5) on all three OS platforms.
