@@ -6,7 +6,7 @@ use std::process::Command;
 
 use tempfile::tempdir;
 
-use common::{as_file_url, init_origin_repo, write_config};
+use common::{as_file_url, init_origin_repo, remove_symlink, write_config};
 
 #[test]
 fn apply_returns_exit_code_1_on_runtime_git_failure() {
@@ -469,7 +469,7 @@ fn apply_strict_returns_exit_code_3_on_target_conflict() {
     );
 
     let conflicted_target = target_root.join(common::SKILL_ID);
-    std::fs::remove_file(&conflicted_target).expect("remove symlink target");
+    remove_symlink(&conflicted_target).expect("remove symlink target");
     std::fs::create_dir_all(&conflicted_target).expect("create conflicting directory target");
     std::fs::write(conflicted_target.join("manual.txt"), "manual content").expect("write file");
 
@@ -521,7 +521,7 @@ fn apply_strict_returns_exit_code_3_on_target_conflict() {
     );
 
     let conflicted_target = target_root.join(common::SKILL_ID);
-    std::fs::remove_file(&conflicted_target).expect("remove symlink target");
+    remove_symlink(&conflicted_target).expect("remove symlink target");
     std::fs::create_dir_all(&conflicted_target).expect("create conflicting directory target");
     std::fs::write(conflicted_target.join("manual.txt"), "manual content").expect("write file");
 
