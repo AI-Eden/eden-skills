@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 use std::fs;
+use std::future::Future;
 use std::path::{Path, PathBuf};
 
 use eden_skills_core::config::InstallMode;
@@ -12,7 +13,7 @@ use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::safety::{analyze_skills, persist_reports, LicenseStatus, SkillSafetyReport};
-use eden_skills_core::source::{sync_sources, SyncSummary};
+use eden_skills_core::source::{sync_sources_async, SyncSummary};
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -59,7 +60,29 @@ pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     Ok(())
 }
 
+fn block_on_command_future<F>(future: F) -> Result<(), EdenError>
+where
+    F: Future<Output = Result<(), EdenError>>,
+{
+    if tokio::runtime::Handle::try_current().is_ok() {
+        return Err(EdenError::Runtime(
+            "sync command API called inside async runtime; use async command entrypoints"
+                .to_string(),
+        ));
+    }
+
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|err| EdenError::Runtime(format!("failed to initialize tokio runtime: {err}")))?;
+    runtime.block_on(future)
+}
+
 pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
+    block_on_command_future(apply_async(config_path, options))
+}
+
+pub async fn apply_async(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
@@ -69,7 +92,7 @@ pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError
         },
     )?;
     let config_dir = config_dir_from_path(config_path);
-    let sync_summary = sync_sources(&loaded.config, &config_dir)?;
+    let sync_summary = sync_sources_async(&loaded.config, &config_dir).await?;
     print_source_sync_summary(&sync_summary);
     let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
     persist_reports(&safety_reports)?;
@@ -414,6 +437,10 @@ fn print_doctor_json(findings: &[DoctorFinding]) -> Result<(), EdenError> {
 }
 
 pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
+    block_on_command_future(repair_async(config_path, options))
+}
+
+pub async fn repair_async(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
@@ -423,7 +450,7 @@ pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
         },
     )?;
     let config_dir = config_dir_from_path(config_path);
-    let sync_summary = sync_sources(&loaded.config, &config_dir)?;
+    let sync_summary = sync_sources_async(&loaded.config, &config_dir).await?;
     print_source_sync_summary(&sync_summary);
     let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
     persist_reports(&safety_reports)?;

@@ -158,8 +158,22 @@ phase2:
         job_name: cargo test (windows-latest)
         job_url: https://github.com/AI-Eden/eden-skills/actions/runs/22139248260/job/63998896303
         completed_at: "2026-02-18T12:15:21Z"
+    batch_3_track_b_p0_reactor:
+      status: completed
+      completed_at: "2026-02-18"
+      requirements: ARC-001, ARC-002, ARC-005, ARC-006, ARC-008
+      notes:
+        - tokio runtime enabled at CLI entrypoint with async command dispatch for network I/O phases
+        - SkillReactor implemented with JoinSet + Semaphore bounded concurrency (default 10)
+        - two-phase execution barrier implemented in reactor and reflected in apply/repair phase ordering
+        - sync git clone/fetch/checkout moved behind tokio spawn_blocking via reactor run_blocking
+        - phase2 domain errors added with thiserror (ReactorError/AdapterError/RegistryError) without anyhow in core APIs
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
-  - phase2_batch3_track_b_p0_reactor
+  - phase2_batch4_track_b_p0_adapter
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md

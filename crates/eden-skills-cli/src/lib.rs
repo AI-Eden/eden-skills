@@ -7,11 +7,11 @@ use eden_skills_core::error::EdenError;
 
 pub const DEFAULT_CONFIG_PATH: &str = "~/.config/eden-skills/skills.toml";
 
-pub fn run() -> Result<(), EdenError> {
-    run_with_args(std::env::args().skip(1).collect())
+pub async fn run() -> Result<(), EdenError> {
+    run_with_args(std::env::args().skip(1).collect()).await
 }
 
-pub fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
+pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
     let mut argv = Vec::with_capacity(args.len() + 1);
     argv.push("eden-skills".to_string());
     argv.extend(args);
@@ -27,13 +27,16 @@ pub fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 json: args.json,
             },
         ),
-        Commands::Apply(args) => commands::apply(
-            &args.config,
-            CommandOptions {
-                strict: args.strict,
-                json: args.json,
-            },
-        ),
+        Commands::Apply(args) => {
+            commands::apply_async(
+                &args.config,
+                CommandOptions {
+                    strict: args.strict,
+                    json: args.json,
+                },
+            )
+            .await
+        }
         Commands::Doctor(args) => commands::doctor(
             &args.config,
             CommandOptions {
@@ -41,13 +44,16 @@ pub fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 json: args.json,
             },
         ),
-        Commands::Repair(args) => commands::repair(
-            &args.config,
-            CommandOptions {
-                strict: args.strict,
-                json: args.json,
-            },
-        ),
+        Commands::Repair(args) => {
+            commands::repair_async(
+                &args.config,
+                CommandOptions {
+                    strict: args.strict,
+                    json: args.json,
+                },
+            )
+            .await
+        }
         Commands::Init(args) => commands::init(&args.config, args.force),
         Commands::List(args) => commands::list(
             &args.config,

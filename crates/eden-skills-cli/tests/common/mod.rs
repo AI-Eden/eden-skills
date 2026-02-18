@@ -154,16 +154,16 @@ pub fn restore_permissions(path: &Path, _permissions: fs::Permissions) {
 pub fn remove_symlink(path: &Path) -> std::io::Result<()> {
     #[cfg(unix)]
     {
-        return fs::remove_file(path);
+        fs::remove_file(path)
     }
 
     #[cfg(windows)]
     {
-        return match fs::remove_file(path) {
+        match fs::remove_file(path) {
             Ok(()) => Ok(()),
             Err(err) if err.kind() == ErrorKind::PermissionDenied => fs::remove_dir(path),
             Err(err) => Err(err),
-        };
+        }
     }
 }
 

@@ -1,7 +1,8 @@
 use std::process::ExitCode;
 
-fn main() -> ExitCode {
-    match eden_skills_cli::run() {
+#[tokio::main]
+async fn main() -> ExitCode {
+    match eden_skills_cli::run().await {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             eprintln!("{err}");

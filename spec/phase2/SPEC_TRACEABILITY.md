@@ -7,14 +7,14 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| ARC-001 | `SPEC_REACTOR.md` 4 | CLI MUST use `tokio` runtime for all network I/O | -- | -- | planned |
-| ARC-002 | `SPEC_REACTOR.md` 4 | Skill downloads MUST be parallel with bounded concurrency (default: 10) | -- | -- | planned |
+| ARC-001 | `SPEC_REACTOR.md` 4 | CLI MUST use `tokio` runtime for all network I/O | `crates/eden-skills-cli/src/main.rs` (`#[tokio::main]`), `crates/eden-skills-cli/src/lib.rs` (`run`/`run_with_args` async), `crates/eden-skills-cli/src/commands.rs` (`apply_async`/`repair_async`), `crates/eden-skills-core/src/source.rs` (`sync_sources_async`) | `crates/eden-skills-core/tests/source_sync_tests.rs`, `crates/eden-skills-core/tests/reactor_tests.rs` | implemented |
+| ARC-002 | `SPEC_REACTOR.md` 4 | Skill downloads MUST be parallel with bounded concurrency (default: 10) | `crates/eden-skills-core/src/reactor.rs` (`SkillReactor`, `DEFAULT_CONCURRENCY_LIMIT`, `Semaphore` + `JoinSet`), `crates/eden-skills-core/src/source.rs` (source sync runs through `SkillReactor`) | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_respects_bounded_concurrency_limit`) | implemented |
 | ARC-003 | `SPEC_REACTOR.md` 4 | Disk I/O SHOULD be serialized per target path | -- | -- | planned |
 | ARC-004 | `SPEC_REACTOR.md` 4 | Concurrency limit SHOULD be configurable via config and CLI flag | -- | -- | planned |
-| ARC-005 | `SPEC_REACTOR.md` 4 | Reactor MUST implement two-phase execution (download then install) | -- | -- | planned |
-| ARC-006 | `SPEC_REACTOR.md` 4 | Sync git ops MUST use `spawn_blocking` or async process to avoid blocking runtime | -- | -- | planned |
+| ARC-005 | `SPEC_REACTOR.md` 4 | Reactor MUST implement two-phase execution (download then install) | `crates/eden-skills-core/src/reactor.rs` (`run_two_phase` barrier), `crates/eden-skills-cli/src/commands.rs` (`apply_async`/`repair_async`: source sync phase completes before mutation phase) | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_enforces_two_phase_barrier`) | implemented |
+| ARC-006 | `SPEC_REACTOR.md` 4 | Sync git ops MUST use `spawn_blocking` or async process to avoid blocking runtime | `crates/eden-skills-core/src/reactor.rs` (`run_blocking` uses `tokio::task::spawn_blocking`), `crates/eden-skills-core/src/source.rs` (clone/fetch/checkout wrapped in `run_blocking`) | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_converts_spawn_blocking_panic_to_structured_error`), `crates/eden-skills-core/tests/source_sync_tests.rs` | implemented |
 | ARC-007 | `SPEC_REACTOR.md` 4 | Reactor SHOULD support graceful cancellation via `CancellationToken` | -- | -- | planned |
-| ARC-008 | `SPEC_REACTOR.md` 4 | Phase 2 domain errors MUST use `thiserror`; `anyhow` only at binary entry point | -- | -- | planned |
+| ARC-008 | `SPEC_REACTOR.md` 4 | Phase 2 domain errors MUST use `thiserror`; `anyhow` only at binary entry point | `crates/eden-skills-core/src/error.rs` (`ReactorError`, `AdapterError`, `RegistryError` via `thiserror` + conversion to `EdenError`) | `crates/eden-skills-core/tests/reactor_tests.rs`, workspace gate `cargo clippy --workspace -- -D warnings` | implemented |
 | ARC-101 | `SPEC_ADAPTER.md` 4 | System MUST define `TargetAdapter` trait decoupling intent from syscalls | -- | -- | planned |
 | ARC-102 | `SPEC_ADAPTER.md` 4 | `LocalAdapter` MUST be provided for backward compatibility | -- | -- | planned |
 | ARC-103 | `SPEC_ADAPTER.md` 4 | `DockerAdapter` MUST be provided using `docker` CLI | -- | -- | planned |
@@ -59,8 +59,8 @@ Use this file to recover accurate context after compression.
 
 | SCENARIO_ID | Source | Scenario | Automated Test | Status |
 |---|---|---|---|---|
-| TM-P2-001 | `SPEC_TEST_MATRIX.md` 2.1 | Concurrent download | -- | planned |
-| TM-P2-002 | `SPEC_TEST_MATRIX.md` 2.2 | Bounded concurrency | -- | planned |
+| TM-P2-001 | `SPEC_TEST_MATRIX.md` 2.1 | Concurrent download | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_respects_bounded_concurrency_limit`) | implemented (reactor-level) |
+| TM-P2-002 | `SPEC_TEST_MATRIX.md` 2.2 | Bounded concurrency | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_respects_bounded_concurrency_limit`) | implemented |
 | TM-P2-003 | `SPEC_TEST_MATRIX.md` 2.3 | Partial download failure | -- | planned |
 | TM-P2-004 | `SPEC_TEST_MATRIX.md` 2.4 | Phase 1 backward compatibility | -- | planned |
 | TM-P2-005 | `SPEC_TEST_MATRIX.md` 3.1 | LocalAdapter parity | -- | planned |
@@ -70,9 +70,9 @@ Use this file to recover accurate context after compression.
 | TM-P2-009 | `SPEC_TEST_MATRIX.md` 4.2 | Registry resolution | -- | planned |
 | TM-P2-010 | `SPEC_TEST_MATRIX.md` 4.3 | Version constraint matching | -- | planned |
 | TM-P2-011 | `SPEC_TEST_MATRIX.md` 4.4 | Schema extension validation | -- | planned |
-| TM-P2-012 | `SPEC_TEST_MATRIX.md` 2.5 | Two-phase execution | -- | planned |
+| TM-P2-012 | `SPEC_TEST_MATRIX.md` 2.5 | Two-phase execution | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_enforces_two_phase_barrier`) | implemented |
 | TM-P2-013 | `SPEC_TEST_MATRIX.md` 2.6 | Concurrency configuration | -- | planned |
-| TM-P2-014 | `SPEC_TEST_MATRIX.md` 2.7 | Spawn blocking safety | -- | planned |
+| TM-P2-014 | `SPEC_TEST_MATRIX.md` 2.7 | Spawn blocking safety | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_converts_spawn_blocking_panic_to_structured_error`), `crates/eden-skills-core/src/source.rs` (`run_blocking` integration) | implemented |
 | TM-P2-015 | `SPEC_TEST_MATRIX.md` 3.5 | DockerAdapter symlink fallback | -- | planned |
 | TM-P2-016 | `SPEC_TEST_MATRIX.md` 3.6 | Adapter selection determinism | -- | planned |
 | TM-P2-017 | `SPEC_TEST_MATRIX.md` 3.7 | Docker binary missing | -- | planned |
