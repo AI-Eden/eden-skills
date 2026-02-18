@@ -1,0 +1,303 @@
+Run cargo test --workspace
+ Downloading crates ...
+  Downloaded fastrand v2.3.0
+  Downloaded once_cell v1.21.3
+  Downloaded cfg-if v1.0.4
+  Downloaded tempfile v3.25.0
+  Downloaded getrandom v0.4.1
+   Compiling serde_core v1.0.228
+   Compiling windows-link v0.2.1
+   Compiling windows-sys v0.61.2
+   Compiling hashbrown v0.16.1
+   Compiling equivalent v1.0.2
+   Compiling indexmap v2.13.0
+   Compiling serde v1.0.228
+   Compiling winnow v0.7.14
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling toml_write v0.1.2
+   Compiling thiserror v2.0.18
+   Compiling zmij v1.0.21
+   Compiling getrandom v0.4.1
+   Compiling memchr v2.8.0
+   Compiling toml_edit v0.22.27
+   Compiling itoa v1.0.17
+   Compiling serde_json v1.0.149
+   Compiling toml v0.8.23
+   Compiling cfg-if v1.0.4
+   Compiling eden-skills-core v0.1.0 (D:\a\eden-skills\eden-skills\crates\eden-skills-core)
+warning: unused variable: `metadata`
+   --> crates\eden-skills-core\src\safety.rs:168:5
+    |
+168 |     metadata: &fs::Metadata,
+    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_metadata`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling once_cell v1.21.3
+   Compiling fastrand v2.3.0
+   Compiling tempfile v3.25.0
+warning: `eden-skills-core` (lib) generated 1 warning (run `cargo fix --lib -p eden-skills-core` to apply 1 suggestion)
+   Compiling anstyle v1.0.13
+   Compiling once_cell_polyfill v1.70.2
+   Compiling utf8parse v0.2.2
+   Compiling anstyle-parse v0.2.7
+   Compiling anstyle-wincon v3.0.11
+   Compiling anstyle-query v1.1.5
+   Compiling colorchoice v1.0.4
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling strsim v0.11.1
+   Compiling anstream v0.6.21
+   Compiling clap_lex v1.0.0
+   Compiling clap_builder v4.5.58
+   Compiling clap v4.5.58
+   Compiling eden-skills-cli v0.1.0 (D:\a\eden-skills\eden-skills\crates\eden-skills-cli)
+warning: `eden-skills-core` (lib test) generated 1 warning (1 duplicate)
+   Compiling eden-skills-indexer v0.1.0 (D:\a\eden-skills\eden-skills\crates\eden-skills-indexer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 34.56s
+     Running unittests src\lib.rs (target\debug\deps\eden_skills_cli-f407f55ace820ec3.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\main.rs (target\debug\deps\eden_skills-0501902eb01a6741.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\apply_repair.rs (target\debug\deps\apply_repair-20c6ab8d364e501f.exe)
+
+running 4 tests
+test apply_fails_on_permission_denied_target_path ... ok
+test apply_updates_misaligned_symlink_target ... ok
+test fresh_and_repeated_apply_symlink ... ok
+test repair_recovers_broken_symlink ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.09s
+
+     Running tests\config_export.rs (target\debug\deps\config_export-09e971ad7db6d611.exe)
+
+running 2 tests
+test config_export_json_wraps_toml_string ... ok
+test config_export_emits_valid_toml_and_is_deterministic ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\config_import.rs (target\debug\deps\config_import-61da0c650227df4b.exe)
+
+running 3 tests
+test config_import_strict_rejects_unknown_top_level_keys ... ok
+test config_import_dry_run_emits_toml_and_does_not_create_dest ... ok
+test config_import_writes_normalized_toml_to_destination ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\config_lifecycle.rs (target\debug\deps\config_lifecycle-0f018f889b409405.exe)
+
+running 5 tests
+test add_fails_on_duplicate_id_and_does_not_modify_file ... ok
+test add_appends_skill_and_writes_valid_toml ... ok
+test set_requires_at_least_one_mutation_flag ... ok
+test remove_deletes_only_matching_skill ... ok
+test set_updates_only_targeted_fields_and_validates_before_write ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+     Running tests\doctor_copy.rs (target\debug\deps\doctor_copy-63bbbe19fe8305fa.exe)
+
+running 2 tests
+test copy_mode_plan_detects_source_change ... ok
+test doctor_strict_detects_missing_source ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+
+     Running tests\doctor_json_contract.rs (target\debug\deps\doctor_json_contract-c6f3cec204824754.exe)
+
+running 1 test
+test doctor_json_has_required_schema ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.32s
+
+     Running tests\doctor_output.rs (target\debug\deps\doctor_output-d6e6124baad679f5.exe)
+
+running 2 tests
+test doctor_json_output_includes_code_severity_and_remediation ... ok
+test doctor_text_output_includes_code_severity_and_remediation ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.49s
+
+     Running tests\doctor_strict_parity.rs (target\debug\deps\doctor_strict_parity-00d0e71d94bb1f7a.exe)
+
+running 2 tests
+test doctor_text_strict_and_non_strict_emit_equivalent_findings_payload ... ok
+test doctor_json_strict_and_non_strict_emit_equivalent_payload_and_required_fields ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.50s
+
+     Running tests\exit_code_matrix.rs (target\debug\deps\exit_code_matrix-cbb1a088e4a3ffd9.exe)
+
+running 11 tests
+test apply_aggregates_multiskill_source_failures_in_config_order ... ok
+test apply_returns_exit_code_1_on_runtime_git_failure ... ok
+test apply_reports_skipped_source_sync_on_repeated_run ... ok
+test apply_returns_exit_code_1_with_checkout_failure_diagnostics ... ok
+test apply_returns_exit_code_1_with_fetch_failure_diagnostics ... ok
+test apply_strict_conflict_takes_precedence_over_verify_failure ... ok
+test apply_strict_returns_exit_code_3_on_target_conflict ... ok
+test apply_strict_source_sync_failure_takes_precedence_over_conflict_exit_code ... ok
+test doctor_strict_returns_exit_code_3_on_conflict ... ok
+test repair_strict_conflict_takes_precedence_over_verify_failure ... ok
+test repair_strict_source_sync_failure_takes_precedence_over_conflict_exit_code ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.95s
+
+     Running tests\init_command.rs (target\debug\deps\init_command-537393a1853ab5da.exe)
+
+running 4 tests
+test init_creates_config_when_missing ... ok
+test init_fails_when_config_exists_without_force ... ok
+test init_overwrites_when_force_is_set ... ok
+test init_supports_tilde_in_config_path ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\invalid_config_exit.rs (target\debug\deps\invalid_config_exit-12f2e34cd4bd96b5.exe)
+
+running 2 tests
+test strict_mode_unknown_top_level_key_returns_exit_code_2 ... ok
+test invalid_config_returns_exit_code_2_and_field_path ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\list_command.rs (target\debug\deps\list_command-489730e01aac806d.exe)
+
+running 2 tests
+test list_json_emits_machine_readable_inventory ... ok
+test list_text_prints_inventory ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests\list_json_contract.rs (target\debug\deps\list_json_contract-8b670e958ca32da8.exe)
+
+running 1 test
+test list_json_has_required_schema ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\plan_json_contract.rs (target\debug\deps\plan_json_contract-ffd590f8c6c09497.exe)
+
+running 1 test
+test plan_json_has_required_schema ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests\safety_gate.rs (target\debug\deps\safety_gate-7295d40e6c8c7078.exe)
+
+running 7 tests
+test apply_mixed_skills_still_verifies_non_no_exec_skill ... ok
+test apply_mixed_skills_skips_verify_only_for_no_exec_skill ... ok
+test apply_no_exec_metadata_only_skips_target_mutation_and_writes_metadata ... ok
+test apply_strict_ignores_conflicts_for_no_exec_skill ... ok
+test apply_sync_failure_still_writes_safety_metadata ... ok
+test doctor_reports_safety_findings ... ok
+test repair_strict_ignores_conflicts_for_no_exec_skill ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.78s
+
+     Running unittests src\lib.rs (target\debug\deps\eden_skills_core-08c07dbae2c2f444.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\config_tests.rs (target\debug\deps\config_tests-762011109233e798.exe)
+
+running 4 tests
+test load_valid_config_with_defaults ... ok
+test reject_custom_target_without_path ... ok
+test repo_url_rejects_non_git_schemes ... ok
+test repo_url_allows_https_ssh_scp_like_and_file ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\paths_tests.rs (target\debug\deps\paths_tests-64995bd0f142ae90.exe)
+
+running 10 tests
+test normalize_lexical_collapses_dot_and_dotdot ... ok
+test resolve_path_string_expands_tilde_and_normalizes ... ok
+test resolve_path_string_rejects_unsupported_tilde_forms ... ok
+test resolve_path_string_prefers_home_when_home_and_userprofile_exist ... ok
+test resolve_path_string_resolves_relative_against_config_dir_and_normalizes ... ok
+test resolve_path_string_uses_userprofile_when_home_is_unset ... ok
+test resolve_target_path_prefers_explicit_path_over_expected_path ... ok
+test resolve_target_path_fails_for_custom_without_paths ... ok
+test resolve_target_path_uses_expected_path_when_path_missing ... ok
+test resolve_target_path_uses_default_agent_path_when_no_explicit_paths ... ok
+
+test result: ok. 10 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests\plan_copy_edge_tests.rs (target\debug\deps\plan_copy_edge_tests-7f60652485df1b3c.exe)
+
+running 3 tests
+test copy_mode_plan_conflict_on_symlink_in_tree ... ok
+test copy_mode_plan_noop_streams_large_file ... ok
+test copy_mode_plan_conflict_on_unreadable_target_file ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests\plan_json_contract.rs (target\debug\deps\plan_json_contract-73bcd5b2651a3a32.exe)
+
+running 1 test
+test plan_json_serialization_keeps_stable_fields ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\safety_tests.rs (target\debug\deps\safety_tests-e9148ebe7648c349.exe)
+
+running 2 tests
+test analyze_reports_unknown_license_when_no_license_file ... ok
+test analyze_and_persist_reports_detects_permissive_license_and_risk_labels ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.78s
+
+     Running tests\source_sync_tests.rs (target\debug\deps\source_sync_tests-771164f45e64e342.exe)
+
+running 5 tests
+test sync_sources_reports_checkout_failure_stage ... ok
+test sync_sources_continues_after_failure_and_aggregates_results ... ok
+test sync_sources_reports_clone_failure_stage ... ok
+test sync_sources_reports_fetch_failure_stage ... ok
+test sync_sources_tracks_cloned_skipped_and_updated_counts ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 3.02s
+
+     Running tests\symlink_canonical_tests.rs (target\debug\deps\symlink_canonical_tests-caa15f863267d2b2.exe)
+
+running 2 tests
+test windows::plan_symlink_noop_uses_canonical_paths ... FAILED
+test windows::verify_target_resolves_uses_canonical_paths ... FAILED
+
+failures:
+
+---- windows::plan_symlink_noop_uses_canonical_paths stdout ----
+
+thread 'windows::plan_symlink_noop_uses_canonical_paths' (7324) panicked at crates\eden-skills-core\tests\symlink_canonical_tests.rs:183:75:
+load config: Validation("root: invalid toml: TOML parse error at line 4, column 13\n  |\n4 | root = \"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\.tmpJ6huaf\\storage\"\n  |             ^\ninvalid unicode 8-digit hex code\n")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- windows::verify_target_resolves_uses_canonical_paths stdout ----
+error: test failed, to rerun pass `-p eden-skills-core --test symlink_canonical_tests`
+
+thread 'windows::verify_target_resolves_uses_canonical_paths' (5520) panicked at crates\eden-skills-core\tests\symlink_canonical_tests.rs:142:75:
+load config: Validation("root: invalid toml: TOML parse error at line 4, column 13\n  |\n4 | root = \"C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\.tmpxuuW6N\\storage\"\n  |             ^\ninvalid unicode 8-digit hex code\n")
+
+
+failures:
+    windows::plan_symlink_noop_uses_canonical_paths
+    windows::verify_target_resolves_uses_canonical_paths
+
+test result: FAILED. 0 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+Error: Process completed with exit code 1.

@@ -1,3 +1,7 @@
+fn toml_escape_path(path: &std::path::Path) -> String {
+    path.display().to_string().replace('\\', "\\\\")
+}
+
 #[cfg(unix)]
 mod unix {
     use std::fs;
@@ -32,10 +36,10 @@ mod unix {
             &config_path,
             format!(
                 "version = 1\n\n[storage]\nroot = \"{}\"\n\n[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"file:///tmp/unused\"\nsubpath = \"{}\"\nref = \"main\"\n\n[skills.install]\nmode = \"symlink\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n\n[skills.verify]\nenabled = true\nchecks = [\"path-exists\", \"is-symlink\", \"target-resolves\"]\n",
-                storage_root.display(),
+                crate::toml_escape_path(&storage_root),
                 skill_id,
                 source_subpath,
-                target_root.display()
+                crate::toml_escape_path(&target_root)
             ),
         )
         .expect("write config");
@@ -73,10 +77,10 @@ mod unix {
             &config_path,
             format!(
                 "version = 1\n\n[storage]\nroot = \"{}\"\n\n[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"file:///tmp/unused\"\nsubpath = \"{}\"\nref = \"main\"\n\n[skills.install]\nmode = \"symlink\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n",
-                storage_root.display(),
+                crate::toml_escape_path(&storage_root),
                 skill_id,
                 source_subpath,
-                target_root.display()
+                crate::toml_escape_path(&target_root)
             ),
         )
         .expect("write config");
@@ -131,10 +135,10 @@ mod windows {
             &config_path,
             format!(
                 "version = 1\n\n[storage]\nroot = \"{}\"\n\n[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"file:///tmp/unused\"\nsubpath = \"{}\"\nref = \"main\"\n\n[skills.install]\nmode = \"symlink\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n\n[skills.verify]\nenabled = true\nchecks = [\"path-exists\", \"is-symlink\", \"target-resolves\"]\n",
-                storage_root.display(),
+                crate::toml_escape_path(&storage_root),
                 skill_id,
                 source_subpath,
-                target_root.display()
+                crate::toml_escape_path(&target_root)
             ),
         )
         .expect("write config");
@@ -172,10 +176,10 @@ mod windows {
             &config_path,
             format!(
                 "version = 1\n\n[storage]\nroot = \"{}\"\n\n[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"file:///tmp/unused\"\nsubpath = \"{}\"\nref = \"main\"\n\n[skills.install]\nmode = \"symlink\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n",
-                storage_root.display(),
+                crate::toml_escape_path(&storage_root),
                 skill_id,
                 source_subpath,
-                target_root.display()
+                crate::toml_escape_path(&target_root)
             ),
         )
         .expect("write config");
