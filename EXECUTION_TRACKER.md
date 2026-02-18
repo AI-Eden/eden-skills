@@ -130,6 +130,10 @@ Current automated tests: `116` (workspace unit/integration-style tests).
 - [x] Complete Phase 2 Track B Batch 5 P0 Registry (`ARC-201/202/207`) with tests and quality gate.
 - [x] Complete Phase 2 Track B Batch 6 P0 Schema + Commands (`SCH-P2-001/002/003/004/006`, `CMD-P2-001/002/003`) with tests and quality gate.
 - [x] Complete Phase 2 Track B Batch 7 P1 All (`ARC-003/004/007/104/105/107/110/203/204/205/206`, `SCH-P2-005`, `CMD-P2-004/005/006`) with tests and quality gate.
+- [ ] P2-CLOSE-001: Fix Windows CI blocker in Phase 2 command tests (TOML-safe file URL escaping for `file://C:\...` payloads) and verify hosted matrix pass.
+- [ ] P2-CLOSE-002: Close or explicitly defer remaining `planned` Phase 2 matrix scenarios (`TM-P2-003/004/015/020/024/027/028/029/030`) with rationale.
+- [ ] P2-CLOSE-003: Align release-closeout status wording across `README.md`, `ROADMAP.md`, `STATUS.yaml`, and this tracker.
+- [ ] Maintain `spec/phase2/PHASE2_BUILDER_REMAINING.md` as the concise index for remaining Builder-owned Phase 2 closeout work.
 
 ### 5.2 Architect-Owned (Claude Opus)
 
@@ -153,6 +157,12 @@ Current automated tests: `116` (workspace unit/integration-style tests).
 - [x] Verified `spec/phase1/SPEC_TRACEABILITY.md` requirement mappings remain complete and status-consistent.
 - [x] Verified `spec/phase1/SPEC_TEST_MATRIX.md` scenarios remain fully represented by automated tests.
 - [x] Updated `spec/phase1/PHASE1_BUILDER_REMAINING.md` as the concise index of unresolved Builder tasks.
+
+### 6.2 Phase 2 Closeout State (Builder)
+
+1. Builder-owned Phase 2 implementation batches are complete through Batch 7.
+2. Release closeout remains in progress with tracked work items `P2-CLOSE-001` ~ `P2-CLOSE-003`.
+3. Canonical remaining-work index: `spec/phase2/PHASE2_BUILDER_REMAINING.md`.
 
 ## 7. Phase 2 Architect State
 

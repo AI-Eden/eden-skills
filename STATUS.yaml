@@ -229,8 +229,17 @@ phase2:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+  closeout_audit:
+    builder_phase2:
+      status: in_progress
+      remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md
+      remaining_items:
+        - P2-CLOSE-001 (Windows CI blocker: TOML file URL escaping in Phase 2 command tests)
+        - P2-CLOSE-002 (resolve or disposition remaining planned TM-P2 scenarios)
+        - P2-CLOSE-003 (cross-doc phase-state consistency for closeout readiness)
 
 next_execution_targets:
   - phase2_closeout_and_release_readiness
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
+phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md

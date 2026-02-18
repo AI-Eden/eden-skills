@@ -9,10 +9,11 @@ This file is designed for fast recovery after context compression.
 2. `spec/phase1/SPEC_*.md` (Phase 1 CLI behavior contracts)
 3. `spec/phase2/SPEC_*.md` (Phase 2 architecture contracts)
 4. `spec/phase1/SPEC_TRACEABILITY.md` or `spec/phase2/SPEC_TRACEABILITY.md`
-5. `STATUS.yaml`
-6. `EXECUTION_TRACKER.md`
-7. `ROADMAP.md`
-8. `README.md`
+5. `spec/phase1/PHASE1_BUILDER_REMAINING.md` or `spec/phase2/PHASE2_BUILDER_REMAINING.md`
+6. `STATUS.yaml`
+7. `EXECUTION_TRACKER.md`
+8. `ROADMAP.md`
+9. `README.md`
 
 ## 2. Authority Order
 
@@ -57,6 +58,7 @@ When files disagree, follow:
 ### General
 
 - If task is progress planning: use `STATUS.yaml` first, then `EXECUTION_TRACKER.md`.
+- If task is Builder closeout triage: use `spec/phase2/PHASE2_BUILDER_REMAINING.md`.
 
 ## 6. Guardrails
 

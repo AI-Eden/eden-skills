@@ -2,6 +2,7 @@
 
 Requirement-to-implementation mapping for Phase 2.
 Use this file to recover accurate context after compression.
+For remaining Builder-owned closeout audit work, see `spec/phase2/PHASE2_BUILDER_REMAINING.md`.
 
 ## 1. Architecture Requirements
 

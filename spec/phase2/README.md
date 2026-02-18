@@ -35,6 +35,7 @@ When reading an `_EXT` file, always read the corresponding Phase 1 base file fir
 | `SPEC_COMMANDS_EXT.md` | CLI | CMD-P2-001 ~ CMD-P2-006 | -- | New commands: `update`, `install --target`, `--concurrency` flag |
 | `SPEC_TEST_MATRIX.md` | Testing | TM-P2-001 ~ TM-P2-033 | -- | Phase 2 acceptance test scenarios (incl. cross-platform + Stage B additions) |
 | `SPEC_TRACEABILITY.md` | Traceability | -- | -- | Requirement-to-implementation mapping for Phase 2 |
+| `PHASE2_BUILDER_REMAINING.md` | Closeout Index | P2-CLOSE-001 ~ P2-CLOSE-003 | -- | Remaining Builder-owned Phase 2 closeout audit tasks |
 
 ## Architecture Decision Record Index
 

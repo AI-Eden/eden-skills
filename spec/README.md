@@ -27,7 +27,8 @@ spec/
     ├── SPEC_SCHEMA_EXT.md
     ├── SPEC_COMMANDS_EXT.md
     ├── SPEC_TEST_MATRIX.md
-    └── SPEC_TRACEABILITY.md
+    ├── SPEC_TRACEABILITY.md
+    └── PHASE2_BUILDER_REMAINING.md
 ```
 
 ## Phase 1: CLI Foundation (FROZEN)
@@ -53,6 +54,7 @@ Files with `_EXT` suffix extend Phase 1 base contracts (read the base file first
 - `phase2/SPEC_COMMANDS_EXT.md`: Phase 2 new commands (update, install --target, --concurrency flag)
 - `phase2/SPEC_TEST_MATRIX.md`: Phase 2 acceptance test scenarios
 - `phase2/SPEC_TRACEABILITY.md`: Phase 2 requirement-to-implementation mapping
+- `phase2/PHASE2_BUILDER_REMAINING.md`: indexed list of remaining Builder-owned Phase 2 closeout tasks
 
 ## Rule of Authority
 
