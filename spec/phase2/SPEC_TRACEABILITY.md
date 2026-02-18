@@ -25,13 +25,13 @@ Use this file to recover accurate context after compression.
 | ARC-108 | `SPEC_ADAPTER.md` 4 | `TargetAdapter` MUST require `Send + Sync` bounds (for `JoinSet::spawn`) | `crates/eden-skills-core/src/adapter.rs` (`pub trait TargetAdapter: Send + Sync`) | `crates/eden-skills-core/tests/adapter_tests.rs` (`target_adapter_trait_object_can_be_spawned_via_joinset`) | implemented |
 | ARC-109 | `SPEC_ADAPTER.md` 4 | `LocalAdapter` MUST work on Linux, macOS, and Windows (platform APIs + tilde expansion) | `crates/eden-skills-core/src/adapter.rs` (`LocalAdapter::install` uses platform symlink APIs), `crates/eden-skills-core/src/paths.rs` (`HOME` -> `USERPROFILE` fallback) | `crates/eden-skills-core/tests/adapter_tests.rs` (`local_adapter_symlink_supports_directory_and_file_sources`), `crates/eden-skills-core/tests/paths_tests.rs` (`resolve_path_string_uses_userprofile_when_home_is_unset`, `resolve_path_string_prefers_home_when_home_and_userprofile_exist`) | implemented |
 | ARC-110 | `SPEC_ADAPTER.md` 4 | Windows symlink privilege error SHOULD include actionable remediation hint | -- | -- | planned |
-| ARC-201 | `SPEC_REGISTRY.md` 4 | Configuration MUST support multiple registries with priority weights | -- | -- | planned |
-| ARC-202 | `SPEC_REGISTRY.md` 4 | Resolution MUST follow priority-based fallback order | -- | -- | planned |
+| ARC-201 | `SPEC_REGISTRY.md` 4 | Configuration MUST support multiple registries with priority weights | `crates/eden-skills-core/src/registry.rs` (`RegistrySpec`, `parse_registry_specs_from_toml`, `sort_registry_specs_by_priority`) | `crates/eden-skills-core/tests/registry_tests.rs` (`parse_registry_specs_supports_multiple_entries_with_priorities`) | implemented |
+| ARC-202 | `SPEC_REGISTRY.md` 4 | Resolution MUST follow priority-based fallback order | `crates/eden-skills-core/src/registry.rs` (`RegistrySource`, `resolve_skill_from_registry_sources` sorted priority fallback) | `crates/eden-skills-core/tests/registry_tests.rs` (`resolve_skill_uses_priority_fallback_order`) | implemented |
 | ARC-203 | `SPEC_REGISTRY.md` 4 | Registry indexes MUST be local Git repos synced via `eden update` | -- | -- | planned |
 | ARC-204 | `SPEC_REGISTRY.md` 4 | Registry index MUST contain `manifest.toml` with `format_version` | -- | -- | planned |
 | ARC-205 | `SPEC_REGISTRY.md` 4 | Registry sync SHOULD use shallow clone (`--depth 1`) | -- | -- | planned |
 | ARC-206 | `SPEC_REGISTRY.md` 4 | Registry resolution MUST work offline from cached index | -- | -- | planned |
-| ARC-207 | `SPEC_REGISTRY.md` 4 | Version constraint matching MUST use `semver` crate | -- | -- | planned |
+| ARC-207 | `SPEC_REGISTRY.md` 4 | Version constraint matching MUST use `semver` crate | `crates/eden-skills-core/src/registry.rs` (`select_version` with `semver::Version` + `semver::VersionReq`, exact pin handling) | `crates/eden-skills-core/tests/registry_tests.rs` (`resolve_skill_matches_semver_constraints`) | implemented |
 
 ## 2. Schema Extension Requirements
 
@@ -67,8 +67,8 @@ Use this file to recover accurate context after compression.
 | TM-P2-006 | `SPEC_TEST_MATRIX.md` 3.2 | DockerAdapter install | `crates/eden-skills-core/tests/adapter_tests.rs` (`docker_adapter_uses_docker_cli_for_health_install_and_exec`) | implemented (docker CLI stubbed integration) |
 | TM-P2-007 | `SPEC_TEST_MATRIX.md` 3.3 | DockerAdapter health check | `crates/eden-skills-core/tests/adapter_tests.rs` (`docker_adapter_health_check_fails_when_container_not_running`) | implemented |
 | TM-P2-008 | `SPEC_TEST_MATRIX.md` 4.1 | Registry update | -- | planned |
-| TM-P2-009 | `SPEC_TEST_MATRIX.md` 4.2 | Registry resolution | -- | planned |
-| TM-P2-010 | `SPEC_TEST_MATRIX.md` 4.3 | Version constraint matching | -- | planned |
+| TM-P2-009 | `SPEC_TEST_MATRIX.md` 4.2 | Registry resolution | `crates/eden-skills-core/tests/registry_tests.rs` (`resolve_skill_uses_priority_fallback_order`) | implemented (core resolver contract level) |
+| TM-P2-010 | `SPEC_TEST_MATRIX.md` 4.3 | Version constraint matching | `crates/eden-skills-core/tests/registry_tests.rs` (`resolve_skill_matches_semver_constraints`) | implemented |
 | TM-P2-011 | `SPEC_TEST_MATRIX.md` 4.4 | Schema extension validation | -- | planned |
 | TM-P2-012 | `SPEC_TEST_MATRIX.md` 2.5 | Two-phase execution | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_enforces_two_phase_barrier`) | implemented |
 | TM-P2-013 | `SPEC_TEST_MATRIX.md` 2.6 | Concurrency configuration | -- | planned |

@@ -186,8 +186,21 @@ phase2:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    batch_5_track_b_p0_registry:
+      status: completed
+      completed_at: "2026-02-18"
+      requirements: ARC-201, ARC-202, ARC-207
+      notes:
+        - added Phase 2 registry core module with multi-registry spec parsing and deterministic priority sorting
+        - added priority-based registry skill resolution using first-character index bucket lookup
+        - added SemVer-based version selection using semver crate (exact, caret, tilde, range, wildcard) with yanked filtering
+        - added registry-focused tests for config parsing, priority fallback resolution, and SemVer constraint matching
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
-  - phase2_batch5_track_b_p0_registry
+  - phase2_batch6_track_b_p0_schema_commands
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
