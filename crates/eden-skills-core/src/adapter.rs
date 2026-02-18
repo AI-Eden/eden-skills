@@ -61,6 +61,8 @@ pub trait TargetAdapter: Send + Sync {
         mode: InstallMode,
     ) -> Result<(), AdapterError>;
 
+    async fn uninstall(&self, target: &Path) -> Result<(), AdapterError>;
+
     async fn exec(&self, cmd: &str) -> Result<String, AdapterError>;
 }
 
@@ -108,6 +110,10 @@ impl TargetAdapter for LocalAdapter {
         }
 
         Ok(())
+    }
+
+    async fn uninstall(&self, target: &Path) -> Result<(), AdapterError> {
+        remove_existing_path(target).await
     }
 
     async fn exec(&self, cmd: &str) -> Result<String, AdapterError> {
@@ -330,6 +336,39 @@ impl TargetAdapter for DockerAdapter {
         Ok(())
     }
 
+    async fn uninstall(&self, target: &Path) -> Result<(), AdapterError> {
+        self.health_check().await?;
+        let command = format!(
+            "rm -rf \"{}\"",
+            shell_escape_double_quoted(&target.display().to_string())
+        );
+        let output = self
+            .run_docker(
+                vec![
+                    OsString::from("exec"),
+                    OsString::from(self.container_name.clone()),
+                    OsString::from("sh"),
+                    OsString::from("-c"),
+                    OsString::from(command),
+                ],
+                "remove installed target from container",
+            )
+            .await?;
+        if output.status.success() {
+            return Ok(());
+        }
+
+        Err(AdapterError::Runtime {
+            detail: format!(
+                "docker uninstall failed in container `{}` for target `{}`: status={} stderr=`{}`",
+                self.container_name,
+                target.display(),
+                output.status,
+                String::from_utf8_lossy(&output.stderr).trim()
+            ),
+        })
+    }
+
     async fn exec(&self, cmd: &str) -> Result<String, AdapterError> {
         self.health_check().await?;
         let output = self
@@ -418,12 +457,29 @@ fn create_symlink(source: &Path, target: &Path, source_is_dir: bool) -> Result<(
     #[cfg(windows)]
     {
         if source_is_dir {
-            std::os::windows::fs::symlink_dir(source, target)?;
+            std::os::windows::fs::symlink_dir(source, target)
+                .map_err(|err| map_windows_symlink_error(err, source, target))?;
         } else {
-            std::os::windows::fs::symlink_file(source, target)?;
+            std::os::windows::fs::symlink_file(source, target)
+                .map_err(|err| map_windows_symlink_error(err, source, target))?;
         }
         Ok(())
     }
+}
+
+#[cfg(windows)]
+fn map_windows_symlink_error(err: std::io::Error, source: &Path, target: &Path) -> AdapterError {
+    if err.kind() == std::io::ErrorKind::PermissionDenied {
+        return AdapterError::Runtime {
+            detail: format!(
+                "failed to create symlink `{}` -> `{}`: {}. Enable Developer Mode or run as Administrator.",
+                target.display(),
+                source.display(),
+                err
+            ),
+        };
+    }
+    AdapterError::Io(err)
 }
 
 async fn copy_recursively(source: &Path, target: &Path) -> Result<(), AdapterError> {

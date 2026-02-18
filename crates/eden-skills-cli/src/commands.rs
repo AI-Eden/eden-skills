@@ -3,8 +3,9 @@ use std::fs;
 use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::process::Command;
-use std::time::Instant;
+use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use eden_skills_core::adapter::create_adapter;
 use eden_skills_core::config::InstallMode;
 use eden_skills_core::config::{
     config_dir_from_path, decode_registry_mode_repo, default_verify_checks_for_mode,
@@ -13,15 +14,15 @@ use eden_skills_core::config::{
 };
 use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::error::EdenError;
-use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
+use eden_skills_core::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
-use eden_skills_core::reactor::{SkillReactor, DEFAULT_CONCURRENCY_LIMIT};
+use eden_skills_core::reactor::{SkillReactor, MAX_CONCURRENCY_LIMIT, MIN_CONCURRENCY_LIMIT};
 use eden_skills_core::registry::{
     parse_registry_specs_from_toml, resolve_skill_from_registry_sources,
     sort_registry_specs_by_priority, RegistrySource,
 };
 use eden_skills_core::safety::{analyze_skills, persist_reports, LicenseStatus, SkillSafetyReport};
-use eden_skills_core::source::{sync_sources_async, SyncSummary};
+use eden_skills_core::source::{sync_sources_async, sync_sources_async_with_reactor, SyncSummary};
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -54,6 +55,7 @@ pub struct InstallRequest {
     pub version: Option<String>,
     pub registry: Option<String>,
     pub target: Option<String>,
+    pub dry_run: bool,
     pub options: CommandOptions,
 }
 
@@ -91,9 +93,26 @@ struct RegistrySyncResult {
     detail: Option<String>,
 }
 
+const REGISTRY_SYNC_MARKER_FILE: &str = ".eden-last-sync";
+const REGISTRY_STALE_THRESHOLD_SECS: u64 = 7 * 24 * 60 * 60;
+
 fn resolve_config_path(config_path: &str) -> Result<PathBuf, EdenError> {
     let cwd = std::env::current_dir().map_err(EdenError::Io)?;
     resolve_path_string(config_path, &cwd)
+}
+
+fn resolve_effective_reactor_concurrency(
+    cli_override: Option<usize>,
+    config_concurrency: usize,
+    field_path: &str,
+) -> Result<usize, EdenError> {
+    let concurrency = cli_override.unwrap_or(config_concurrency);
+    if !(MIN_CONCURRENCY_LIMIT..=MAX_CONCURRENCY_LIMIT).contains(&concurrency) {
+        return Err(EdenError::Validation(format!(
+            "INVALID_CONCURRENCY: {field_path}: expected value in [{MIN_CONCURRENCY_LIMIT}, {MAX_CONCURRENCY_LIMIT}], got {concurrency}"
+        )));
+    }
+    Ok(concurrency)
 }
 
 pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
@@ -141,12 +160,11 @@ pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
         return Ok(());
     }
 
-    let concurrency = req.concurrency.unwrap_or(DEFAULT_CONCURRENCY_LIMIT);
-    if !(1..=100).contains(&concurrency) {
-        return Err(EdenError::Validation(format!(
-            "INVALID_CONCURRENCY: update.concurrency: expected value in [1, 100], got {concurrency}"
-        )));
-    }
+    let concurrency = resolve_effective_reactor_concurrency(
+        req.concurrency,
+        loaded.config.reactor.concurrency,
+        "update.concurrency",
+    )?;
 
     let config_dir = config_dir_from_path(config_path);
     let storage_root = resolve_path_string(&loaded.config.storage_root, &config_dir)?;
@@ -256,6 +274,7 @@ pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
     let mut single_skill_config = Config {
         version: config.version,
         storage_root: config.storage_root.clone(),
+        reactor: config.reactor,
         skills: config
             .skills
             .iter()
@@ -275,6 +294,63 @@ pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
     let resolved_for_install =
         resolve_registry_mode_skills_for_execution(config_path, &single_skill_config, &config_dir)?;
     single_skill_config = resolved_for_install;
+
+    if req.dry_run {
+        let resolved_skill = single_skill_config
+            .skills
+            .first()
+            .ok_or_else(|| EdenError::Runtime("resolved install skill is missing".to_string()))?;
+        let resolved_targets = resolved_skill
+            .targets
+            .iter()
+            .map(|target| {
+                let resolved_path = resolve_target_path(target, &config_dir)
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|err| format!("ERROR: {err}"));
+                serde_json::json!({
+                    "agent": agent_kind_label(&target.agent),
+                    "environment": target.environment,
+                    "path": resolved_path,
+                })
+            })
+            .collect::<Vec<_>>();
+
+        if req.options.json {
+            let payload = serde_json::json!({
+                "skill": req.skill_name,
+                "version": requested_constraint,
+                "dry_run": true,
+                "resolved": {
+                    "repo": resolved_skill.source.repo.clone(),
+                    "ref": resolved_skill.source.r#ref.clone(),
+                    "subpath": resolved_skill.source.subpath.clone(),
+                },
+                "targets": resolved_targets,
+            });
+            let encoded = serde_json::to_string_pretty(&payload).map_err(|err| {
+                EdenError::Runtime(format!("failed to encode install json: {err}"))
+            })?;
+            println!("{encoded}");
+        } else {
+            println!(
+                "install dry-run: skill={} version={} repo={} ref={} subpath={}",
+                req.skill_name,
+                requested_constraint,
+                resolved_skill.source.repo,
+                resolved_skill.source.r#ref,
+                resolved_skill.source.subpath
+            );
+            for target in &resolved_targets {
+                println!(
+                    "  target agent={} environment={} path={}",
+                    target["agent"].as_str().unwrap_or("unknown"),
+                    target["environment"].as_str().unwrap_or("unknown"),
+                    target["path"].as_str().unwrap_or("unknown")
+                );
+            }
+        }
+        return Ok(());
+    }
 
     write_normalized_config(config_path, &config)?;
 
@@ -364,12 +440,15 @@ fn sync_registry_task_blocking(
             &format!("clone registry `{}`", task.name),
         );
         return Ok(match clone_result {
-            Ok(_) => Ok(RegistrySyncResult {
-                name: task.name,
-                status: RegistrySyncStatus::Cloned,
-                url: task.url,
-                detail: None,
-            }),
+            Ok(_) => {
+                write_registry_sync_marker(&task.local_dir)?;
+                Ok(RegistrySyncResult {
+                    name: task.name,
+                    status: RegistrySyncStatus::Cloned,
+                    url: task.url,
+                    detail: None,
+                })
+            }
             Err(detail) => Err(failed(detail)),
         });
     }
@@ -408,12 +487,23 @@ fn sync_registry_task_blocking(
     } else {
         RegistrySyncStatus::Updated
     };
+    write_registry_sync_marker(&task.local_dir)?;
     Ok(Ok(RegistrySyncResult {
         name: task.name,
         status,
         url: task.url,
         detail: None,
     }))
+}
+
+fn write_registry_sync_marker(registry_dir: &Path) -> Result<(), EdenError> {
+    let now_epoch = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_err(|err| EdenError::Runtime(format!("failed to get system time: {err}")))?
+        .as_secs()
+        .to_string();
+    fs::write(registry_dir.join(REGISTRY_SYNC_MARKER_FILE), now_epoch)?;
+    Ok(())
 }
 
 fn block_on_command_future<F>(future: F) -> Result<(), EdenError>
@@ -435,10 +525,14 @@ where
 }
 
 pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
-    block_on_command_future(apply_async(config_path, options))
+    block_on_command_future(apply_async(config_path, options, None))
 }
 
-pub async fn apply_async(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
+pub async fn apply_async(
+    config_path: &str,
+    options: CommandOptions,
+    concurrency_override: Option<usize>,
+) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
@@ -447,10 +541,17 @@ pub async fn apply_async(config_path: &str, options: CommandOptions) -> Result<(
             strict: options.strict,
         },
     )?;
+    let concurrency = resolve_effective_reactor_concurrency(
+        concurrency_override,
+        loaded.config.reactor.concurrency,
+        "apply.concurrency",
+    )?;
+    let reactor = SkillReactor::new(concurrency).map_err(EdenError::from)?;
     let config_dir = config_dir_from_path(config_path);
     let execution_config =
         resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir)?;
-    let sync_summary = sync_sources_async(&execution_config, &config_dir).await?;
+    let sync_summary =
+        sync_sources_async_with_reactor(&execution_config, &config_dir, reactor).await?;
     print_source_sync_summary(&sync_summary);
     let safety_reports = analyze_skills(&execution_config, &config_dir)?;
     persist_reports(&safety_reports)?;
@@ -537,7 +638,12 @@ pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
     let plan = build_plan(&loaded.config, &config_dir)?;
     let verify_issues = verify_config_state(&loaded.config, &config_dir)?;
     let safety_reports = analyze_skills(&loaded.config, &config_dir)?;
-    let findings = collect_doctor_findings(&plan, &verify_issues, &safety_reports);
+    let mut findings = collect_doctor_findings(&plan, &verify_issues, &safety_reports);
+    findings.extend(collect_phase2_doctor_findings(
+        config_path,
+        &loaded.config,
+        &config_dir,
+    )?);
 
     if findings.is_empty() {
         println!("doctor: no issues detected");
@@ -579,6 +685,201 @@ fn collect_doctor_findings(
 
     findings.extend(safety_reports.iter().flat_map(safety_report_to_findings));
 
+    findings
+}
+
+fn collect_phase2_doctor_findings(
+    config_path: &Path,
+    config: &Config,
+    config_dir: &Path,
+) -> Result<Vec<DoctorFinding>, EdenError> {
+    let mut findings = Vec::new();
+    findings.extend(collect_registry_stale_findings(
+        config_path,
+        config,
+        config_dir,
+    )?);
+    findings.extend(collect_adapter_health_findings(config));
+    Ok(findings)
+}
+
+fn collect_registry_stale_findings(
+    config_path: &Path,
+    config: &Config,
+    config_dir: &Path,
+) -> Result<Vec<DoctorFinding>, EdenError> {
+    let raw_toml = fs::read_to_string(config_path)?;
+    let registry_specs = sort_registry_specs_by_priority(
+        &parse_registry_specs_from_toml(&raw_toml).map_err(EdenError::from)?,
+    );
+    if registry_specs.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let storage_root = resolve_path_string(&config.storage_root, config_dir)?;
+    let registries_root = storage_root.join("registries");
+    let now = SystemTime::now();
+    let threshold = Duration::from_secs(REGISTRY_STALE_THRESHOLD_SECS);
+    let mut findings = Vec::new();
+
+    for spec in registry_specs {
+        let registry_dir = registries_root.join(&spec.name);
+        let marker_path = registry_dir.join(REGISTRY_SYNC_MARKER_FILE);
+        let stale_reason = if !registry_dir.exists() {
+            Some("registry cache is missing".to_string())
+        } else if !marker_path.exists() {
+            Some("registry sync marker is missing".to_string())
+        } else {
+            let marker_raw = fs::read_to_string(&marker_path).unwrap_or_default();
+            let marker_epoch = marker_raw.trim().parse::<u64>().ok();
+            match marker_epoch {
+                Some(epoch) => {
+                    let last_synced = UNIX_EPOCH + Duration::from_secs(epoch);
+                    match now.duration_since(last_synced) {
+                        Ok(age) if age > threshold => Some(format!(
+                            "registry cache last synced {} day(s) ago",
+                            age.as_secs() / (24 * 60 * 60)
+                        )),
+                        _ => None,
+                    }
+                }
+                None => Some("registry sync marker is invalid".to_string()),
+            }
+        };
+
+        if let Some(reason) = stale_reason {
+            findings.push(DoctorFinding {
+                code: "REGISTRY_STALE".to_string(),
+                severity: "warning".to_string(),
+                skill_id: format!("registry:{}", spec.name),
+                target_path: registry_dir.display().to_string(),
+                message: format!("registry `{}` is stale: {reason}", spec.name),
+                remediation: "Run `eden-skills update` to refresh local registry cache."
+                    .to_string(),
+            });
+        }
+    }
+
+    Ok(findings)
+}
+
+fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
+    let mut findings = Vec::new();
+    for skill in &config.skills {
+        for target in &skill.targets {
+            let Some(container_name) = target.environment.strip_prefix("docker:") else {
+                continue;
+            };
+
+            match Command::new("docker").arg("--version").output() {
+                Ok(output) if output.status.success() => {}
+                Ok(output) => {
+                    findings.push(DoctorFinding {
+                        code: "DOCKER_NOT_FOUND".to_string(),
+                        severity: "error".to_string(),
+                        skill_id: skill.id.clone(),
+                        target_path: target
+                            .path
+                            .clone()
+                            .unwrap_or_else(|| target.environment.clone()),
+                        message: format!(
+                            "docker CLI is unavailable for target `{}` (status={} stderr=`{}`)",
+                            target.environment,
+                            output.status,
+                            String::from_utf8_lossy(&output.stderr).trim()
+                        ),
+                        remediation: "Install Docker or ensure `docker` is available in PATH."
+                            .to_string(),
+                    });
+                    continue;
+                }
+                Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+                    findings.push(DoctorFinding {
+                        code: "DOCKER_NOT_FOUND".to_string(),
+                        severity: "error".to_string(),
+                        skill_id: skill.id.clone(),
+                        target_path: target
+                            .path
+                            .clone()
+                            .unwrap_or_else(|| target.environment.clone()),
+                        message: format!(
+                            "docker CLI is unavailable for target `{}`: {err}",
+                            target.environment
+                        ),
+                        remediation: "Install Docker or ensure `docker` is available in PATH."
+                            .to_string(),
+                    });
+                    continue;
+                }
+                Err(err) => {
+                    findings.push(DoctorFinding {
+                        code: "DOCKER_NOT_FOUND".to_string(),
+                        severity: "error".to_string(),
+                        skill_id: skill.id.clone(),
+                        target_path: target
+                            .path
+                            .clone()
+                            .unwrap_or_else(|| target.environment.clone()),
+                        message: format!(
+                            "failed to invoke docker CLI for target `{}`: {err}",
+                            target.environment
+                        ),
+                        remediation: "Install Docker or ensure `docker` is available in PATH."
+                            .to_string(),
+                    });
+                    continue;
+                }
+            }
+
+            let inspect = Command::new("docker")
+                .args(["inspect", "--format", "{{.State.Running}}", container_name])
+                .output();
+            match inspect {
+                Ok(output)
+                    if output.status.success()
+                        && String::from_utf8_lossy(&output.stdout).trim() == "true" => {}
+                Ok(output) => {
+                    findings.push(DoctorFinding {
+                        code: "ADAPTER_HEALTH_FAIL".to_string(),
+                        severity: "error".to_string(),
+                        skill_id: skill.id.clone(),
+                        target_path: target
+                            .path
+                            .clone()
+                            .unwrap_or_else(|| target.environment.clone()),
+                        message: format!(
+                            "docker target `{}` failed health check (status={} stdout=`{}` stderr=`{}`)",
+                            target.environment,
+                            output.status,
+                            String::from_utf8_lossy(&output.stdout).trim(),
+                            String::from_utf8_lossy(&output.stderr).trim()
+                        ),
+                        remediation: format!(
+                            "Start the container (`docker start {container_name}`) and retry."
+                        ),
+                    });
+                }
+                Err(err) => {
+                    findings.push(DoctorFinding {
+                        code: "ADAPTER_HEALTH_FAIL".to_string(),
+                        severity: "error".to_string(),
+                        skill_id: skill.id.clone(),
+                        target_path: target
+                            .path
+                            .clone()
+                            .unwrap_or_else(|| target.environment.clone()),
+                        message: format!(
+                            "docker health check invocation failed for target `{}`: {err}",
+                            target.environment
+                        ),
+                        remediation: format!(
+                            "Verify Docker daemon access and container `{container_name}` state."
+                        ),
+                    });
+                }
+            }
+        }
+    }
     findings
 }
 
@@ -795,10 +1096,14 @@ fn print_doctor_json(findings: &[DoctorFinding]) -> Result<(), EdenError> {
 }
 
 pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
-    block_on_command_future(repair_async(config_path, options))
+    block_on_command_future(repair_async(config_path, options, None))
 }
 
-pub async fn repair_async(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
+pub async fn repair_async(
+    config_path: &str,
+    options: CommandOptions,
+    concurrency_override: Option<usize>,
+) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
@@ -807,10 +1112,17 @@ pub async fn repair_async(config_path: &str, options: CommandOptions) -> Result<
             strict: options.strict,
         },
     )?;
+    let concurrency = resolve_effective_reactor_concurrency(
+        concurrency_override,
+        loaded.config.reactor.concurrency,
+        "repair.concurrency",
+    )?;
+    let reactor = SkillReactor::new(concurrency).map_err(EdenError::from)?;
     let config_dir = config_dir_from_path(config_path);
     let execution_config =
         resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir)?;
-    let sync_summary = sync_sources_async(&execution_config, &config_dir).await?;
+    let sync_summary =
+        sync_sources_async_with_reactor(&execution_config, &config_dir, reactor).await?;
     print_source_sync_summary(&sync_summary);
     let safety_reports = analyze_skills(&execution_config, &config_dir)?;
     persist_reports(&safety_reports)?;
@@ -975,6 +1287,9 @@ fn resolve_registry_mode_skills_for_execution(
                 preferred_registry
             )));
         }
+        for source in &sources_for_skill {
+            validate_registry_manifest_for_resolution(source)?;
+        }
         if sources_for_skill.iter().all(|source| !source.root.exists()) {
             let repo_dir = storage_root.join(&skill.id);
             return Err(EdenError::Runtime(format!(
@@ -1007,6 +1322,42 @@ fn resolve_registry_mode_skills_for_execution(
     }
 
     Ok(resolved)
+}
+
+fn validate_registry_manifest_for_resolution(source: &RegistrySource) -> Result<(), EdenError> {
+    if !source.root.exists() {
+        return Ok(());
+    }
+
+    let manifest_path = source.root.join("manifest.toml");
+    if !manifest_path.exists() {
+        eprintln!(
+            "warning: registry `{}` is missing manifest.toml; assuming format_version = 1",
+            source.name
+        );
+        return Ok(());
+    }
+
+    let raw_manifest = fs::read_to_string(&manifest_path)?;
+    let manifest: toml::Value = toml::from_str(&raw_manifest).map_err(|err| {
+        EdenError::Runtime(format!(
+            "registry `{}` manifest.toml is invalid TOML: {err}",
+            source.name
+        ))
+    })?;
+    let Some(format_version) = manifest.get("format_version").and_then(|v| v.as_integer()) else {
+        return Err(EdenError::Runtime(format!(
+            "registry `{}` manifest.toml is missing `format_version`",
+            source.name
+        )));
+    };
+    if format_version != 1 {
+        eprintln!(
+            "warning: registry `{}` manifest format_version={} (expected 1); continuing",
+            source.name, format_version
+        );
+    }
+    Ok(())
 }
 
 fn upsert_mode_b_skill(
@@ -1401,6 +1752,14 @@ pub fn add(req: AddRequest) -> Result<(), EdenError> {
 }
 
 pub fn remove(config_path: &str, skill_id: &str, options: CommandOptions) -> Result<(), EdenError> {
+    block_on_command_future(remove_async(config_path, skill_id, options))
+}
+
+pub async fn remove_async(
+    config_path: &str,
+    skill_id: &str,
+    options: CommandOptions,
+) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_from_file(
@@ -1422,6 +1781,8 @@ pub fn remove(config_path: &str, skill_id: &str, options: CommandOptions) -> Res
         )));
     };
 
+    let removed_skill = config.skills[idx].clone();
+    uninstall_skill_targets(&removed_skill, &config_dir).await?;
     config.skills.remove(idx);
     validate_config(&config, &config_dir)?;
     write_normalized_config(config_path, &config)?;
@@ -1439,6 +1800,19 @@ pub fn remove(config_path: &str, skill_id: &str, options: CommandOptions) -> Res
     }
 
     println!("remove: wrote {}", config_path.display());
+    Ok(())
+}
+
+async fn uninstall_skill_targets(skill: &SkillConfig, config_dir: &Path) -> Result<(), EdenError> {
+    for target in &skill.targets {
+        let target_root = resolve_target_path(target, config_dir)?;
+        let installed_target = normalize_lexical(&target_root.join(&skill.id));
+        let adapter = create_adapter(&target.environment).map_err(EdenError::from)?;
+        adapter
+            .uninstall(&installed_target)
+            .await
+            .map_err(EdenError::from)?;
+    }
     Ok(())
 }
 
@@ -1675,6 +2049,10 @@ fn normalized_config_toml(
         "root = \"{}\"\n\n",
         toml_escape_str(&config.storage_root)
     ));
+    if config.reactor.concurrency != eden_skills_core::reactor::DEFAULT_CONCURRENCY_LIMIT {
+        out.push_str("[reactor]\n");
+        out.push_str(&format!("concurrency = {}\n\n", config.reactor.concurrency));
+    }
     if let Some(registries) = registries {
         if !registries.is_empty() {
             out.push_str(&render_registries_toml(registries));
@@ -1869,13 +2247,32 @@ fn apply_symlink(source_path: &Path, target_path: &Path) -> Result<(), EdenError
     #[cfg(windows)]
     {
         if source_path.is_dir() {
-            std::os::windows::fs::symlink_dir(source_path, target_path)?;
+            std::os::windows::fs::symlink_dir(source_path, target_path)
+                .map_err(|err| map_windows_symlink_error(err, source_path, target_path))?;
         } else {
-            std::os::windows::fs::symlink_file(source_path, target_path)?;
+            std::os::windows::fs::symlink_file(source_path, target_path)
+                .map_err(|err| map_windows_symlink_error(err, source_path, target_path))?;
         }
     }
 
     Ok(())
+}
+
+#[cfg(windows)]
+fn map_windows_symlink_error(
+    err: std::io::Error,
+    source_path: &Path,
+    target_path: &Path,
+) -> EdenError {
+    if err.kind() == std::io::ErrorKind::PermissionDenied {
+        return EdenError::Runtime(format!(
+            "failed to create symlink `{}` -> `{}`: {}. Enable Developer Mode or run as Administrator.",
+            target_path.display(),
+            source_path.display(),
+            err
+        ));
+    }
+    EdenError::Io(err)
 }
 
 fn apply_copy(source_path: &Path, target_path: &Path) -> Result<(), EdenError> {

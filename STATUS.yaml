@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: "2026-02-18"
+updated_at: "2026-02-19"
 project:
   name: eden-skills
   phase: phase2_hyper_loop_core
@@ -214,8 +214,23 @@ phase2:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    batch_7_track_b_p1_all:
+      status: completed
+      completed_at: "2026-02-19"
+      requirements: ARC-003, ARC-004, ARC-007, ARC-104, ARC-105, ARC-107, ARC-110, ARC-203, ARC-204, ARC-205, ARC-206, SCH-P2-005, CMD-P2-004, CMD-P2-005, CMD-P2-006
+      notes:
+        - extended schema parsing with `[reactor].concurrency` default/range validation and stable INVALID_CONCURRENCY diagnostics
+        - wired global `--concurrency` override precedence for `apply`/`repair`/`update` and added install dry-run no-side-effect execution path
+        - added doctor Phase 2 findings for registry staleness and docker target diagnostics (`REGISTRY_STALE`, `DOCKER_NOT_FOUND`, `ADAPTER_HEALTH_FAIL`)
+        - hardened registry P1 behavior with local sync markers, shallow clone verification, manifest warning fallback, and offline-cache resolution/no-cache actionable failure coverage
+        - added cancellation-aware reactor phase execution (`CancellationToken`) with partial result reporting
+        - added `TargetAdapter::uninstall` (Local + Docker) and remove-time target cleanup; added Windows symlink privilege remediation hints in adapter/CLI symlink paths
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
-  - phase2_batch7_track_b_p1_all
+  - phase2_closeout_and_release_readiness
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md

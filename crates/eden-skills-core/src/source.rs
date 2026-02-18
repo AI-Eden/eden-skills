@@ -97,6 +97,14 @@ pub async fn sync_sources_async(
     config: &Config,
     config_dir: &Path,
 ) -> Result<SyncSummary, ReactorError> {
+    sync_sources_async_with_reactor(config, config_dir, SkillReactor::default()).await
+}
+
+pub async fn sync_sources_async_with_reactor(
+    config: &Config,
+    config_dir: &Path,
+    reactor: SkillReactor,
+) -> Result<SyncSummary, ReactorError> {
     let storage_root = resolve_path_string(&config.storage_root, config_dir).map_err(|err| {
         ReactorError::Config {
             detail: err.to_string(),
@@ -115,7 +123,6 @@ pub async fn sync_sources_async(
         })
         .collect::<Vec<_>>();
 
-    let reactor = SkillReactor::default();
     let outcomes = reactor
         .run_phase_a(tasks, move |task| {
             let reactor = reactor;

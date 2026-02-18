@@ -3,6 +3,7 @@ use std::sync::Arc;
 
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
+use tokio_util::sync::CancellationToken;
 
 pub use crate::error::ReactorError;
 
@@ -57,6 +58,26 @@ impl SkillReactor {
         F: Fn(I) -> Fut + Send + Sync + 'static,
         Fut: Future<Output = Result<O, E>> + Send + 'static,
     {
+        let cancellation = CancellationToken::new();
+        let (outcomes, _cancelled) = self
+            .run_phase_a_with_cancellation(tasks, cancellation, phase_a)
+            .await?;
+        Ok(outcomes)
+    }
+
+    pub async fn run_phase_a_with_cancellation<I, O, E, F, Fut>(
+        &self,
+        tasks: Vec<I>,
+        cancellation: CancellationToken,
+        phase_a: F,
+    ) -> Result<(Vec<PhaseOutcome<O, E>>, bool), ReactorError>
+    where
+        I: Send + 'static,
+        O: Send + 'static,
+        E: Send + 'static,
+        F: Fn(I) -> Fut + Send + Sync + 'static,
+        Fut: Future<Output = Result<O, E>> + Send + 'static,
+    {
         let semaphore = Arc::new(Semaphore::new(self.concurrency_limit));
         let phase_a = Arc::new(phase_a);
         let mut join_set = JoinSet::new();
@@ -79,16 +100,38 @@ impl SkillReactor {
         }
 
         let mut outcomes = Vec::new();
-        while let Some(joined) = join_set.join_next().await {
-            let phase_outcome = joined.map_err(|err| ReactorError::TaskJoin {
-                context: "phase-a task join".to_string(),
-                detail: err.to_string(),
-            })??;
-            outcomes.push(phase_outcome);
+        let mut cancelled = false;
+        loop {
+            if join_set.is_empty() {
+                break;
+            }
+
+            tokio::select! {
+                _ = cancellation.cancelled(), if !cancelled => {
+                    cancelled = true;
+                    join_set.abort_all();
+                }
+                joined = join_set.join_next() => {
+                    let Some(joined) = joined else {
+                        break;
+                    };
+                    match joined {
+                        Ok(Ok(phase_outcome)) => outcomes.push(phase_outcome),
+                        Ok(Err(err)) => return Err(err),
+                        Err(err) if cancelled && err.is_cancelled() => {}
+                        Err(err) => {
+                            return Err(ReactorError::TaskJoin {
+                                context: "phase-a task join".to_string(),
+                                detail: err.to_string(),
+                            });
+                        }
+                    }
+                }
+            }
         }
 
         outcomes.sort_by_key(|outcome| outcome.index);
-        Ok(outcomes)
+        Ok((outcomes, cancelled))
     }
 
     pub async fn run_two_phase<I, O, E, F, Fut, PhaseB, PhaseBFut>(

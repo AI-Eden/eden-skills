@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::error::EdenError;
 use crate::paths::resolve_path_string;
+use crate::reactor::{DEFAULT_CONCURRENCY_LIMIT, MAX_CONCURRENCY_LIMIT, MIN_CONCURRENCY_LIMIT};
 
 const DEFAULT_STORAGE_ROOT: &str = "~/.local/share/eden-skills/repos";
 const REGISTRY_MODE_REPO_PREFIX: &str = "registry://";
@@ -15,7 +16,21 @@ const REGISTRY_MODE_REPO_PREFIX: &str = "registry://";
 pub struct Config {
     pub version: u32,
     pub storage_root: String,
+    pub reactor: ReactorConfig,
     pub skills: Vec<SkillConfig>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ReactorConfig {
+    pub concurrency: usize,
+}
+
+impl Default for ReactorConfig {
+    fn default() -> Self {
+        Self {
+            concurrency: DEFAULT_CONCURRENCY_LIMIT,
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -124,7 +139,7 @@ fn collect_top_level_unknown_key_warnings(value: &toml::Value) -> Result<Vec<Str
     };
 
     let mut warnings = Vec::new();
-    let allowed_keys = ["version", "storage", "registries", "skills"];
+    let allowed_keys = ["version", "storage", "registries", "reactor", "skills"];
     for key in map.keys() {
         if !allowed_keys.contains(&key.as_str()) {
             warnings.push(format!("unknown top-level key `{key}`"));
@@ -138,6 +153,7 @@ struct RawConfig {
     version: Option<u32>,
     storage: Option<RawStorageConfig>,
     registries: Option<BTreeMap<String, RawRegistryConfig>>,
+    reactor: Option<RawReactorConfig>,
     skills: Option<Vec<RawSkillConfig>>,
 }
 
@@ -179,6 +195,10 @@ impl RawConfig {
             registry_names.insert(registry_name);
         }
         let has_registries = !registry_names.is_empty();
+        let reactor = self
+            .reactor
+            .unwrap_or_default()
+            .into_reactor_config("reactor.concurrency")?;
 
         let raw_skills = required(self.skills, "skills")?;
         if raw_skills.is_empty() {
@@ -206,6 +226,7 @@ impl RawConfig {
         Ok(Config {
             version,
             storage_root,
+            reactor,
             skills,
         })
     }
@@ -221,6 +242,27 @@ struct RawRegistryConfig {
     url: String,
     priority: Option<i64>,
     auto_update: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+struct RawReactorConfig {
+    concurrency: Option<usize>,
+}
+
+impl RawReactorConfig {
+    fn into_reactor_config(self, field_path: &str) -> Result<ReactorConfig, EdenError> {
+        let concurrency = self.concurrency.unwrap_or(DEFAULT_CONCURRENCY_LIMIT);
+        if !(MIN_CONCURRENCY_LIMIT..=MAX_CONCURRENCY_LIMIT).contains(&concurrency) {
+            return Err(phase2_validation_error(
+                "INVALID_CONCURRENCY",
+                field_path,
+                &format!(
+                    "expected value in [{MIN_CONCURRENCY_LIMIT}, {MAX_CONCURRENCY_LIMIT}], got {concurrency}"
+                ),
+            ));
+        }
+        Ok(ReactorConfig { concurrency })
+    }
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -538,6 +580,16 @@ pub fn validate_config(config: &Config, config_dir: &Path) -> Result<(), EdenErr
 
     resolve_path_string(&config.storage_root, config_dir)
         .map_err(|err| EdenError::Validation(format!("storage.root: invalid path: {err}")))?;
+    if !(MIN_CONCURRENCY_LIMIT..=MAX_CONCURRENCY_LIMIT).contains(&config.reactor.concurrency) {
+        return Err(phase2_validation_error(
+            "INVALID_CONCURRENCY",
+            "reactor.concurrency",
+            &format!(
+                "expected value in [{MIN_CONCURRENCY_LIMIT}, {MAX_CONCURRENCY_LIMIT}], got {}",
+                config.reactor.concurrency
+            ),
+        ));
+    }
 
     if config.skills.is_empty() {
         return Err(EdenError::Validation(

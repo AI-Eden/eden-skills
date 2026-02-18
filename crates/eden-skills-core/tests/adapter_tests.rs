@@ -53,6 +53,25 @@ async fn local_adapter_install_copy_and_path_exists_work() {
 }
 
 #[tokio::test]
+async fn local_adapter_uninstall_removes_existing_target() {
+    let temp = tempdir().expect("tempdir");
+    let source = temp.path().join("source");
+    let target = temp.path().join("target");
+    fs::create_dir_all(&source).expect("create source");
+    fs::write(source.join("README.md"), "hello\n").expect("write source");
+
+    let adapter = LocalAdapter::new();
+    adapter
+        .install(&source, &target, InstallMode::Copy)
+        .await
+        .expect("install copy");
+    assert!(target.exists(), "target should exist before uninstall");
+
+    adapter.uninstall(&target).await.expect("uninstall");
+    assert!(!target.exists(), "target should be removed by uninstall");
+}
+
+#[tokio::test]
 async fn local_adapter_symlink_supports_directory_and_file_sources() {
     let temp = tempdir().expect("tempdir");
     let source_dir = temp.path().join("source-dir");
@@ -158,8 +177,7 @@ async fn docker_adapter_uses_docker_cli_for_health_install_and_exec() {
     perms.set_mode(0o755);
     fs::set_permissions(&docker_bin, perms).expect("set executable");
 
-    let adapter =
-        DockerAdapter::with_binary("test-container", &docker_bin).expect("docker adapter");
+    let adapter = docker_adapter_with_retry("test-container", &docker_bin);
     adapter.health_check().await.expect("health check");
 
     let source = temp.path().join("source");
@@ -178,6 +196,8 @@ async fn docker_adapter_uses_docker_cli_for_health_install_and_exec() {
 
     let output = adapter.exec("echo inside-container").await.expect("exec");
     assert_eq!(output.trim(), "echo inside-container");
+
+    adapter.uninstall(target).await.expect("docker uninstall");
 }
 
 #[cfg(unix)]
@@ -208,8 +228,7 @@ exit 1
     perms.set_mode(0o755);
     fs::set_permissions(&docker_bin, perms).expect("set executable");
 
-    let adapter =
-        DockerAdapter::with_binary("stopped-container", &docker_bin).expect("docker adapter");
+    let adapter = docker_adapter_with_retry("stopped-container", &docker_bin);
     let err = adapter
         .health_check()
         .await
@@ -217,5 +236,30 @@ exit 1
     assert!(
         err.to_string().contains("docker start stopped-container"),
         "unexpected health check error: {err}"
+    );
+}
+
+#[cfg(unix)]
+fn docker_adapter_with_retry(container_name: &str, docker_bin: &Path) -> DockerAdapter {
+    let mut last_err = None;
+    for _ in 0..20 {
+        match DockerAdapter::with_binary(container_name, docker_bin) {
+            Ok(adapter) => return adapter,
+            Err(err) => {
+                let message = err.to_string();
+                let is_text_file_busy =
+                    message.contains("Text file busy") || message.contains("(os error 26)");
+                if !is_text_file_busy {
+                    panic!("docker adapter: {err}");
+                }
+                last_err = Some(err);
+                std::thread::sleep(std::time::Duration::from_millis(10));
+            }
+        }
+    }
+
+    panic!(
+        "docker adapter: {}",
+        last_err.expect("expected text-file-busy error")
     );
 }

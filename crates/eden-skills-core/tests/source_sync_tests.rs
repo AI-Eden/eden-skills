@@ -3,8 +3,8 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use eden_skills_core::config::{
-    AgentKind, Config, InstallConfig, InstallMode, SafetyConfig, SkillConfig, SourceConfig,
-    TargetConfig, VerifyConfig,
+    AgentKind, Config, InstallConfig, InstallMode, ReactorConfig, SafetyConfig, SkillConfig,
+    SourceConfig, TargetConfig, VerifyConfig,
 };
 use eden_skills_core::source::{sync_sources, SyncFailureStage};
 use tempfile::tempdir;
@@ -112,6 +112,7 @@ fn sync_sources_continues_after_failure_and_aggregates_results() {
     let config = Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
         skills: vec![
             SkillConfig {
                 id: "good-skill".to_string(),
@@ -200,6 +201,7 @@ fn test_config(storage_root: &Path, repo_url: &str, reference: &str) -> Config {
     Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
         skills: vec![SkillConfig {
             id: SKILL_ID.to_string(),
             source: SourceConfig {

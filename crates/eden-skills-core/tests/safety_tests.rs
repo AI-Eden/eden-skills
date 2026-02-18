@@ -3,8 +3,8 @@ use std::path::Path;
 use std::process::Command;
 
 use eden_skills_core::config::{
-    AgentKind, Config, InstallConfig, InstallMode, SafetyConfig, SkillConfig, SourceConfig,
-    TargetConfig, VerifyConfig,
+    AgentKind, Config, InstallConfig, InstallMode, ReactorConfig, SafetyConfig, SkillConfig,
+    SourceConfig, TargetConfig, VerifyConfig,
 };
 use eden_skills_core::safety::{analyze_skills, persist_reports, LicenseStatus};
 use tempfile::tempdir;
@@ -100,6 +100,7 @@ fn test_config(storage_root: &Path) -> Config {
     Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
         skills: vec![SkillConfig {
             id: SKILL_ID.to_string(),
             source: SourceConfig {

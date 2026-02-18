@@ -6,8 +6,8 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use eden_skills_core::config::{
-    AgentKind, Config, InstallConfig, InstallMode, SafetyConfig, SkillConfig, SourceConfig,
-    TargetConfig, VerifyConfig,
+    AgentKind, Config, InstallConfig, InstallMode, ReactorConfig, SafetyConfig, SkillConfig,
+    SourceConfig, TargetConfig, VerifyConfig,
 };
 use eden_skills_core::plan::{build_plan, Action};
 use tempfile::tempdir;
@@ -80,6 +80,7 @@ fn copy_mode_plan_noop_streams_large_file() {
     let config = Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
         skills: vec![SkillConfig {
             id: skill_id.to_string(),
             source: SourceConfig {
@@ -140,6 +141,7 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
     let config = Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
         skills: vec![SkillConfig {
             id: skill_id.to_string(),
             source: SourceConfig {
@@ -204,6 +206,7 @@ fn copy_mode_plan_conflict_on_symlink_in_tree() {
     let config = Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
         skills: vec![SkillConfig {
             id: skill_id.to_string(),
             source: SourceConfig {
@@ -271,6 +274,7 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
     let config = Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
         skills: vec![SkillConfig {
             id: skill_id.to_string(),
             source: SourceConfig {
@@ -334,6 +338,7 @@ fn copy_mode_plan_conflict_on_symlink_in_tree() {
     let config = Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
         skills: vec![SkillConfig {
             id: skill_id.to_string(),
             source: SourceConfig {

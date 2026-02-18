@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use eden_skills_core::reactor::{ReactorError, SkillReactor, DEFAULT_CONCURRENCY_LIMIT};
+use tokio_util::sync::CancellationToken;
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 async fn reactor_respects_bounded_concurrency_limit() {
@@ -110,4 +111,35 @@ async fn reactor_converts_spawn_blocking_panic_to_structured_error() {
         .expect_err("panic should map to error");
 
     assert!(matches!(err, ReactorError::BlockingTaskPanicked { .. }));
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn reactor_supports_cancellation_with_partial_results() {
+    let reactor = SkillReactor::new(2).expect("reactor");
+    let tasks = vec![0usize, 1, 2, 3, 4, 5];
+    let token = CancellationToken::new();
+    let cancel_token = token.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(Duration::from_millis(120)).await;
+        cancel_token.cancel();
+    });
+
+    let (outcomes, cancelled) = reactor
+        .run_phase_a_with_cancellation(tasks, token, move |idx| async move {
+            tokio::time::sleep(Duration::from_millis(60)).await;
+            Ok::<usize, ReactorError>(idx)
+        })
+        .await
+        .expect("reactor cancellation run");
+
+    assert!(cancelled, "cancellation flag should be true");
+    assert!(
+        outcomes.len() < 6,
+        "expected partial outcomes after cancellation, got {}",
+        outcomes.len()
+    );
+    assert!(
+        !outcomes.is_empty(),
+        "expected at least one completed outcome before cancellation"
+    );
 }

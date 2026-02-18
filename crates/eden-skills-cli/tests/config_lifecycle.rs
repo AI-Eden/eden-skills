@@ -154,6 +154,60 @@ fn remove_deletes_only_matching_skill() {
 }
 
 #[test]
+fn remove_cleans_up_installed_local_target_path() {
+    let temp = tempdir().expect("tempdir");
+    let config_path = temp.path().join("skills.toml");
+    let target_root = temp.path().join("targets");
+
+    let init = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["init", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run init");
+    assert_eq!(init.status.code(), Some(0));
+
+    let add = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args([
+            "add",
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+            "--id",
+            "cleanup-skill",
+            "--repo",
+            "https://example.com/repo.git",
+            "--target",
+            &format!("custom:{}", target_root.display()),
+        ])
+        .output()
+        .expect("run add");
+    assert_eq!(add.status.code(), Some(0));
+
+    let installed_target = target_root.join("cleanup-skill");
+    fs::create_dir_all(&installed_target).expect("create installed target");
+    fs::write(installed_target.join("README.md"), "installed").expect("write target marker");
+
+    let remove = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args([
+            "remove",
+            "cleanup-skill",
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+        ])
+        .output()
+        .expect("run remove");
+    assert_eq!(
+        remove.status.code(),
+        Some(0),
+        "remove should succeed, stderr={}",
+        String::from_utf8_lossy(&remove.stderr)
+    );
+    assert!(
+        !installed_target.exists(),
+        "remove should clean up installed local target path"
+    );
+}
+
+#[test]
 fn set_requires_at_least_one_mutation_flag() {
     let temp = tempdir().expect("tempdir");
     let config_path = temp.path().join("skills.toml");

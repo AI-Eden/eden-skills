@@ -204,6 +204,88 @@ path = "/tmp/agent-skills"
 }
 
 #[test]
+fn reactor_concurrency_is_loaded_when_valid() {
+    let path = write_config(
+        r#"
+version = 1
+
+[reactor]
+concurrency = 5
+
+[[skills]]
+id = "demo"
+
+[skills.source]
+repo = "https://example.com/demo.git"
+
+[[skills.targets]]
+agent = "custom"
+path = "/tmp/agent-skills"
+"#,
+    );
+
+    let loaded =
+        load_from_file(&path, LoadOptions::default()).expect("reactor config should be accepted");
+    assert_eq!(loaded.config.reactor.concurrency, 5);
+}
+
+#[test]
+fn reactor_concurrency_zero_returns_invalid_concurrency_code() {
+    let path = write_config(
+        r#"
+version = 1
+
+[reactor]
+concurrency = 0
+
+[[skills]]
+id = "demo"
+
+[skills.source]
+repo = "https://example.com/demo.git"
+
+[[skills.targets]]
+agent = "custom"
+path = "/tmp/agent-skills"
+"#,
+    );
+
+    let err = load_from_file(&path, LoadOptions::default()).expect_err("expected validation error");
+    assert!(
+        err.to_string().contains("INVALID_CONCURRENCY"),
+        "expected INVALID_CONCURRENCY code, got {err}"
+    );
+}
+
+#[test]
+fn reactor_concurrency_above_range_returns_invalid_concurrency_code() {
+    let path = write_config(
+        r#"
+version = 1
+
+[reactor]
+concurrency = 101
+
+[[skills]]
+id = "demo"
+
+[skills.source]
+repo = "https://example.com/demo.git"
+
+[[skills.targets]]
+agent = "custom"
+path = "/tmp/agent-skills"
+"#,
+    );
+
+    let err = load_from_file(&path, LoadOptions::default()).expect_err("expected validation error");
+    assert!(
+        err.to_string().contains("INVALID_CONCURRENCY"),
+        "expected INVALID_CONCURRENCY code, got {err}"
+    );
+}
+
+#[test]
 fn phase1_config_remains_valid_in_phase2_loader() {
     let path = write_config(
         r#"
@@ -223,4 +305,5 @@ agent = "claude-code"
     let loaded = load_from_file(&path, LoadOptions::default()).expect("phase1 config should load");
     assert_eq!(loaded.config.skills.len(), 1);
     assert_eq!(loaded.config.skills[0].id, "phase1-skill");
+    assert_eq!(loaded.config.reactor.concurrency, 10);
 }

@@ -34,6 +34,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                     strict: args.strict,
                     json: args.json,
                 },
+                args.concurrency,
             )
             .await
         }
@@ -51,6 +52,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                     strict: args.strict,
                     json: args.json,
                 },
+                args.concurrency,
             )
             .await
         }
@@ -72,6 +74,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 version: args.version,
                 registry: args.registry,
                 target: args.target,
+                dry_run: args.dry_run,
                 options: CommandOptions {
                     strict: args.strict,
                     json: args.json,
@@ -103,14 +106,17 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 json: args.json,
             },
         }),
-        Commands::Remove(args) => commands::remove(
-            &args.config,
-            &args.skill_id,
-            CommandOptions {
-                strict: args.strict,
-                json: args.json,
-            },
-        ),
+        Commands::Remove(args) => {
+            commands::remove_async(
+                &args.config,
+                &args.skill_id,
+                CommandOptions {
+                    strict: args.strict,
+                    json: args.json,
+                },
+            )
+            .await
+        }
         Commands::Set(args) => commands::set(commands::SetRequest {
             config_path: args.config,
             skill_id: args.skill_id,
@@ -167,9 +173,9 @@ struct Cli {
 #[derive(Debug, Subcommand)]
 enum Commands {
     Plan(CommonArgs),
-    Apply(CommonArgs),
+    Apply(ApplyRepairArgs),
     Doctor(CommonArgs),
-    Repair(CommonArgs),
+    Repair(ApplyRepairArgs),
     Update(UpdateArgs),
     Install(InstallArgs),
     Init(InitArgs),
@@ -203,6 +209,18 @@ struct CommonArgs {
 }
 
 #[derive(Debug, Clone, Args)]
+struct ApplyRepairArgs {
+    #[arg(long, default_value = DEFAULT_CONFIG_PATH)]
+    config: String,
+    #[arg(long)]
+    strict: bool,
+    #[arg(long)]
+    json: bool,
+    #[arg(long)]
+    concurrency: Option<usize>,
+}
+
+#[derive(Debug, Clone, Args)]
 struct UpdateArgs {
     #[arg(long, default_value = DEFAULT_CONFIG_PATH)]
     config: String,
@@ -230,6 +248,8 @@ struct InstallArgs {
     registry: Option<String>,
     #[arg(long)]
     target: Option<String>,
+    #[arg(long)]
+    dry_run: bool,
 }
 
 #[derive(Debug, Clone, Args)]
