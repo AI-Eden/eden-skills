@@ -103,16 +103,23 @@ phase2:
     p0_verification_complete: true
     english_only: true
     all_design_questions_resolved: true
-  builder_priority_order:
-    - P0_reactor: ARC-001, ARC-002, ARC-005, ARC-006, ARC-008
-    - P0_adapter: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109
-    - P0_registry: ARC-201, ARC-202, ARC-207
-    - P0_schema: SCH-P2-001, SCH-P2-002, SCH-P2-003, SCH-P2-004, SCH-P2-006
-    - P0_commands: CMD-P2-001, CMD-P2-002, CMD-P2-003
-    - P1_all: ARC-003, ARC-004, ARC-007, ARC-104, ARC-105, ARC-107, ARC-110, ARC-203, ARC-204, ARC-205, ARC-206, SCH-P2-005, CMD-P2-004, CMD-P2-005, CMD-P2-006
-  windows_prerequisites:
-    tasks: WIN-001~WIN-005
-    gate: must_complete_before_windows_ci
+  builder_tracks:
+    track_a_windows:
+      description: "Phase 1 code-only Windows fixes. No Phase 2 dependency. SHOULD start immediately."
+      tasks: WIN-001~WIN-005
+      gate: WIN-001~004 must pass before WIN-005
+      parallel_with: track_b
+    track_b_phase2:
+      description: "Phase 2 architecture implementation. Depends on frozen contracts."
+      priority_order:
+        - P0_reactor: ARC-001, ARC-002, ARC-005, ARC-006, ARC-008
+        - P0_adapter: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109
+        - P0_registry: ARC-201, ARC-202, ARC-207
+        - P0_schema: SCH-P2-001, SCH-P2-002, SCH-P2-003, SCH-P2-004, SCH-P2-006
+        - P0_commands: CMD-P2-001, CMD-P2-002, CMD-P2-003
+        - P1_all: ARC-003, ARC-004, ARC-007, ARC-104, ARC-105, ARC-107, ARC-110, ARC-203, ARC-204, ARC-205, ARC-206, SCH-P2-005, CMD-P2-004, CMD-P2-005, CMD-P2-006
+    cross_track_dependency:
+      - ARC-109_depends_on: WIN-001
 
 next_execution_targets:
   - phase2_builder_implementation

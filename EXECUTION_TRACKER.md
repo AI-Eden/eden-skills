@@ -159,15 +159,39 @@ Current automated tests: `73` (workspace unit/integration-style tests).
 
 ### 7.2 Builder Handoff (Phase 2)
 
-Builder implementation can start. Recommended priority order (P0 first):
+Builder implementation can start. Tasks are organized into two independent
+tracks that MAY execute in parallel.
+
+#### Track A: Windows Prerequisites (Phase 1 code-only, no Phase 2 dependency)
+
+These tasks fix Phase 1 implementation for Windows compatibility. They have
+**zero dependency on Phase 2 architecture** and SHOULD start immediately
+(before or in parallel with Track B). ARC-109 (LocalAdapter cross-platform)
+depends on WIN-001 being completed first.
+
+1. **WIN-001~004**: Source and test fixes (USERPROFILE fallback, `/tmp` paths, `#[cfg(windows)]` equivalents)
+2. **WIN-005**: Enable `windows-latest` in CI (gate: WIN-001~004 pass first)
+
+#### Track B: Phase 2 Architecture Implementation (depends on frozen contracts)
+
+Recommended priority order (P0 first, sequential within track):
 
 1. **P0 Reactor**: ARC-001, ARC-002, ARC-005, ARC-006, ARC-008 (tokio runtime, bounded concurrency, two-phase execution, spawn_blocking, thiserror)
-2. **P0 Adapter**: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109 (TargetAdapter trait, Local, Docker, deterministic selection, Send+Sync, cross-platform)
+2. **P0 Adapter**: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109 (TargetAdapter trait, Local, Docker, deterministic selection, Send+Sync, cross-platform — note: ARC-109 depends on WIN-001)
 3. **P0 Registry**: ARC-201, ARC-202, ARC-207 (multi-registry config, priority fallback, semver crate)
 4. **P0 Schema**: SCH-P2-001~004, SCH-P2-006 (registries section, Mode B, environment, backward compat, error codes)
 5. **P0 Commands**: CMD-P2-001~003 (update, install, apply/repair Mode B support)
 6. **P1 All**: ARC-003, ARC-004, ARC-007, ARC-104, ARC-105, ARC-107, ARC-110, ARC-203~206, SCH-P2-005, CMD-P2-004~006
-7. **Windows Prerequisites**: WIN-001~005 (must complete before Windows CI gate)
+
+#### Dependency Graph
+
+```text
+Track A (Windows):  WIN-001~004 ──→ WIN-005 (enable CI)
+                        │
+                        ▼
+Track B (Phase 2):  P0 Reactor ──→ P0 Adapter ──→ P0 Registry ──→ P0 Schema ──→ P0 Commands ──→ P1
+                                   (ARC-109 needs WIN-001)
+```
 
 Key architectural decisions for Builder reference:
 

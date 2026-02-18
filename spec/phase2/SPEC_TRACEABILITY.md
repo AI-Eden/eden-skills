@@ -95,9 +95,14 @@ Use this file to recover accurate context after compression.
 
 ## 5. Phase 1 Windows Prerequisite Tasks
 
-These tasks fix Phase 1 implementation for Windows compatibility. They are
-tracked here because the Phase 2 CI Gate (Section 7) requires Phase 1 tests
-to pass on Windows. Phase 1 specs remain frozen; these are code-only changes.
+These tasks fix Phase 1 implementation for Windows compatibility. They have
+**no dependency on Phase 2 architecture** and SHOULD start immediately
+(before or in parallel with Phase 2 implementation). They are tracked here
+because the Phase 2 CI Gate (Section 7) requires Phase 1 tests to pass on
+Windows. Phase 1 specs remain frozen; these are code-only changes.
+
+**Cross-track dependency:** ARC-109 (LocalAdapter cross-platform) depends
+on WIN-001 (USERPROFILE fallback) being completed first.
 
 | TASK_ID | Source | Task | Implementation | Status |
 |---|---|---|---|---|
