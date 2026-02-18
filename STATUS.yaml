@@ -62,6 +62,16 @@ phase1:
       branch: main
       event: push
       completed_at: "2026-02-13T19:36:41Z"
+    windows_hosted_run_verified: true
+    windows_hosted_run_reference:
+      workflow: CI
+      run_id: 22139248260
+      run_url: https://github.com/AI-Eden/eden-skills/actions/runs/22139248260
+      job_name: cargo test (windows-latest)
+      job_url: https://github.com/AI-Eden/eden-skills/actions/runs/22139248260/job/63998896303
+      branch: main
+      event: push
+      completed_at: "2026-02-18T12:15:21Z"
 
 ownership:
   builder:
@@ -140,7 +150,14 @@ phase2:
       gate: WIN-001~004 completed and stable
       notes:
         - windows-latest enabled in .github/workflows/ci.yml matrix
-        - local gate passed; hosted Windows CI run pending verification
+        - local gate passed and hosted Windows CI run verified
+      hosted_run_reference:
+        workflow: CI
+        run_id: 22139248260
+        run_url: https://github.com/AI-Eden/eden-skills/actions/runs/22139248260
+        job_name: cargo test (windows-latest)
+        job_url: https://github.com/AI-Eden/eden-skills/actions/runs/22139248260/job/63998896303
+        completed_at: "2026-02-18T12:15:21Z"
 
 next_execution_targets:
   - phase2_batch3_track_b_p0_reactor
