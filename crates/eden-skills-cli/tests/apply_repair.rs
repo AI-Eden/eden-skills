@@ -8,7 +8,8 @@ use tempfile::tempdir;
 
 use common::{
     as_file_url, create_symlink, default_options, expected_source_path, expected_target_path,
-    init_origin_repo, make_read_only_dir, resolved_symlink, restore_permissions, write_config,
+    init_origin_repo, make_read_only_dir, remove_symlink, resolved_symlink, restore_permissions,
+    write_config,
 };
 
 #[test]
@@ -54,6 +55,46 @@ fn fresh_and_repeated_apply_symlink() {
 }
 
 #[test]
+fn apply_updates_misaligned_symlink_target() {
+    let temp = tempdir().expect("tempdir");
+    let origin_repo = init_origin_repo(temp.path());
+
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("agent-skills");
+    let config_path = write_config(
+        temp.path(),
+        &as_file_url(&origin_repo),
+        "symlink",
+        &["path-exists", "target-resolves", "is-symlink"],
+        &storage_root,
+        &target_root,
+    );
+
+    apply(
+        config_path.to_str().expect("config path"),
+        default_options(),
+    )
+    .expect("first apply");
+
+    let target = expected_target_path(&target_root);
+    remove_symlink(&target).expect("remove existing symlink");
+    let wrong_source = temp.path().join("wrong-source");
+    fs::create_dir_all(&wrong_source).expect("create wrong source dir");
+    create_symlink(&wrong_source, &target).expect("create misaligned symlink");
+
+    apply(
+        config_path.to_str().expect("config path"),
+        default_options(),
+    )
+    .expect("second apply updates symlink");
+
+    assert_eq!(
+        resolved_symlink(&target),
+        expected_source_path(&storage_root)
+    );
+}
+
+#[test]
 fn repair_recovers_broken_symlink() {
     let temp = tempdir().expect("tempdir");
     let origin_repo = init_origin_repo(temp.path());
@@ -75,7 +116,7 @@ fn repair_recovers_broken_symlink() {
     )
     .expect("apply");
     let target = expected_target_path(&target_root);
-    fs::remove_file(&target).expect("remove existing symlink");
+    remove_symlink(&target).expect("remove existing symlink");
     let broken_target = temp.path().join("eden-skills-broken");
     create_symlink(&broken_target, &target).expect("broken symlink");
 

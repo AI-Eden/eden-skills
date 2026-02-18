@@ -1209,7 +1209,11 @@ fn ensure_parent_dir(path: &Path) -> Result<(), EdenError> {
 
 fn remove_path(path: &Path) -> Result<(), EdenError> {
     let metadata = fs::symlink_metadata(path)?;
-    if metadata.file_type().is_symlink() || metadata.is_file() {
+    if metadata.file_type().is_symlink() {
+        remove_symlink_path(path)?;
+        return Ok(());
+    }
+    if metadata.is_file() {
         fs::remove_file(path)?;
         return Ok(());
     }
@@ -1217,6 +1221,24 @@ fn remove_path(path: &Path) -> Result<(), EdenError> {
         fs::remove_dir_all(path)?;
     }
     Ok(())
+}
+
+#[cfg(not(windows))]
+fn remove_symlink_path(path: &Path) -> Result<(), EdenError> {
+    fs::remove_file(path)?;
+    Ok(())
+}
+
+#[cfg(windows)]
+fn remove_symlink_path(path: &Path) -> Result<(), EdenError> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+            fs::remove_dir(path)?;
+            Ok(())
+        }
+        Err(err) => Err(EdenError::Io(err)),
+    }
 }
 
 fn copy_recursively(source: &Path, target: &Path) -> Result<(), EdenError> {

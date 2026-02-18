@@ -1,6 +1,8 @@
 #![allow(dead_code)]
 
 use std::fs;
+#[cfg(windows)]
+use std::io::ErrorKind;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -131,13 +133,38 @@ pub fn make_read_only_dir(path: &Path) -> fs::Permissions {
     let original = fs::metadata(path)
         .expect("restricted metadata")
         .permissions();
-    run_icacls(path, &["/inheritance:r", "/grant:r", "*S-1-1-0:(OI)(CI)RX"]);
+    let principal = current_windows_principal();
+    let grant_rule_self = format!("{principal}:RX");
+    let grant_rule_children = format!("{principal}:(OI)(CI)RX");
+    let deny_rule_self = format!("{principal}:W");
+    let deny_rule_children = format!("{principal}:(OI)(CI)W");
+    run_icacls(path, &["/inheritance:r"]);
+    run_icacls(path, &["/grant:r", &grant_rule_self]);
+    run_icacls(path, &["/grant", &grant_rule_children]);
+    run_icacls(path, &["/deny", &deny_rule_self]);
+    run_icacls(path, &["/deny", &deny_rule_children]);
     original
 }
 
 #[cfg(windows)]
 pub fn restore_permissions(path: &Path, _permissions: fs::Permissions) {
     run_icacls(path, &["/reset", "/T", "/C"]);
+}
+
+pub fn remove_symlink(path: &Path) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        return fs::remove_file(path);
+    }
+
+    #[cfg(windows)]
+    {
+        return match fs::remove_file(path) {
+            Ok(()) => Ok(()),
+            Err(err) if err.kind() == ErrorKind::PermissionDenied => fs::remove_dir(path),
+            Err(err) => Err(err),
+        };
+    }
 }
 
 #[cfg(unix)]
@@ -168,6 +195,20 @@ fn run_icacls(path: &Path, args: &[&str]) {
         String::from_utf8_lossy(&output.stderr).trim(),
         String::from_utf8_lossy(&output.stdout).trim()
     );
+}
+
+#[cfg(windows)]
+fn current_windows_principal() -> String {
+    let output = Command::new("whoami").output().expect("spawn whoami");
+    if !output.status.success() {
+        panic!(
+            "whoami failed: status={} stderr=`{}` stdout=`{}`",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim(),
+            String::from_utf8_lossy(&output.stdout).trim()
+        );
+    }
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
 }
 
 fn run_git(cwd: &Path, args: &[&str]) {

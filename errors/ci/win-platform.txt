@@ -1,0 +1,90 @@
+Run cargo test --workspace
+  
+ Downloading crates ...
+  Downloaded once_cell v1.21.3
+  Downloaded tempfile v3.25.0
+  Downloaded cfg-if v1.0.4
+  Downloaded fastrand v2.3.0
+  Downloaded getrandom v0.4.1
+   Compiling serde_core v1.0.228
+   Compiling windows-link v0.2.1
+   Compiling windows-sys v0.61.2
+   Compiling hashbrown v0.16.1
+   Compiling equivalent v1.0.2
+   Compiling indexmap v2.13.0
+   Compiling serde v1.0.228
+   Compiling toml_write v0.1.2
+   Compiling winnow v0.7.14
+   Compiling serde_spanned v0.6.9
+   Compiling toml_datetime v0.6.11
+   Compiling thiserror v2.0.18
+   Compiling zmij v1.0.21
+   Compiling memchr v2.8.0
+   Compiling toml_edit v0.22.27
+   Compiling itoa v1.0.17
+   Compiling getrandom v0.4.1
+   Compiling serde_json v1.0.149
+   Compiling toml v0.8.23
+   Compiling cfg-if v1.0.4
+   Compiling eden-skills-core v0.1.0 (D:\a\eden-skills\eden-skills\crates\eden-skills-core)
+warning: unused variable: `metadata`
+   --> crates\eden-skills-core\src\safety.rs:168:5
+    |
+168 |     metadata: &fs::Metadata,
+    |     ^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_metadata`
+    |
+    = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+   Compiling fastrand v2.3.0
+   Compiling once_cell v1.21.3
+warning: `eden-skills-core` (lib) generated 1 warning (run `cargo fix --lib -p eden-skills-core` to apply 1 suggestion)
+   Compiling utf8parse v0.2.2
+   Compiling anstyle v1.0.13
+   Compiling tempfile v3.25.0
+   Compiling once_cell_polyfill v1.70.2
+   Compiling anstyle-wincon v3.0.11
+   Compiling anstyle-parse v0.2.7
+   Compiling anstyle-query v1.1.5
+   Compiling is_terminal_polyfill v1.70.2
+   Compiling colorchoice v1.0.4
+   Compiling clap_lex v1.0.0
+   Compiling anstream v0.6.21
+   Compiling strsim v0.11.1
+   Compiling clap_builder v4.5.58
+   Compiling clap v4.5.58
+   Compiling eden-skills-cli v0.1.0 (D:\a\eden-skills\eden-skills\crates\eden-skills-cli)
+warning: `eden-skills-core` (lib test) generated 1 warning (1 duplicate)
+   Compiling eden-skills-indexer v0.1.0 (D:\a\eden-skills\eden-skills\crates\eden-skills-indexer)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 37.10s
+     Running unittests src\lib.rs (target\debug\deps\eden_skills_cli-f407f55ace820ec3.exe)
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running unittests src\main.rs (target\debug\deps\eden_skills-0501902eb01a6741.exe)
+running 0 tests
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+     Running tests\apply_repair.rs (target\debug\deps\apply_repair-20c6ab8d364e501f.exe)
+running 3 tests
+test apply_fails_on_permission_denied_target_path ... FAILED
+test fresh_and_repeated_apply_symlink ... ok
+test repair_recovers_broken_symlink ... FAILED
+error: test failed, to rerun pass `-p eden-skills-cli --test apply_repair`
+failures:
+---- apply_fails_on_permission_denied_target_path stdout ----
+source sync: cloned=1 updated=0 skipped=0 failed=0
+safety summary: permissive=0 non_permissive=0 unknown=1 risk_labeled=0 no_exec=0
+apply summary: create=1 update=0 noop=0 conflict=0 skipped_no_exec=0
+apply verification: ok
+thread 'apply_fails_on_permission_denied_target_path' (3320) panicked at crates\eden-skills-cli\tests\apply_repair.rs:120:22:
+apply should fail for permission denied target: ()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+---- repair_recovers_broken_symlink stdout ----
+source sync: cloned=1 updated=0 skipped=0 failed=0
+safety summary: permissive=0 non_permissive=0 unknown=1 risk_labeled=0 no_exec=0
+apply summary: create=1 update=0 noop=0 conflict=0 skipped_no_exec=0
+apply verification: ok
+thread 'repair_recovers_broken_symlink' (7612) panicked at crates\eden-skills-cli\tests\apply_repair.rs:78:30:
+remove existing symlink: Os { code: 5, kind: PermissionDenied, message: "Access is denied." }
+failures:
+    apply_fails_on_permission_denied_target_path
+    repair_recovers_broken_symlink
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.84s
+Error: Process completed with exit code 1.
