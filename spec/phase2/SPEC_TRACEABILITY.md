@@ -15,15 +15,15 @@ Use this file to recover accurate context after compression.
 | ARC-006 | `SPEC_REACTOR.md` 4 | Sync git ops MUST use `spawn_blocking` or async process to avoid blocking runtime | `crates/eden-skills-core/src/reactor.rs` (`run_blocking` uses `tokio::task::spawn_blocking`), `crates/eden-skills-core/src/source.rs` (clone/fetch/checkout wrapped in `run_blocking`) | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_converts_spawn_blocking_panic_to_structured_error`), `crates/eden-skills-core/tests/source_sync_tests.rs` | implemented |
 | ARC-007 | `SPEC_REACTOR.md` 4 | Reactor SHOULD support graceful cancellation via `CancellationToken` | -- | -- | planned |
 | ARC-008 | `SPEC_REACTOR.md` 4 | Phase 2 domain errors MUST use `thiserror`; `anyhow` only at binary entry point | `crates/eden-skills-core/src/error.rs` (`ReactorError`, `AdapterError`, `RegistryError` via `thiserror` + conversion to `EdenError`) | `crates/eden-skills-core/tests/reactor_tests.rs`, workspace gate `cargo clippy --workspace -- -D warnings` | implemented |
-| ARC-101 | `SPEC_ADAPTER.md` 4 | System MUST define `TargetAdapter` trait decoupling intent from syscalls | -- | -- | planned |
-| ARC-102 | `SPEC_ADAPTER.md` 4 | `LocalAdapter` MUST be provided for backward compatibility | -- | -- | planned |
-| ARC-103 | `SPEC_ADAPTER.md` 4 | `DockerAdapter` MUST be provided using `docker` CLI | -- | -- | planned |
+| ARC-101 | `SPEC_ADAPTER.md` 4 | System MUST define `TargetAdapter` trait decoupling intent from syscalls | `crates/eden-skills-core/src/adapter.rs` (`TargetAdapter` async trait contract) | `crates/eden-skills-core/tests/adapter_tests.rs` (`target_adapter_trait_object_can_be_spawned_via_joinset`) | implemented |
+| ARC-102 | `SPEC_ADAPTER.md` 4 | `LocalAdapter` MUST be provided for backward compatibility | `crates/eden-skills-core/src/adapter.rs` (`LocalAdapter` local health/path/install/exec implementations) | `crates/eden-skills-core/tests/adapter_tests.rs` (`local_adapter_install_copy_and_path_exists_work`, `local_adapter_symlink_supports_directory_and_file_sources`, `local_adapter_exec_runs_command`), Phase 1 regression gate (`cargo test --workspace`) | implemented |
+| ARC-103 | `SPEC_ADAPTER.md` 4 | `DockerAdapter` MUST be provided using `docker` CLI | `crates/eden-skills-core/src/adapter.rs` (`DockerAdapter`, docker CLI wrapper via `tokio::process::Command`) | `crates/eden-skills-core/tests/adapter_tests.rs` (`docker_adapter_uses_docker_cli_for_health_install_and_exec`, `docker_adapter_health_check_fails_when_container_not_running`) | implemented |
 | ARC-104 | `SPEC_ADAPTER.md` 4 | `DockerAdapter` MUST support `cp` injection strategy | -- | -- | planned |
 | ARC-105 | `SPEC_ADAPTER.md` 4 | `DockerAdapter` MUST use `tokio::process::Command` for async interaction | -- | -- | planned |
-| ARC-106 | `SPEC_ADAPTER.md` 4 | Adapter selection MUST be deterministic from config `environment` field | -- | -- | planned |
+| ARC-106 | `SPEC_ADAPTER.md` 4 | Adapter selection MUST be deterministic from config `environment` field | `crates/eden-skills-core/src/adapter.rs` (`AdapterEnvironment`, `parse_environment`, `create_adapter`) | `crates/eden-skills-core/tests/adapter_tests.rs` (`parse_environment_is_deterministic`, `create_adapter_rejects_invalid_environment`) | implemented |
 | ARC-107 | `SPEC_ADAPTER.md` 4 | `TargetAdapter` SHOULD include `uninstall` method | -- | -- | planned |
-| ARC-108 | `SPEC_ADAPTER.md` 4 | `TargetAdapter` MUST require `Send + Sync` bounds (for `JoinSet::spawn`) | -- | -- | planned |
-| ARC-109 | `SPEC_ADAPTER.md` 4 | `LocalAdapter` MUST work on Linux, macOS, and Windows (platform APIs + tilde expansion) | -- | -- | planned |
+| ARC-108 | `SPEC_ADAPTER.md` 4 | `TargetAdapter` MUST require `Send + Sync` bounds (for `JoinSet::spawn`) | `crates/eden-skills-core/src/adapter.rs` (`pub trait TargetAdapter: Send + Sync`) | `crates/eden-skills-core/tests/adapter_tests.rs` (`target_adapter_trait_object_can_be_spawned_via_joinset`) | implemented |
+| ARC-109 | `SPEC_ADAPTER.md` 4 | `LocalAdapter` MUST work on Linux, macOS, and Windows (platform APIs + tilde expansion) | `crates/eden-skills-core/src/adapter.rs` (`LocalAdapter::install` uses platform symlink APIs), `crates/eden-skills-core/src/paths.rs` (`HOME` -> `USERPROFILE` fallback) | `crates/eden-skills-core/tests/adapter_tests.rs` (`local_adapter_symlink_supports_directory_and_file_sources`), `crates/eden-skills-core/tests/paths_tests.rs` (`resolve_path_string_uses_userprofile_when_home_is_unset`, `resolve_path_string_prefers_home_when_home_and_userprofile_exist`) | implemented |
 | ARC-110 | `SPEC_ADAPTER.md` 4 | Windows symlink privilege error SHOULD include actionable remediation hint | -- | -- | planned |
 | ARC-201 | `SPEC_REGISTRY.md` 4 | Configuration MUST support multiple registries with priority weights | -- | -- | planned |
 | ARC-202 | `SPEC_REGISTRY.md` 4 | Resolution MUST follow priority-based fallback order | -- | -- | planned |
@@ -63,9 +63,9 @@ Use this file to recover accurate context after compression.
 | TM-P2-002 | `SPEC_TEST_MATRIX.md` 2.2 | Bounded concurrency | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_respects_bounded_concurrency_limit`) | implemented |
 | TM-P2-003 | `SPEC_TEST_MATRIX.md` 2.3 | Partial download failure | -- | planned |
 | TM-P2-004 | `SPEC_TEST_MATRIX.md` 2.4 | Phase 1 backward compatibility | -- | planned |
-| TM-P2-005 | `SPEC_TEST_MATRIX.md` 3.1 | LocalAdapter parity | -- | planned |
-| TM-P2-006 | `SPEC_TEST_MATRIX.md` 3.2 | DockerAdapter install | -- | planned |
-| TM-P2-007 | `SPEC_TEST_MATRIX.md` 3.3 | DockerAdapter health check | -- | planned |
+| TM-P2-005 | `SPEC_TEST_MATRIX.md` 3.1 | LocalAdapter parity | `crates/eden-skills-core/tests/adapter_tests.rs` (`local_adapter_install_copy_and_path_exists_work`, `local_adapter_symlink_supports_directory_and_file_sources`, `local_adapter_exec_runs_command`) | implemented (adapter core contract level) |
+| TM-P2-006 | `SPEC_TEST_MATRIX.md` 3.2 | DockerAdapter install | `crates/eden-skills-core/tests/adapter_tests.rs` (`docker_adapter_uses_docker_cli_for_health_install_and_exec`) | implemented (docker CLI stubbed integration) |
+| TM-P2-007 | `SPEC_TEST_MATRIX.md` 3.3 | DockerAdapter health check | `crates/eden-skills-core/tests/adapter_tests.rs` (`docker_adapter_health_check_fails_when_container_not_running`) | implemented |
 | TM-P2-008 | `SPEC_TEST_MATRIX.md` 4.1 | Registry update | -- | planned |
 | TM-P2-009 | `SPEC_TEST_MATRIX.md` 4.2 | Registry resolution | -- | planned |
 | TM-P2-010 | `SPEC_TEST_MATRIX.md` 4.3 | Version constraint matching | -- | planned |
@@ -74,8 +74,8 @@ Use this file to recover accurate context after compression.
 | TM-P2-013 | `SPEC_TEST_MATRIX.md` 2.6 | Concurrency configuration | -- | planned |
 | TM-P2-014 | `SPEC_TEST_MATRIX.md` 2.7 | Spawn blocking safety | `crates/eden-skills-core/tests/reactor_tests.rs` (`reactor_converts_spawn_blocking_panic_to_structured_error`), `crates/eden-skills-core/src/source.rs` (`run_blocking` integration) | implemented |
 | TM-P2-015 | `SPEC_TEST_MATRIX.md` 3.5 | DockerAdapter symlink fallback | -- | planned |
-| TM-P2-016 | `SPEC_TEST_MATRIX.md` 3.6 | Adapter selection determinism | -- | planned |
-| TM-P2-017 | `SPEC_TEST_MATRIX.md` 3.7 | Docker binary missing | -- | planned |
+| TM-P2-016 | `SPEC_TEST_MATRIX.md` 3.6 | Adapter selection determinism | `crates/eden-skills-core/tests/adapter_tests.rs` (`parse_environment_is_deterministic`, `create_adapter_rejects_invalid_environment`) | implemented |
+| TM-P2-017 | `SPEC_TEST_MATRIX.md` 3.7 | Docker binary missing | `crates/eden-skills-core/tests/adapter_tests.rs` (`docker_adapter_reports_missing_binary_at_construction`) | implemented |
 | TM-P2-018 | `SPEC_TEST_MATRIX.md` 4.5 | Offline resolution | -- | planned |
 | TM-P2-019 | `SPEC_TEST_MATRIX.md` 4.6 | Shallow clone efficiency | -- | planned |
 | TM-P2-020 | `SPEC_TEST_MATRIX.md` 4.7 | Yanked version handling | -- | planned |

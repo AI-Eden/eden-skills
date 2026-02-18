@@ -172,8 +172,22 @@ phase2:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    batch_4_track_b_p0_adapter:
+      status: completed
+      completed_at: "2026-02-18"
+      requirements: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109
+      notes:
+        - added Phase 2 adapter module with TargetAdapter async trait contract (Send + Sync bounds)
+        - implemented LocalAdapter for local health/path/install/exec behavior with cross-platform symlink handling
+        - implemented DockerAdapter using docker CLI calls via tokio process execution with health/install/exec/path checks
+        - implemented deterministic adapter environment parsing and factory selection from local/docker:<container>
+        - added adapter-focused tests covering trait spawnability, LocalAdapter parity, DockerAdapter install/health, invalid environment, and missing Docker CLI
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
-  - phase2_batch4_track_b_p0_adapter
+  - phase2_batch5_track_b_p0_registry
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md

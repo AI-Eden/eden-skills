@@ -59,7 +59,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] CI gate setup for Linux + macOS smoke (`.github/workflows/ci.yml`), hosted run verified (`CI` run `22000208004`)
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 
-Current automated tests: `75` (workspace unit/integration-style tests).
+Current automated tests: `84` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -105,6 +105,7 @@ Current automated tests: `75` (workspace unit/integration-style tests).
 - [x] Completed Phase 2 Track A Batch 1 (`WIN-001~WIN-004`): USERPROFILE fallback, portable test paths, Windows parity tests, and Windows ACL-based test helpers.
 - [x] Completed Phase 2 Track A Batch 2 (`WIN-005`): enabled `windows-latest` in CI matrix and verified hosted Windows run (`https://github.com/AI-Eden/eden-skills/actions/runs/22139248260`).
 - [x] Completed Phase 2 Track B Batch 3 (`ARC-001/002/005/006/008`): tokio runtime entrypoint, `SkillReactor` (JoinSet + Semaphore, default concurrency 10), two-phase barrier, `spawn_blocking` integration for git sync, and structured Phase 2 domain errors via `thiserror`.
+- [x] Completed Phase 2 Track B Batch 4 (`ARC-101/102/103/106/108/109`): added `TargetAdapter` contract (`Send + Sync`), implemented `LocalAdapter` and `DockerAdapter` (docker CLI via tokio process), deterministic adapter environment parsing/factory selection, and adapter contract tests (including missing docker CLI and stopped container health-check failure).
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -122,6 +123,7 @@ Current automated tests: `75` (workspace unit/integration-style tests).
 - [x] Harmonize strict conflict and verify-failure precedence for `apply`/`repair`.
 - [x] Complete Phase 1 Builder closeout audit (command-spec parity, traceability completeness, test-matrix consistency).
 - [x] Complete Phase 2 Track B Batch 3 P0 Reactor (`ARC-001/002/005/006/008`) with tests and quality gate.
+- [x] Complete Phase 2 Track B Batch 4 P0 Adapter (`ARC-101/102/103/106/108/109`) with tests and quality gate.
 
 ### 5.2 Architect-Owned (Claude Opus)
 
@@ -182,7 +184,7 @@ depends on WIN-001 being completed first.
 Recommended priority order (P0 first, sequential within track):
 
 1. **P0 Reactor**: ARC-001, ARC-002, ARC-005, ARC-006, ARC-008 (tokio runtime, bounded concurrency, two-phase execution, spawn_blocking, thiserror) — **completed (Batch 3, 2026-02-18)**
-2. **P0 Adapter**: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109 (TargetAdapter trait, Local, Docker, deterministic selection, Send+Sync, cross-platform — note: ARC-109 depends on WIN-001)
+2. **P0 Adapter**: ARC-101, ARC-102, ARC-103, ARC-106, ARC-108, ARC-109 (TargetAdapter trait, Local, Docker, deterministic selection, Send+Sync, cross-platform — note: ARC-109 depends on WIN-001) — **completed (Batch 4, 2026-02-18)**
 3. **P0 Registry**: ARC-201, ARC-202, ARC-207 (multi-registry config, priority fallback, semver crate)
 4. **P0 Schema**: SCH-P2-001~004, SCH-P2-006 (registries section, Mode B, environment, backward compat, error codes)
 5. **P0 Commands**: CMD-P2-001~003 (update, install, apply/repair Mode B support)
