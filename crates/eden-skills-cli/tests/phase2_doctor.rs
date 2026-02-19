@@ -84,16 +84,12 @@ fn doctor_emits_docker_not_found_for_docker_targets() {
     let storage_root = temp.path().join("storage");
     let target_root = temp.path().join("agent-target");
     let config_path = write_docker_target_config(temp.path(), &storage_root, &target_root);
-    let docker_stub_dir = temp.path().join("docker-unavailable-bin");
-    fs::create_dir_all(&docker_stub_dir).expect("create docker stub dir");
-    write_unavailable_docker_stub(&docker_stub_dir);
+    let docker_override = temp.path().join("missing-docker-binary-for-test");
 
     let output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
         .args(["doctor", "--config"])
         .arg(&config_path)
-        .env("PATH", &docker_stub_dir)
-        // Keep resolution deterministic even when runner images preinstall docker.
-        .current_dir(&docker_stub_dir)
+        .env("EDEN_SKILLS_DOCKER_BIN", &docker_override)
         .output()
         .expect("run doctor");
 
@@ -106,6 +102,11 @@ fn doctor_emits_docker_not_found_for_docker_targets() {
     assert!(
         String::from_utf8_lossy(&output.stdout).contains("DOCKER_NOT_FOUND"),
         "expected DOCKER_NOT_FOUND in doctor output, stdout={}",
+        String::from_utf8_lossy(&output.stdout)
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stdout).contains(&docker_override.display().to_string()),
+        "expected doctor output to reference overridden docker binary path, stdout={}",
         String::from_utf8_lossy(&output.stdout)
     );
 }
@@ -194,29 +195,6 @@ environment = "docker:test-container"
     )
     .expect("write config");
     config_path
-}
-
-#[cfg(unix)]
-fn write_unavailable_docker_stub(path_dir: &Path) {
-    let docker_bin = path_dir.join("docker");
-    let script = r#"#!/bin/sh
-exit 1
-"#;
-    fs::write(&docker_bin, script).expect("write docker unavailable stub");
-    let mut perms = fs::metadata(&docker_bin)
-        .expect("docker unavailable stub metadata")
-        .permissions();
-    use std::os::unix::fs::PermissionsExt;
-    perms.set_mode(0o755);
-    fs::set_permissions(&docker_bin, perms).expect("set docker unavailable stub executable");
-}
-
-#[cfg(windows)]
-fn write_unavailable_docker_stub(path_dir: &Path) {
-    // std::process::Command resolves `docker` to `docker.exe` on Windows.
-    // Write a deliberately invalid PE file so spawning it fails deterministically.
-    let docker_bin = path_dir.join("docker.exe");
-    fs::write(&docker_bin, b"not-a-valid-exe").expect("write docker unavailable stub");
 }
 
 fn toml_escape_path(path: &Path) -> String {

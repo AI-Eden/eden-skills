@@ -765,13 +765,14 @@ fn collect_registry_stale_findings(
 
 fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
     let mut findings = Vec::new();
+    let docker_bin = doctor_docker_bin();
     for skill in &config.skills {
         for target in &skill.targets {
             let Some(container_name) = target.environment.strip_prefix("docker:") else {
                 continue;
             };
 
-            match Command::new("docker").arg("--version").output() {
+            match Command::new(&docker_bin).arg("--version").output() {
                 Ok(output) if output.status.success() => {}
                 Ok(output) => {
                     findings.push(DoctorFinding {
@@ -783,7 +784,8 @@ fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
                             .clone()
                             .unwrap_or_else(|| target.environment.clone()),
                         message: format!(
-                            "docker CLI is unavailable for target `{}` (status={} stderr=`{}`)",
+                            "docker CLI `{}` is unavailable for target `{}` (status={} stderr=`{}`)",
+                            docker_bin,
                             target.environment,
                             output.status,
                             String::from_utf8_lossy(&output.stderr).trim()
@@ -803,8 +805,8 @@ fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
                             .clone()
                             .unwrap_or_else(|| target.environment.clone()),
                         message: format!(
-                            "docker CLI is unavailable for target `{}`: {err}",
-                            target.environment
+                            "docker CLI `{}` is unavailable for target `{}`: {err}",
+                            docker_bin, target.environment
                         ),
                         remediation: "Install Docker or ensure `docker` is available in PATH."
                             .to_string(),
@@ -821,8 +823,8 @@ fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
                             .clone()
                             .unwrap_or_else(|| target.environment.clone()),
                         message: format!(
-                            "failed to invoke docker CLI for target `{}`: {err}",
-                            target.environment
+                            "failed to invoke docker CLI `{}` for target `{}`: {err}",
+                            docker_bin, target.environment
                         ),
                         remediation: "Install Docker or ensure `docker` is available in PATH."
                             .to_string(),
@@ -831,7 +833,7 @@ fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
                 }
             }
 
-            let inspect = Command::new("docker")
+            let inspect = Command::new(&docker_bin)
                 .args(["inspect", "--format", "{{.State.Running}}", container_name])
                 .output();
             match inspect {
@@ -881,6 +883,13 @@ fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
         }
     }
     findings
+}
+
+fn doctor_docker_bin() -> String {
+    std::env::var("EDEN_SKILLS_DOCKER_BIN")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "docker".to_string())
 }
 
 fn plan_conflict_to_findings(item: &PlanItem) -> Vec<DoctorFinding> {
