@@ -34,7 +34,7 @@ In real-world setups, skill install paths and runtime discovery paths can drift 
 
 ## Status
 
-Phase 2 closeout execution (Builder closeout batches complete; post-release hardening follow-ups tracked).
+Phase 2 closeout completed (Builder closeout batches and prior hardening follow-ups are all implemented).
 Authoritative machine-readable status: `STATUS.yaml`.
 
 ## Docs

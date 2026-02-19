@@ -205,6 +205,21 @@ impl DockerAdapter {
 
         Ok(output)
     }
+
+    pub fn resolve_install_mode(
+        mode: InstallMode,
+        container_name: &str,
+    ) -> (InstallMode, Option<String>) {
+        if matches!(mode, InstallMode::Symlink) {
+            return (
+                InstallMode::Copy,
+                Some(format!(
+                    "docker target `{container_name}` does not support symlink mode; falling back to copy"
+                )),
+            );
+        }
+        (InstallMode::Copy, None)
+    }
 }
 
 #[async_trait]
@@ -290,10 +305,14 @@ impl TargetAdapter for DockerAdapter {
         &self,
         source: &Path,
         target: &Path,
-        _mode: InstallMode,
+        mode: InstallMode,
     ) -> Result<(), AdapterError> {
         self.health_check().await?;
         let source_metadata = tokio::fs::symlink_metadata(source).await?;
+        let (_effective_mode, warning) = Self::resolve_install_mode(mode, &self.container_name);
+        if let Some(warning) = warning {
+            eprintln!("warning: {warning}");
+        }
 
         let source_arg = if source_metadata.is_dir() {
             format!("{}/.", source.display())

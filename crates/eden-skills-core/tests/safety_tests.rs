@@ -71,6 +71,48 @@ fn analyze_reports_unknown_license_when_no_license_file() {
     assert_eq!(reports[0].license_status, LicenseStatus::Unknown);
 }
 
+#[cfg(windows)]
+#[test]
+fn windows_safety_detection_skips_unix_exec_bit_and_keeps_other_risk_labels() {
+    let temp = tempdir().expect("tempdir");
+    let origin_repo = init_windows_risk_origin_repo(temp.path());
+
+    let storage_root = temp.path().join("storage");
+    let repo_path = storage_root.join(SKILL_ID);
+    fs::create_dir_all(&storage_root).expect("create storage");
+    run_git(
+        temp.path(),
+        &[
+            "clone",
+            origin_repo.to_str().expect("origin path utf8"),
+            repo_path.to_str().expect("repo path utf8"),
+        ],
+    );
+
+    let config = test_config(&storage_root);
+    let reports = analyze_skills(&config, temp.path()).expect("analyze safety");
+    assert_eq!(reports.len(), 1);
+    let labels = &reports[0].risk_labels;
+    assert!(
+        labels
+            .iter()
+            .any(|label| label == "contains-platform-script"),
+        "expected platform script label on Windows, labels={labels:?}"
+    );
+    assert!(
+        labels
+            .iter()
+            .any(|label| label == "contains-binary-artifact"),
+        "expected binary artifact label on Windows, labels={labels:?}"
+    );
+    assert!(
+        !labels
+            .iter()
+            .any(|label| label == "contains-executable-permissions"),
+        "Windows safety detection should not emit unix executable-permissions label, labels={labels:?}"
+    );
+}
+
 fn init_origin_repo(base: &Path, with_mit_license: bool) -> std::path::PathBuf {
     let repo = base.join("origin-repo");
     fs::create_dir_all(repo.join("packages").join("browser")).expect("create repo tree");
@@ -92,6 +134,30 @@ fn init_origin_repo(base: &Path, with_mit_license: bool) -> std::path::PathBuf {
     run_git(&repo, &["config", "user.name", "eden-skills-test"]);
     run_git(&repo, &["add", "."]);
     run_git(&repo, &["commit", "-m", "init"]);
+    run_git(&repo, &["branch", "-M", "main"]);
+    repo
+}
+
+#[cfg(windows)]
+fn init_windows_risk_origin_repo(base: &Path) -> std::path::PathBuf {
+    let repo = base.join("origin-repo-windows");
+    fs::create_dir_all(repo.join("packages").join("browser")).expect("create repo tree");
+    fs::write(
+        repo.join("packages").join("browser").join("setup.bat"),
+        "@echo off\necho hi\r\n",
+    )
+    .expect("write batch script");
+    fs::write(
+        repo.join("packages").join("browser").join("agent.bin"),
+        [b'M', b'Z', 0x90, 0x00],
+    )
+    .expect("write windows binary-like file");
+
+    run_git(&repo, &["init"]);
+    run_git(&repo, &["config", "user.email", "test@example.com"]);
+    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
+    run_git(&repo, &["add", "."]);
+    run_git(&repo, &["commit", "-m", "init windows risk fixtures"]);
     run_git(&repo, &["branch", "-M", "main"]);
     repo
 }

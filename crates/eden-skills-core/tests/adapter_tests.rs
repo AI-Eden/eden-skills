@@ -1,5 +1,7 @@
 use std::fs;
 use std::path::Path;
+#[cfg(windows)]
+use std::process::Command;
 use std::sync::Arc;
 
 use eden_skills_core::adapter::{
@@ -293,6 +295,82 @@ exit 1
 }
 
 #[cfg(unix)]
+#[tokio::test]
+async fn docker_adapter_symlink_mode_emits_warning_and_falls_back_to_copy() {
+    let temp = tempdir().expect("tempdir");
+    let state_path = temp.path().join("docker-state.txt");
+    let docker_bin = temp.path().join("docker");
+    let script = format!(
+        "#!/bin/sh\nset -eu\nstate=\"{}\"\ncmd=\"$1\"\nshift\nif [ \"$cmd\" = \"--version\" ]; then\n  echo \"Docker version 27.0.0\"\n  exit 0\nfi\nif [ \"$cmd\" = \"inspect\" ]; then\n  if [ \"$1\" = \"--format\" ] && [ \"$2\" = \"{{{{.State.Running}}}}\" ] && [ \"$3\" = \"test-container\" ]; then\n    echo \"true\"\n    exit 0\n  fi\n  echo \"false\"\n  exit 0\nfi\nif [ \"$cmd\" = \"cp\" ]; then\n  src=\"$1\"\n  dst=\"$2\"\n  printf \"%s\\n\" \"$dst\" > \"$state\"\n  if [ -d \"${{src%/.}}\" ]; then\n    exit 0\n  fi\n  exit 0\nfi\nif [ \"$cmd\" = \"exec\" ]; then\n  container=\"$1\"\n  shift\n  if [ \"$container\" != \"test-container\" ]; then\n    echo \"container not found\" >&2\n    exit 1\n  fi\n  if [ \"$1\" = \"sh\" ] && [ \"$2\" = \"-c\" ]; then\n    case \"$3\" in\n      test\\ -e\\ *)\n        path=\"${{3#test -e }}\"\n        path=\"${{path#\\\"}}\"\n        path=\"${{path%\\\"}}\"\n        if [ -f \"$state\" ] && grep -q \":$path$\" \"$state\"; then\n          exit 0\n        fi\n        exit 1\n        ;;\n      *)\n        exit 0\n        ;;\n    esac\n  fi\nfi\necho \"unsupported docker call\" >&2\nexit 1\n",
+        state_path.display()
+    );
+    fs::write(&docker_bin, script).expect("write docker stub");
+    let mut perms = fs::metadata(&docker_bin)
+        .expect("docker metadata")
+        .permissions();
+    use std::os::unix::fs::PermissionsExt;
+    perms.set_mode(0o755);
+    fs::set_permissions(&docker_bin, perms).expect("set executable");
+
+    let adapter = docker_adapter_with_retry("test-container", &docker_bin);
+    let source = temp.path().join("source");
+    fs::create_dir_all(&source).expect("create source");
+    fs::write(source.join("README.md"), "hello\n").expect("write source");
+    let target = Path::new("/workspace/skills/demo");
+
+    let (effective_mode, warning) =
+        DockerAdapter::resolve_install_mode(InstallMode::Symlink, "test-container");
+    assert_eq!(
+        effective_mode,
+        InstallMode::Copy,
+        "docker symlink mode should fallback to copy"
+    );
+    assert!(
+        warning
+            .as_deref()
+            .is_some_and(|value| value.contains("falling back to copy")),
+        "expected symlink fallback warning payload, got: {warning:?}"
+    );
+
+    adapter
+        .install(&source, target, InstallMode::Symlink)
+        .await
+        .expect("docker install should fallback to copy");
+    assert!(
+        adapter.path_exists(target).await.expect("path exists"),
+        "docker target should exist after fallback copy"
+    );
+}
+
+#[cfg(windows)]
+#[tokio::test]
+async fn local_adapter_windows_symlink_permission_denied_includes_remediation_hint() {
+    let temp = tempdir().expect("tempdir");
+    let source = temp.path().join("source");
+    fs::create_dir_all(&source).expect("create source");
+    fs::write(source.join("README.md"), "hello\n").expect("write source");
+
+    let restricted = temp.path().join("restricted-target-root");
+    fs::create_dir_all(&restricted).expect("create restricted root");
+    let original_permissions = make_read_only_dir_windows(&restricted);
+
+    let target = restricted.join("demo-skill-link");
+    let adapter = LocalAdapter::new();
+    let install_result = adapter
+        .install(&source, &target, InstallMode::Symlink)
+        .await;
+
+    restore_permissions_windows(&restricted, original_permissions);
+
+    let err = install_result.expect_err("symlink install should fail with permission denied");
+    let message = err.to_string();
+    assert!(
+        message.contains("Enable Developer Mode or run as Administrator"),
+        "expected Windows remediation hint, got: {message}"
+    );
+}
+
+#[cfg(unix)]
 fn docker_adapter_with_retry(container_name: &str, docker_bin: &Path) -> DockerAdapter {
     let mut last_err = None;
     for _ in 0..20 {
@@ -315,4 +393,61 @@ fn docker_adapter_with_retry(container_name: &str, docker_bin: &Path) -> DockerA
         "docker adapter: {}",
         last_err.expect("expected text-file-busy error")
     );
+}
+
+#[cfg(windows)]
+fn make_read_only_dir_windows(path: &Path) -> fs::Permissions {
+    let original = fs::metadata(path)
+        .expect("restricted metadata")
+        .permissions();
+    let principal = current_windows_principal();
+    let grant_rule_self = format!("{principal}:RX");
+    let grant_rule_children = format!("{principal}:(OI)(CI)RX");
+    let deny_rule_self = format!("{principal}:W");
+    let deny_rule_children = format!("{principal}:(OI)(CI)W");
+    run_icacls(path, &["/inheritance:r"]);
+    run_icacls(path, &["/grant:r", &grant_rule_self]);
+    run_icacls(path, &["/grant", &grant_rule_children]);
+    run_icacls(path, &["/deny", &deny_rule_self]);
+    run_icacls(path, &["/deny", &deny_rule_children]);
+    original
+}
+
+#[cfg(windows)]
+fn restore_permissions_windows(path: &Path, _permissions: fs::Permissions) {
+    run_icacls(path, &["/reset", "/T", "/C"]);
+}
+
+#[cfg(windows)]
+fn run_icacls(path: &Path, args: &[&str]) {
+    let output = Command::new("icacls")
+        .arg(path)
+        .args(args)
+        .output()
+        .expect("spawn icacls");
+    if output.status.success() {
+        return;
+    }
+    panic!(
+        "icacls {:?} failed for {}: status={} stderr=`{}` stdout=`{}`",
+        args,
+        path.display(),
+        output.status,
+        String::from_utf8_lossy(&output.stderr).trim(),
+        String::from_utf8_lossy(&output.stdout).trim()
+    );
+}
+
+#[cfg(windows)]
+fn current_windows_principal() -> String {
+    let output = Command::new("whoami").output().expect("spawn whoami");
+    if !output.status.success() {
+        panic!(
+            "whoami failed: status={} stderr=`{}` stdout=`{}`",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim(),
+            String::from_utf8_lossy(&output.stdout).trim()
+        );
+    }
+    String::from_utf8_lossy(&output.stdout).trim().to_string()
 }

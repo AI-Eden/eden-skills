@@ -132,7 +132,7 @@ Current automated tests: `116` (workspace unit/integration-style tests).
 - [x] Complete Phase 2 Track B Batch 6 P0 Schema + Commands (`SCH-P2-001/002/003/004/006`, `CMD-P2-001/002/003`) with tests and quality gate.
 - [x] Complete Phase 2 Track B Batch 7 P1 All (`ARC-003/004/007/104/105/107/110/203/204/205/206`, `SCH-P2-005`, `CMD-P2-004/005/006`) with tests and quality gate.
 - [x] P2-CLOSE-001: Fixed Windows CI blocker in Phase 2 command tests via TOML-safe file URL normalization and regression test coverage (`phase2_commands`); hosted matrix verification completed in `CI` run `22176017545`.
-- [x] P2-CLOSE-002: Closed remaining `planned` Phase 2 matrix scenarios by explicit implementation/defer disposition (`TM-P2-003/004/015/020/024/027/028/029/030`).
+- [x] P2-CLOSE-002: Closed remaining `planned` Phase 2 matrix scenarios with full implementation coverage (`TM-P2-003/004/015/020/024/027/028/029/030`).
 - [x] P2-CLOSE-003: Aligned release-closeout status wording across `README.md`, `ROADMAP.md`, `STATUS.yaml`, and this tracker.
 - [x] Maintain `spec/phase2/PHASE2_BUILDER_REMAINING.md` as the concise index for remaining Builder-owned Phase 2 closeout work.
 
@@ -163,7 +163,7 @@ Current automated tests: `116` (workspace unit/integration-style tests).
 
 1. Builder-owned Phase 2 implementation batches are complete through Batch 7.
 2. Builder-owned closeout work items `P2-CLOSE-001` through `P2-CLOSE-003` are completed; hosted matrix verification is confirmed in `CI` run `22176017545`.
-3. Deferred follow-ups for post-release hardening are tracked as `TM-P2-015`, `TM-P2-027`, and `TM-P2-029` (target milestone: `phase2_post_release_hardening`).
+3. Previously deferred hardening scenarios `TM-P2-015`, `TM-P2-027`, and `TM-P2-029` are now implemented and covered by deterministic tests (Windows-specific suites are `#[cfg(windows)]` gated).
 4. Canonical closeout index: `spec/phase2/PHASE2_BUILDER_REMAINING.md`.
 
 ## 7. Phase 2 Architect State

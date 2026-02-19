@@ -22,8 +22,7 @@ This file remains concise and points to detailed status sources.
 ### P2-CLOSE-002 (traceability closure): Resolve remaining planned Phase 2 test scenarios
 
 - **Status:** Completed (all prior `planned` entries explicitly dispositioned)
-- **Implemented now:** `TM-P2-003`, `TM-P2-004`, `TM-P2-020`, `TM-P2-024`, `TM-P2-028`, `TM-P2-030`
-- **Deferred with milestone:** `TM-P2-015`, `TM-P2-027`, `TM-P2-029` -> `phase2_post_release_hardening`
+- **Implemented now:** `TM-P2-003`, `TM-P2-004`, `TM-P2-015`, `TM-P2-020`, `TM-P2-024`, `TM-P2-027`, `TM-P2-028`, `TM-P2-029`, `TM-P2-030`
 
 ### P2-CLOSE-003 (documentation consistency): Align strategic/project status docs with current Phase 2 state
 
@@ -36,9 +35,7 @@ This file remains concise and points to detailed status sources.
 
 ## Deferred Follow-Ups (Post-Closeout)
 
-- `TM-P2-015`: explicit warning-channel contract for Docker symlink fallback output (`phase2_post_release_hardening`)
-- `TM-P2-027`: deterministic Windows privilege-denied symlink automation harness (`phase2_post_release_hardening`)
-- `TM-P2-029`: dedicated Windows-hosted safety graceful-degradation assertions (`phase2_post_release_hardening`)
+- None.
 
 ## Notes
 

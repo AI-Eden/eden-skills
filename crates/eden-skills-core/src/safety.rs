@@ -165,7 +165,7 @@ fn scan_path_for_risk(path: &Path, labels: &mut BTreeSet<String>) -> Result<(), 
 
 fn detect_file_risk(
     path: &Path,
-    metadata: &fs::Metadata,
+    _metadata: &fs::Metadata,
     labels: &mut BTreeSet<String>,
 ) -> Result<(), EdenError> {
     let ext = path
@@ -188,7 +188,7 @@ fn detect_file_risk(
 
     #[cfg(unix)]
     {
-        if metadata.permissions().mode() & 0o111 != 0 {
+        if _metadata.permissions().mode() & 0o111 != 0 {
             labels.insert("contains-executable-permissions".to_string());
         }
     }

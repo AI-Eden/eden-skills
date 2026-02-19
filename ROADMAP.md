@@ -1,6 +1,6 @@
 # Eden-Skills: The Next-Gen Agent Skills Ecosystem
 
-**Version:** 1.0 | **Date:** Feb 2026 | **Status:** Execution In Progress (Phase 2 Closeout)
+**Version:** 1.0 | **Date:** Feb 2026 | **Status:** Execution In Progress (Phase 2 Complete)
 
 ---
 
@@ -194,7 +194,7 @@ This section remains a strategic checklist.
 5. [x] **Safety Gate MVP:** Implement risk metadata persistence and checks.
 6. [x] **CLI UX Refactor:** Adopt `clap` for robust subcommand parsing.
 
-### Phase 2: Core Upgrade (Implemented; closeout hardening tracked)
+### Phase 2: Core Upgrade (Implemented; closeout fully completed)
 
 1. [x] **Phase 2 Spec Freeze:** Stage A/B contract workflow completed for Phase 2 specs.
 2. [x] **Registry RFC + Implementation:** TOML-backed multi-registry index structure (`official`/`forge`) implemented and tested.
@@ -202,7 +202,7 @@ This section remains a strategic checklist.
 4. [x] **Docker Adapter:** `TargetAdapter` Docker implementation (`docker exec/cp`) implemented with health/error handling.
 5. [x] **Registry Resolution:** Mode B skill resolution from registry index implemented (`install` + `apply`/`repair`).
 6. [x] **Closeout Audit:** Builder closeout items `P2-CLOSE-001` to `P2-CLOSE-003` dispositioned and synchronized in tracking docs.
-7. [ ] **Post-Release Hardening:** Deferred scenarios `TM-P2-015`, `TM-P2-027`, `TM-P2-029`.
+7. [x] **Post-Release Hardening:** Previously deferred scenarios `TM-P2-015`, `TM-P2-027`, `TM-P2-029` are now implemented with deterministic test coverage.
 
 ### Phase 3: Data Engine (Future)
 
