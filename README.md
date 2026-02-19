@@ -1,65 +1,114 @@
-<!-- ![](./images/EDEN-SKILLS-BANNER.png) -->
-
 # eden-skills
 
 Deterministic skill installation and reconciliation for agent environments.
 
-`eden-skills` is a local CLI that makes skill setup predictable across tools like Claude Code and Cursor.  
-Instead of only fetching skills, it manages the full state lifecycle: `plan`, `apply`, `doctor`, `repair`.
-Phase 1 foundation and Phase 2 core implementation stack are Rust.
+`eden-skills` is a local Rust CLI that keeps skill state predictable across tools like Claude Code and Cursor.  
+It manages the full lifecycle from planning and apply to diagnostics, repair, registry resolution, and Docker-aware target health checks.
 
-## Why This Exists
+## Current Status
 
-In real-world setups, skill install paths and runtime discovery paths can drift (for example `~/.agents/skills` vs `~/.claude/skills`).  
-`eden-skills` focuses on reliability:
+- Phase 1 (CLI foundation): complete
+- Phase 2 (Hyper-Loop core): complete
+- Cross-platform CI (Linux/macOS/Windows): passing
+- Phase 3 (crawler/taxonomy/curation engine): not implemented yet
 
-- Deterministic path resolution
-- Idempotent installs
-- Post-install verification
-- Auto-repair for broken or stale mappings
+Authoritative status files:
 
-## Core Workflow
+- [Status Snapshot](STATUS.yaml) (machine-readable status)
+- [Execution Tracker](EXECUTION_TRACKER.md) (execution and ownership log)
+- [Roadmap](ROADMAP.md) (strategic milestones)
 
-1. `plan`: show what will change (dry-run diff)
-2. `apply`: perform symlink/copy operations idempotently
-3. `doctor`: detect broken mappings and explain why
-4. `repair`: reconcile drifted state automatically
+## What You Can Do Today
 
-## Design Principles
+- Reconcile local skill state with deterministic `plan` / `apply` / `doctor` / `repair`
+- Manage config from CLI (`init`, `list`, `add`, `remove`, `set`, `config export/import`)
+- Resolve and install registry skills (`update`, `install`)
+- Configure Docker targets (`environment = "docker:<container>"`) with adapter-backed health diagnostics and uninstall flows
+- Use bounded async concurrency for `apply` / `repair` / `update`
+- Enforce safety metadata and risk signals (`.eden-safety.toml`, license/risk findings, metadata-only mode)
 
-- Config-driven (`skills.toml`)
-- Platform-agnostic
-- License-aware indexing behavior
-- Safety-first execution (risk labels + metadata traceability + metadata-only mode)
+## Quick Start
 
-## Status
+Prerequisites:
 
-Phase 2 closeout completed (Builder closeout batches and prior hardening follow-ups are all implemented).
-Authoritative machine-readable status: `STATUS.yaml`.
+- Rust toolchain (`cargo`)
+- Git
+- Docker (optional, only for Docker targets)
 
-## Docs
+Build and run locally:
 
-- Agent handoff and recovery guide: `AGENTS.md`
-- Machine-readable status snapshot: `STATUS.yaml`
-- Full roadmap: `ROADMAP.md`
-- Execution tracker and model-boundary ownership: `EXECUTION_TRACKER.md`
-- Spec index and writing rules: `spec/README.md`
-- CLI spec set (source of truth for implementation): `spec/`
-- Requirement-to-code/test mapping: `spec/phase1/SPEC_TRACEABILITY.md` (Phase 1), `spec/phase2/SPEC_TRACEABILITY.md` (Phase 2)
-- Sample config for local dev: `skills.toml`
+```bash
+git clone https://github.com/AI-Eden/eden-skills.git
+cd eden-skills
 
-## Workspace Layout
+# Initialize a demo config in current directory
+cargo run -p eden-skills-cli -- init --config ./skills.demo.toml
 
-- `crates/eden-skills-core`: shared domain models and core logic
-- `crates/eden-skills-cli`: primary CLI binary (`eden-skills`) for Phase 1 + Phase 2 commands
-- `crates/eden-skills-indexer`: Phase 2 binary placeholder (crawler/data engine)
+# Dry-run the action graph
+cargo run -p eden-skills-cli -- plan --config ./skills.demo.toml
 
-## Local Commands
+# Apply changes
+cargo run -p eden-skills-cli -- apply --config ./skills.demo.toml
 
-- `cargo clippy --workspace`
-- `cargo run -p eden-skills-cli -- plan --config ./skills.toml`
+# Diagnose drift or risk findings
+cargo run -p eden-skills-cli -- doctor --config ./skills.demo.toml
+```
 
----
+For a complete, production-style walkthrough, start with:
 
-AI Eden Organization Project  
-Maintained as a whitepaper-first, build-second workflow.
+- [Quickstart Tutorial](docs/01-quickstart.md)
+
+## Documentation
+
+Read the [Tutorial Index](docs/README.md) for the full learning path.
+
+- [Quickstart: First Successful Run](docs/01-quickstart.md) - first run (`init` to `doctor`)
+- [Config Lifecycle Management](docs/02-config-lifecycle.md) - manage skills via CLI (`add/remove/set/list/config`)
+- [Registry and Install Workflow](docs/03-registry-and-install.md) - Phase 2 registry workflow (`update` + `install`)
+- [Docker Targets Guide](docs/04-docker-targets.md) - Docker target configuration and behavior
+- [Safety, Strict Mode, and Exit Codes](docs/05-safety-strict-and-exit-codes.md) - safety model, strict mode, and exit semantics
+- [Troubleshooting Playbook](docs/06-troubleshooting.md) - common failures and recovery playbook
+
+## Command Surface
+
+Primary commands:
+
+- Core reconciliation: `plan`, `apply`, `doctor`, `repair`
+- Registry workflow: `update`, `install`
+- Lifecycle/config: `init`, `list`, `add`, `remove`, `set`, `config export`, `config import`
+
+Global patterns:
+
+- `--config <path>`: custom config path (default: `~/.config/eden-skills/skills.toml`)
+- `--strict`: convert drift/warnings into strict failure semantics
+- `--json`: machine-readable output for automation
+- `--concurrency <n>`: override reactor concurrency on `apply`, `repair`, `update`
+
+## Exit Codes
+
+- `0`: success
+- `1`: runtime failure
+- `2`: config/schema/argument validation failure
+- `3`: strict-mode conflict/drift failure
+
+## Repository Layout
+
+- [`crates/eden-skills-core`](crates/eden-skills-core): domain logic (config, plan, verify, safety, reactor, adapter, registry)
+- [`crates/eden-skills-cli`](crates/eden-skills-cli): user-facing CLI binary (`eden-skills`)
+- [`crates/eden-skills-indexer`](crates/eden-skills-indexer): indexer entrypoint placeholder for future phase
+- [`spec/`](spec/): normative behavior contracts (Phase 1 frozen + Phase 2 extensions)
+- [`docs/`](docs/): user tutorials and operational guides
+
+## Spec-First Contract
+
+Behavior is defined in [`spec/`](spec/) first, then implemented in code.
+
+- [Spec Index](spec/README.md)
+- [Phase 1 Contracts](spec/phase1/)
+- [Phase 2 Contracts](spec/phase2/)
+- Requirement traceability: [Phase 1](spec/phase1/SPEC_TRACEABILITY.md), [Phase 2](spec/phase2/SPEC_TRACEABILITY.md)
+
+## Future Scope
+
+Phase 3 platform capabilities (crawler, taxonomy, curation rubric) are tracked but not yet implemented.  
+See [Roadmap](ROADMAP.md) for strategic milestones and [Execution Tracker](EXECUTION_TRACKER.md) for ownership boundaries.
