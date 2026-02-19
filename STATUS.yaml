@@ -231,14 +231,23 @@ phase2:
         test_workspace: passed
   closeout_audit:
     builder_phase2:
-      status: in_progress
+      status: completed
+      completed_at: "2026-02-19"
       remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md
       completed_items:
-        - P2-CLOSE-001 (Windows CI blocker fixed via TOML-safe file URL normalization + regression test in phase2_commands; hosted matrix verification pending fixed commit run)
+        - P2-CLOSE-001 (Windows CI blocker fixed via TOML-safe file URL normalization + regression test in phase2_commands; hosted matrix verified in run 22176017545)
         - P2-CLOSE-002 (all remaining planned TM-P2 scenarios dispositioned as implemented or deferred with milestones)
         - P2-CLOSE-003 (README/ROADMAP/STATUS/TRACKER phase-state wording synchronized)
-      remaining_items:
-        - P2-CLOSE-001-hosted-verification (rerun CI matrix on a commit containing the fix and confirm ubuntu/macos/windows green)
+      hosted_run_reference:
+        workflow: CI
+        run_id: 22176017545
+        run_url: https://github.com/AI-Eden/eden-skills/actions/runs/22176017545
+        branch: main
+        event: push
+        jobs:
+          - cargo test (ubuntu-latest)
+          - cargo test (macos-latest)
+          - cargo test (windows-latest)
       deferred_followups:
         - id: TM-P2-015
           rationale: explicit warning-channel contract for Docker symlink fallback output is not yet wired
@@ -251,7 +260,6 @@ phase2:
           target_milestone: phase2_post_release_hardening
 
 next_execution_targets:
-  - phase2_closeout_hosted_ci_verification
   - phase2_post_release_hardening
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md

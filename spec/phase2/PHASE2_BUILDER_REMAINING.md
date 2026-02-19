@@ -6,16 +6,18 @@ This file remains concise and points to detailed status sources.
 ## Closeout Snapshot
 
 - **Scope:** `P2-CLOSE-001` through `P2-CLOSE-003`
-- **State:** In progress (implementation complete; hosted CI matrix verification pending push/rerun)
+- **State:** Completed
+- **Completed at:** 2026-02-19
+- **Hosted verification run:** `CI` run `22176017545` (`ubuntu-latest`, `macos-latest`, `windows-latest` all passed)
 - **Detailed sources:** `spec/phase2/SPEC_TRACEABILITY.md`, `STATUS.yaml`, `EXECUTION_TRACKER.md`
 
 ## Completed Closeout Items
 
 ### P2-CLOSE-001 (CI blocker): Windows TOML/file URL escaping parity in Phase 2 command tests
 
-- **Status:** Implemented + locally validated (hosted CI matrix verification pending)
+- **Status:** Completed (implemented + hosted validated)
 - **Outcome:** `crates/eden-skills-cli/tests/phase2_commands.rs` now normalizes file URLs to TOML-safe format before writing literals, and adds a regression test for Windows-style `file://C:\...` payload parsing.
-- **Verification:** local Phase 2 command suite passes; workspace quality gate recorded in tracker and status docs; hosted matrix validation requires a run that includes current commit.
+- **Verification:** local Phase 2 command suite and workspace quality gate passed; hosted matrix verification completed in `https://github.com/AI-Eden/eden-skills/actions/runs/22176017545`.
 
 ### P2-CLOSE-002 (traceability closure): Resolve remaining planned Phase 2 test scenarios
 
@@ -30,7 +32,7 @@ This file remains concise and points to detailed status sources.
 
 ## Remaining Builder-Owned Closeout Work
 
-- Re-run hosted CI matrix (`ubuntu-latest`, `macos-latest`, `windows-latest`) on a commit containing the `P2-CLOSE-001` fix and confirm green status.
+- None.
 
 ## Deferred Follow-Ups (Post-Closeout)
 
