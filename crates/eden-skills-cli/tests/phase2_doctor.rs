@@ -213,9 +213,10 @@ exit 1
 
 #[cfg(windows)]
 fn write_unavailable_docker_stub(path_dir: &Path) {
-    let docker_bin = path_dir.join("docker.cmd");
-    let script = "@echo off\r\nexit /b 1\r\n";
-    fs::write(&docker_bin, script).expect("write docker unavailable stub");
+    // std::process::Command resolves `docker` to `docker.exe` on Windows.
+    // Write a deliberately invalid PE file so spawning it fails deterministically.
+    let docker_bin = path_dir.join("docker.exe");
+    fs::write(&docker_bin, b"not-a-valid-exe").expect("write docker unavailable stub");
 }
 
 fn toml_escape_path(path: &Path) -> String {
