@@ -1,0 +1,20 @@
+Running tests\phase2_doctor.rs (target\debug\deps\phase2_doctor-60cc288e3e3f78c3.exe)
+running 2 tests
+test doctor_emits_registry_stale_when_last_sync_is_older_than_7_days ... ok
+test doctor_emits_docker_not_found_for_docker_targets ... FAILED
+failures:
+error: test failed, to rerun pass `-p eden-skills-cli --test phase2_doctor`
+---- doctor_emits_docker_not_found_for_docker_targets stdout ----
+thread 'doctor_emits_docker_not_found_for_docker_targets' (2052) panicked at crates\eden-skills-cli\tests\phase2_doctor.rs:103:5:
+expected DOCKER_NOT_FOUND in doctor output, stdout=doctor: detected 6 issue(s)
+  code=SOURCE_MISSING severity=error skill=docker-skill target=C:\Users\RUNNER~1\AppData\Local\Temp\.tmpQ5VFlS\agent-target\docker-skill message=source path does not exist remediation=Run `eden-skills apply` to sync sources or correct storage/source settings.
+  code=TARGET_PATH_MISSING severity=error skill=docker-skill target=C:\Users\RUNNER~1\AppData\Local\Temp\.tmpQ5VFlS\agent-target\docker-skill message=target path does not exist remediation=Run `eden-skills apply` or `eden-skills repair` to recreate target paths.
+  code=BROKEN_SYMLINK severity=error skill=docker-skill target=C:\Users\RUNNER~1\AppData\Local\Temp\.tmpQ5VFlS\agent-target\docker-skill message=target symlink is missing or unreadable remediation=Run `eden-skills repair` to rebuild the unreadable/missing symlink.
+  code=BROKEN_SYMLINK severity=error skill=docker-skill target=C:\Users\RUNNER~1\AppData\Local\Temp\.tmpQ5VFlS\agent-target\docker-skill message=target path does not exist remediation=Run `eden-skills repair` to recreate a valid symlink target.
+  code=LICENSE_UNKNOWN severity=warning skill=docker-skill target=C:\Users\RUNNER~1\AppData\Local\Temp\.tmpQ5VFlS\storage\docker-skill message=repository license could not be determined remediation=Add an explicit license file upstream, or use metadata-only mode.
+  code=ADAPTER_HEALTH_FAIL severity=error skill=docker-skill target=C:\Users\RUNNER~1\AppData\Local\Temp\.tmpQ5VFlS\agent-target message=docker target `docker:test-container` failed health check (status=exit code: 1 stdout=`` stderr=`error: no such object: test-container`) remediation=Start the container (`docker start test-container`) and retry.
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+failures:
+    doctor_emits_docker_not_found_for_docker_targets
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 23.76s
+Error: Process completed with exit code 1.
