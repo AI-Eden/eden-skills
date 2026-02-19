@@ -1,4 +1,4 @@
-![](./images/EDEN-SKILLS-BANNER.png)
+<!-- ![](./images/EDEN-SKILLS-BANNER.png) -->
 
 # eden-skills
 
@@ -6,7 +6,7 @@ Deterministic skill installation and reconciliation for agent environments.
 
 `eden-skills` is a local CLI that makes skill setup predictable across tools like Claude Code and Cursor.  
 Instead of only fetching skills, it manages the full state lifecycle: `plan`, `apply`, `doctor`, `repair`.
-Phase 1 implementation stack is Rust.
+Phase 1 foundation and Phase 2 core implementation stack are Rust.
 
 ## Why This Exists
 
@@ -34,7 +34,7 @@ In real-world setups, skill install paths and runtime discovery paths can drift 
 
 ## Status
 
-Active implementation (Phase 1 focus: CLI reliability baseline).
+Phase 2 closeout execution (Builder closeout batches complete; post-release hardening follow-ups tracked).
 Authoritative machine-readable status: `STATUS.yaml`.
 
 ## Docs
@@ -51,7 +51,7 @@ Authoritative machine-readable status: `STATUS.yaml`.
 ## Workspace Layout
 
 - `crates/eden-skills-core`: shared domain models and core logic
-- `crates/eden-skills-cli`: Phase 1 binary (`eden-skills`)
+- `crates/eden-skills-cli`: primary CLI binary (`eden-skills`) for Phase 1 + Phase 2 commands
 - `crates/eden-skills-indexer`: Phase 2 binary placeholder (crawler/data engine)
 
 ## Local Commands

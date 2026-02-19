@@ -162,6 +162,101 @@ fn resolve_skill_matches_semver_constraints() {
     assert_eq!(wildcard.version, "2.0.0");
 }
 
+#[test]
+fn resolve_skill_excludes_yanked_versions_and_reports_available_non_yanked_versions() {
+    let temp = tempdir().expect("tempdir");
+    let official_root = temp.path().join("official");
+
+    write_index_entry(
+        &official_root,
+        "yanked-demo",
+        "https://example.com/official/yanked-demo.git",
+        &[
+            (
+                "1.0.0",
+                "v1.0.0",
+                "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                true,
+            ),
+            (
+                "1.0.1",
+                "v1.0.1",
+                "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+                false,
+            ),
+            (
+                "2.0.0",
+                "v2.0.0",
+                "cccccccccccccccccccccccccccccccccccccccc",
+                false,
+            ),
+        ],
+    );
+
+    let sources = vec![RegistrySource {
+        name: "official".to_string(),
+        priority: 100,
+        root: official_root,
+    }];
+
+    let caret = resolve_skill_from_registry_sources(&sources, "yanked-demo", Some("^1.0"))
+        .expect("caret constraint should ignore yanked entries");
+    assert_eq!(caret.version, "1.0.1");
+
+    let err = resolve_skill_from_registry_sources(&sources, "yanked-demo", Some("1.0.0"))
+        .expect_err("exact yanked version should fail");
+    let message = err.to_string();
+    assert!(
+        message.contains("available versions: 2.0.0, 1.0.1"),
+        "expected non-yanked version list, got: {message}"
+    );
+}
+
+#[test]
+fn resolve_skill_handles_prerelease_matching_and_default_selection() {
+    let temp = tempdir().expect("tempdir");
+    let official_root = temp.path().join("official");
+
+    write_index_entry(
+        &official_root,
+        "prerelease-demo",
+        "https://example.com/official/prerelease-demo.git",
+        &[
+            (
+                "2.0.3",
+                "v2.0.3",
+                "1111111111111111111111111111111111111111",
+                false,
+            ),
+            (
+                "2.1.0-beta.1",
+                "v2.1.0-beta.1",
+                "2222222222222222222222222222222222222222",
+                false,
+            ),
+        ],
+    );
+
+    let sources = vec![RegistrySource {
+        name: "official".to_string(),
+        priority: 100,
+        root: official_root,
+    }];
+
+    let caret = resolve_skill_from_registry_sources(&sources, "prerelease-demo", Some("^2.0"))
+        .expect("caret should resolve stable release");
+    assert_eq!(caret.version, "2.0.3");
+
+    let exact =
+        resolve_skill_from_registry_sources(&sources, "prerelease-demo", Some("2.1.0-beta.1"))
+            .expect("exact prerelease pin should resolve");
+    assert_eq!(exact.version, "2.1.0-beta.1");
+
+    let default_pick = resolve_skill_from_registry_sources(&sources, "prerelease-demo", None)
+        .expect("default selection should resolve");
+    assert_eq!(default_pick.version, "2.0.3");
+}
+
 fn write_index_entry(
     registry_root: &Path,
     skill_name: &str,

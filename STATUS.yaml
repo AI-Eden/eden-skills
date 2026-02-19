@@ -233,13 +233,26 @@ phase2:
     builder_phase2:
       status: in_progress
       remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md
+      completed_items:
+        - P2-CLOSE-001 (Windows CI blocker fixed via TOML-safe file URL normalization + regression test in phase2_commands; hosted matrix verification pending fixed commit run)
+        - P2-CLOSE-002 (all remaining planned TM-P2 scenarios dispositioned as implemented or deferred with milestones)
+        - P2-CLOSE-003 (README/ROADMAP/STATUS/TRACKER phase-state wording synchronized)
       remaining_items:
-        - P2-CLOSE-001 (Windows CI blocker: TOML file URL escaping in Phase 2 command tests)
-        - P2-CLOSE-002 (resolve or disposition remaining planned TM-P2 scenarios)
-        - P2-CLOSE-003 (cross-doc phase-state consistency for closeout readiness)
+        - P2-CLOSE-001-hosted-verification (rerun CI matrix on a commit containing the fix and confirm ubuntu/macos/windows green)
+      deferred_followups:
+        - id: TM-P2-015
+          rationale: explicit warning-channel contract for Docker symlink fallback output is not yet wired
+          target_milestone: phase2_post_release_hardening
+        - id: TM-P2-027
+          rationale: deterministic Windows privilege-denied symlink automation harness not yet stable on hosted runners
+          target_milestone: phase2_post_release_hardening
+        - id: TM-P2-029
+          rationale: dedicated Windows safety graceful-degradation assertion suite not yet automated
+          target_milestone: phase2_post_release_hardening
 
 next_execution_targets:
-  - phase2_closeout_and_release_readiness
+  - phase2_closeout_hosted_ci_verification
+  - phase2_post_release_hardening
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md

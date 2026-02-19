@@ -1,6 +1,6 @@
 # Eden-Skills: The Next-Gen Agent Skills Ecosystem
 
-**Version:** 1.0 | **Date:** Feb 2026 | **Status:** Execution In Progress (Phase 1)
+**Version:** 1.0 | **Date:** Feb 2026 | **Status:** Execution In Progress (Phase 2 Closeout)
 
 ---
 
@@ -194,13 +194,15 @@ This section remains a strategic checklist.
 5. [x] **Safety Gate MVP:** Implement risk metadata persistence and checks.
 6. [x] **CLI UX Refactor:** Adopt `clap` for robust subcommand parsing.
 
-### Phase 2: Core Upgrade (Immediate Focus)
+### Phase 2: Core Upgrade (Implemented; closeout hardening tracked)
 
-1. [ ] **Phase 2 Spec Freeze:** Execute Stage A/B workflow to freeze `SPEC-PHASE2.md` (TargetAdapter, AsyncReactor, Registry).
-2. [ ] **Registry RFC:** Define the TOML index structure for `official` and `forge` registries.
-3. [ ] **Async Refactor:** Port the serial `apply` loop to `tokio`-based concurrent `SkillReactor`.
-4. [ ] **Docker Adapter:** Implement `TargetAdapter` for Docker (`docker exec/cp`) to support containerized agents.
-5. [ ] **Registry Resolution:** Implement logic to resolve `name="google-search"` to a Git URL via the Registry Index.
+1. [x] **Phase 2 Spec Freeze:** Stage A/B contract workflow completed for Phase 2 specs.
+2. [x] **Registry RFC + Implementation:** TOML-backed multi-registry index structure (`official`/`forge`) implemented and tested.
+3. [x] **Async Refactor:** Serial source sync path refactored to `tokio` + bounded-concurrency reactor execution.
+4. [x] **Docker Adapter:** `TargetAdapter` Docker implementation (`docker exec/cp`) implemented with health/error handling.
+5. [x] **Registry Resolution:** Mode B skill resolution from registry index implemented (`install` + `apply`/`repair`).
+6. [x] **Closeout Audit:** Builder closeout items `P2-CLOSE-001` to `P2-CLOSE-003` dispositioned and synchronized in tracking docs.
+7. [ ] **Post-Release Hardening:** Deferred scenarios `TM-P2-015`, `TM-P2-027`, `TM-P2-029`.
 
 ### Phase 3: Data Engine (Future)
 

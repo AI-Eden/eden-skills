@@ -276,6 +276,18 @@ fn select_version<'a>(
         });
     }
 
+    let stable_candidates = candidates
+        .iter()
+        .copied()
+        .filter(|candidate| candidate.version.pre.is_empty())
+        .collect::<Vec<_>>();
+    if let Some(stable) = stable_candidates
+        .into_iter()
+        .max_by(|left, right| left.version.cmp(&right.version))
+    {
+        return Ok(stable);
+    }
+
     candidates
         .into_iter()
         .max_by(|left, right| left.version.cmp(&right.version))

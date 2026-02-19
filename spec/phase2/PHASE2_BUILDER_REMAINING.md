@@ -1,42 +1,44 @@
 # PHASE2_BUILDER_REMAINING.md
 
-Index of remaining Builder-owned closeout work for Phase 2.
-This file is intentionally short and points to detailed sources.
+Index of Builder-owned closeout work for Phase 2.
+This file remains concise and points to detailed status sources.
 
-## Remaining Work Items
+## Closeout Snapshot
+
+- **Scope:** `P2-CLOSE-001` through `P2-CLOSE-003`
+- **State:** In progress (implementation complete; hosted CI matrix verification pending push/rerun)
+- **Detailed sources:** `spec/phase2/SPEC_TRACEABILITY.md`, `STATUS.yaml`, `EXECUTION_TRACKER.md`
+
+## Completed Closeout Items
 
 ### P2-CLOSE-001 (CI blocker): Windows TOML/file URL escaping parity in Phase 2 command tests
 
-- **Owner:** Builder
-- **Priority:** P0 (release gate)
-- **Current signal:** Latest hosted CI run for `main` (`run_id: 22148985041`) failed on `windows-latest`.
-- **Observed failure mode:** `crates/eden-skills-cli/tests/phase2_commands.rs` writes `file://C:\...` into TOML literals, causing parse errors (`invalid unicode 8-digit hex code`).
-- **Required outcome:** Normalize/escape file URL writes in Phase 2 command tests so Linux/macOS/Windows all pass.
-- **Verification:** Hosted CI rerun must pass on all matrix targets (`ubuntu-latest`, `macos-latest`, `windows-latest`).
-- **Related sources:** `spec/phase2/SPEC_TEST_MATRIX.md` (Section 5 cross-platform), `spec/phase2/SPEC_TRACEABILITY.md`, `STATUS.yaml`, `EXECUTION_TRACKER.md`.
+- **Status:** Implemented + locally validated (hosted CI matrix verification pending)
+- **Outcome:** `crates/eden-skills-cli/tests/phase2_commands.rs` now normalizes file URLs to TOML-safe format before writing literals, and adds a regression test for Windows-style `file://C:\...` payload parsing.
+- **Verification:** local Phase 2 command suite passes; workspace quality gate recorded in tracker and status docs; hosted matrix validation requires a run that includes current commit.
 
 ### P2-CLOSE-002 (traceability closure): Resolve remaining planned Phase 2 test scenarios
 
-- **Owner:** Builder
-- **Priority:** P1
-- **Current signal:** `spec/phase2/SPEC_TRACEABILITY.md` still marks multiple scenarios as `planned`.
-- **Open scenarios:** `TM-P2-003`, `TM-P2-004`, `TM-P2-015`, `TM-P2-020`, `TM-P2-024`, `TM-P2-027`, `TM-P2-028`, `TM-P2-029`, `TM-P2-030`.
-- **Required outcome:** For each scenario, choose one explicit disposition:
-  1. Implement + automate, then update traceability status to `implemented`; or
-  2. Mark deferred with rationale and target milestone in Phase 2 tracking docs.
-- **Verification:** No ambiguous ownership for remaining `planned` entries; status and tracker are consistent.
-- **Related sources:** `spec/phase2/SPEC_TEST_MATRIX.md`, `spec/phase2/SPEC_TRACEABILITY.md`, `STATUS.yaml`, `EXECUTION_TRACKER.md`.
+- **Status:** Completed (all prior `planned` entries explicitly dispositioned)
+- **Implemented now:** `TM-P2-003`, `TM-P2-004`, `TM-P2-020`, `TM-P2-024`, `TM-P2-028`, `TM-P2-030`
+- **Deferred with milestone:** `TM-P2-015`, `TM-P2-027`, `TM-P2-029` -> `phase2_post_release_hardening`
 
 ### P2-CLOSE-003 (documentation consistency): Align strategic/project status docs with current Phase 2 state
 
-- **Owner:** Builder
-- **Priority:** P1
-- **Current signal:** `README.md` and `ROADMAP.md` still present stale checklist/status wording compared with `STATUS.yaml` and `EXECUTION_TRACKER.md`.
-- **Required outcome:** Keep strategic intent unchanged, but ensure project state wording does not regress to "Phase 1 focus" for current execution reporting.
-- **Verification:** `spec/`, `STATUS.yaml`, `EXECUTION_TRACKER.md`, `README.md`, and `ROADMAP.md` are mutually non-contradictory on current phase execution state.
+- **Status:** Completed
+- **Outcome:** status wording/checklists synced across project tracking docs so Phase 2 execution state no longer regresses to Phase 1-focused phrasing.
+
+## Remaining Builder-Owned Closeout Work
+
+- Re-run hosted CI matrix (`ubuntu-latest`, `macos-latest`, `windows-latest`) on a commit containing the `P2-CLOSE-001` fix and confirm green status.
+
+## Deferred Follow-Ups (Post-Closeout)
+
+- `TM-P2-015`: explicit warning-channel contract for Docker symlink fallback output (`phase2_post_release_hardening`)
+- `TM-P2-027`: deterministic Windows privilege-denied symlink automation harness (`phase2_post_release_hardening`)
+- `TM-P2-029`: dedicated Windows-hosted safety graceful-degradation assertions (`phase2_post_release_hardening`)
 
 ## Notes
 
-- Architect-owned strategy outputs (taxonomy/rubric/crawler RFC finalization) are intentionally excluded.
+- Architect-owned strategy outputs (taxonomy/rubric/crawler RFC finalization) remain out of Builder closeout scope.
 - Historical completion details for Batch 1~7 remain in `EXECUTION_TRACKER.md` and `STATUS.yaml`.
-- If new Builder-owned Phase 2 closeout gaps are discovered, add a new `P2-CLOSE-###` item and link it here.

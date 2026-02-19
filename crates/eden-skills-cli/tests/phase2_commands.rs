@@ -633,6 +633,24 @@ path = "{target_root}"
     );
 }
 
+#[test]
+fn windows_style_file_url_is_toml_safe_in_test_configs() {
+    let windows_like_repo = PathBuf::from(r"C:\Users\ci\repo");
+    let document = format!(
+        r#"
+[skills.source]
+repo = "{repo_url}"
+"#,
+        repo_url = as_file_url(&windows_like_repo),
+    );
+
+    let parsed = toml::from_str::<toml::Value>(&document);
+    assert!(
+        parsed.is_ok(),
+        "expected windows-style file URL to remain TOML-safe, got: {parsed:?}"
+    );
+}
+
 fn init_git_repo(base: &Path, name: &str, files: &[(&str, &str)]) -> PathBuf {
     let repo = base.join(name);
     for (rel, content) in files {
@@ -766,7 +784,15 @@ fn eden_command(test_root: &Path) -> Command {
 }
 
 fn as_file_url(path: &Path) -> String {
-    format!("file://{}", path.display())
+    let mut normalized = path.display().to_string().replace('\\', "/");
+    if normalized
+        .as_bytes()
+        .get(1)
+        .is_some_and(|candidate| *candidate == b':')
+    {
+        normalized.insert(0, '/');
+    }
+    format!("file://{normalized}")
 }
 
 fn toml_escape_path(path: &Path) -> String {

@@ -315,8 +315,9 @@ impl TargetAdapter for DockerAdapter {
         if !output.status.success() {
             return Err(AdapterError::Runtime {
                 detail: format!(
-                    "docker cp failed for container `{}`: status={} stderr=`{}`",
+                    "docker cp failed for container `{}` at target `{}`: status={} stderr=`{}`",
                     self.container_name,
+                    target.display(),
                     output.status,
                     String::from_utf8_lossy(&output.stderr).trim()
                 ),

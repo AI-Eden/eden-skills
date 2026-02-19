@@ -240,6 +240,59 @@ exit 1
 }
 
 #[cfg(unix)]
+#[tokio::test]
+async fn docker_adapter_install_permission_failure_includes_container_and_target_path() {
+    let temp = tempdir().expect("tempdir");
+    let docker_bin = temp.path().join("docker");
+    let script = r#"#!/bin/sh
+set -eu
+cmd="$1"
+shift
+if [ "$cmd" = "--version" ]; then
+  echo "Docker version 27.0.0"
+  exit 0
+fi
+if [ "$cmd" = "inspect" ]; then
+  echo "true"
+  exit 0
+fi
+if [ "$cmd" = "cp" ]; then
+  echo "read-only file system" >&2
+  exit 1
+fi
+echo "unsupported docker call" >&2
+exit 1
+"#;
+    fs::write(&docker_bin, script).expect("write docker stub");
+    let mut perms = fs::metadata(&docker_bin)
+        .expect("docker metadata")
+        .permissions();
+    use std::os::unix::fs::PermissionsExt;
+    perms.set_mode(0o755);
+    fs::set_permissions(&docker_bin, perms).expect("set executable");
+
+    let adapter = docker_adapter_with_retry("readonly-container", &docker_bin);
+    let source = temp.path().join("source");
+    fs::create_dir_all(&source).expect("create source");
+    fs::write(source.join("README.md"), "hello\n").expect("write source");
+
+    let target = Path::new("/workspace/skills/demo");
+    let err = adapter
+        .install(&source, target, InstallMode::Copy)
+        .await
+        .expect_err("install should fail on docker cp permission error");
+    let message = err.to_string();
+    assert!(
+        message.contains("readonly-container"),
+        "expected container name in error message, got: {message}"
+    );
+    assert!(
+        message.contains("/workspace/skills/demo"),
+        "expected target path in error message, got: {message}"
+    );
+}
+
+#[cfg(unix)]
 fn docker_adapter_with_retry(container_name: &str, docker_bin: &Path) -> DockerAdapter {
     let mut last_err = None;
     for _ in 0..20 {
