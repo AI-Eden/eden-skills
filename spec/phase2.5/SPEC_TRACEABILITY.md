@@ -27,9 +27,9 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| SCH-P25-001 | `SPEC_SCHEMA_P25.md` 2.2 | `skills` array MAY be empty | -- | -- | planned |
-| SCH-P25-002 | `SPEC_SCHEMA_P25.md` 3.2 | `init` template MUST produce minimal config without dummy skills | -- | -- | planned |
-| SCH-P25-003 | `SPEC_SCHEMA_P25.md` 5 | Phase 1 and Phase 2 configs remain valid | -- | -- | planned |
+| SCH-P25-001 | `SPEC_SCHEMA_P25.md` 2.2 | `skills` array MAY be empty | `crates/eden-skills-core/src/config.rs` (`RawConfig::into_config`, `validate_config`) | `crates/eden-skills-core/tests/config_tests.rs`, `crates/eden-skills-cli/tests/phase25_schema_tests.rs` | completed |
+| SCH-P25-002 | `SPEC_SCHEMA_P25.md` 3.2 | `init` template MUST produce minimal config without dummy skills | `crates/eden-skills-cli/src/commands.rs` (`default_config_template`) | `crates/eden-skills-cli/tests/init_command.rs` | completed |
+| SCH-P25-003 | `SPEC_SCHEMA_P25.md` 5 | Phase 1 and Phase 2 configs remain valid | `crates/eden-skills-core/src/config.rs` (backward-compatible non-empty skill validation path retained) | `crates/eden-skills-core/tests/config_tests.rs`, `cargo test --workspace` regression gate | completed |
 
 ## 3. Agent Detection Requirements
 
@@ -64,11 +64,11 @@ Use this file to recover accurate context after compression.
 
 | SCENARIO_ID | Source | Scenario | Automated Test | Status |
 |---|---|---|---|---|
-| TM-P25-001 | `SPEC_TEST_MATRIX.md` 2 | Empty skills array validation | -- | planned |
-| TM-P25-002 | `SPEC_TEST_MATRIX.md` 2 | Empty config plan | -- | planned |
-| TM-P25-003 | `SPEC_TEST_MATRIX.md` 2 | Empty config apply | -- | planned |
-| TM-P25-004 | `SPEC_TEST_MATRIX.md` 2 | Init template minimal | -- | planned |
-| TM-P25-005 | `SPEC_TEST_MATRIX.md` 2 | Backward compatibility | -- | planned |
+| TM-P25-001 | `SPEC_TEST_MATRIX.md` 2 | Empty skills array validation | `crates/eden-skills-core/tests/config_tests.rs` (`load_valid_config_when_skills_array_is_missing`, `load_valid_config_when_skills_array_is_explicitly_empty`) | completed |
+| TM-P25-002 | `SPEC_TEST_MATRIX.md` 2 | Empty config plan | `crates/eden-skills-cli/tests/phase25_schema_tests.rs` (`plan_with_empty_config_succeeds_and_reports_zero_actions`, `plan_json_with_empty_config_emits_empty_array`) | completed |
+| TM-P25-003 | `SPEC_TEST_MATRIX.md` 2 | Empty config apply | `crates/eden-skills-cli/tests/phase25_schema_tests.rs` (`apply_with_empty_config_succeeds_with_zero_summary`) | completed |
+| TM-P25-004 | `SPEC_TEST_MATRIX.md` 2 | Init template minimal | `crates/eden-skills-cli/tests/init_command.rs` (`init_creates_config_when_missing`, `init_overwrites_when_force_is_set`) | completed |
+| TM-P25-005 | `SPEC_TEST_MATRIX.md` 2 | Backward compatibility | `crates/eden-skills-core/tests/config_tests.rs` (`load_phase1_style_config_with_five_skills_for_backward_compatibility`), `cargo test --workspace` | completed |
 | TM-P25-006 | `SPEC_TEST_MATRIX.md` 3 | GitHub shorthand | -- | planned |
 | TM-P25-007 | `SPEC_TEST_MATRIX.md` 3 | Full GitHub URL | -- | planned |
 | TM-P25-008 | `SPEC_TEST_MATRIX.md` 3 | GitHub tree URL | -- | planned |

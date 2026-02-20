@@ -131,3 +131,64 @@ agent = "claude-code"
         "error should reference field path, got `{message}`"
     );
 }
+
+#[test]
+fn load_valid_config_when_skills_array_is_missing() {
+    let dir = tempdir().expect("tempdir");
+    let config_path = dir.path().join("skills.toml");
+    fs::write(
+        &config_path,
+        r#"
+version = 1
+
+[storage]
+root = "./storage"
+"#,
+    )
+    .expect("write config");
+
+    let loaded = load_from_file(&config_path, LoadOptions::default()).expect("load config");
+    assert_eq!(loaded.config.version, 1);
+    assert_eq!(loaded.config.skills.len(), 0);
+}
+
+#[test]
+fn load_valid_config_when_skills_array_is_explicitly_empty() {
+    let dir = tempdir().expect("tempdir");
+    let config_path = dir.path().join("skills.toml");
+    fs::write(
+        &config_path,
+        r#"
+version = 1
+
+[storage]
+root = "./storage"
+
+skills = []
+"#,
+    )
+    .expect("write config");
+
+    let loaded = load_from_file(&config_path, LoadOptions::default()).expect("load config");
+    assert_eq!(loaded.config.version, 1);
+    assert_eq!(loaded.config.skills.len(), 0);
+}
+
+#[test]
+fn load_phase1_style_config_with_five_skills_for_backward_compatibility() {
+    let dir = tempdir().expect("tempdir");
+    let config_path = dir.path().join("skills.toml");
+
+    let mut content = String::from("version = 1\n\n[storage]\nroot = \"./storage\"\n\n");
+    for idx in 0..5 {
+        content.push_str(&format!(
+            "[[skills]]\nid = \"skill-{idx}\"\n\n[skills.source]\nrepo = \"https://github.com/example/repo-{idx}.git\"\nsubpath = \".\"\nref = \"main\"\n\n[[skills.targets]]\nagent = \"claude-code\"\n\n"
+        ));
+    }
+    fs::write(&config_path, content).expect("write config");
+
+    let loaded = load_from_file(&config_path, LoadOptions::default()).expect("load config");
+    assert_eq!(loaded.config.skills.len(), 5);
+    assert_eq!(loaded.config.skills[0].id, "skill-0");
+    assert_eq!(loaded.config.skills[4].id, "skill-4");
+}

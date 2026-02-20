@@ -1,8 +1,8 @@
 schema_version: 1
-updated_at: "2026-02-19"
+updated_at: "2026-02-20"
 project:
   name: eden-skills
-  phase: phase2_hyper_loop_core
+  phase: phase25_mvp_launch
   status: active_implementation
 
 authority_order:
@@ -250,7 +250,34 @@ phase2:
           - cargo test (windows-latest)
       deferred_followups: []
 
-next_execution_targets: []
+phase25:
+  status: active_implementation
+  started_at: "2026-02-20"
+  spec_files:
+    - spec/phase2.5/SPEC_INSTALL_URL.md
+    - spec/phase2.5/SPEC_SCHEMA_P25.md
+    - spec/phase2.5/SPEC_AGENT_DETECT.md
+    - spec/phase2.5/SPEC_CLI_UX.md
+    - spec/phase2.5/SPEC_DISTRIBUTION.md
+    - spec/phase2.5/SPEC_TEST_MATRIX.md
+    - spec/phase2.5/SPEC_TRACEABILITY.md
+  builder_progress:
+    batch_1_ws_1_ws_2_schema_init:
+      status: completed
+      completed_at: "2026-02-20"
+      requirements: SCH-P25-001, SCH-P25-002, SCH-P25-003
+      scenarios: TM-P25-001, TM-P25-002, TM-P25-003, TM-P25-004, TM-P25-005
+      notes:
+        - relaxed schema validation to allow empty or omitted skills array
+        - updated init template to minimal config without bootstrap dummy skill
+        - aligned plan/apply behavior for empty config flow and adjusted lifecycle baseline tests
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+
+next_execution_targets:
+  - phase25_batch_2_ws_3_part1_mvp_001_008
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md

@@ -200,12 +200,7 @@ impl RawConfig {
             .unwrap_or_default()
             .into_reactor_config("reactor.concurrency")?;
 
-        let raw_skills = required(self.skills, "skills")?;
-        if raw_skills.is_empty() {
-            return Err(EdenError::Validation(
-                "skills: must contain at least one skill".to_string(),
-            ));
-        }
+        let raw_skills = self.skills.unwrap_or_default();
 
         let mut ids = HashSet::new();
         let mut skills = Vec::with_capacity(raw_skills.len());
@@ -588,12 +583,6 @@ pub fn validate_config(config: &Config, config_dir: &Path) -> Result<(), EdenErr
                 "expected value in [{MIN_CONCURRENCY_LIMIT}, {MAX_CONCURRENCY_LIMIT}], got {}",
                 config.reactor.concurrency
             ),
-        ));
-    }
-
-    if config.skills.is_empty() {
-        return Err(EdenError::Validation(
-            "skills: must contain at least one skill".to_string(),
         ));
     }
 

@@ -23,7 +23,20 @@ fn init_creates_config_when_missing() {
 
     let content = fs::read_to_string(&config_path).expect("read config");
     assert!(content.contains("version = 1"));
-    assert!(content.contains("[[skills]]"));
+    assert!(content.contains("[storage]"));
+    assert!(!content.contains("[[skills]]"));
+
+    let validate_output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["plan", "--json", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run plan --json");
+    assert_eq!(
+        validate_output.status.code(),
+        Some(0),
+        "generated init config should validate, stderr={}",
+        String::from_utf8_lossy(&validate_output.stderr)
+    );
 }
 
 #[test]
@@ -66,7 +79,9 @@ fn init_overwrites_when_force_is_set() {
     );
 
     let content = fs::read_to_string(&config_path).expect("read config");
-    assert!(content.contains("browser-tool"));
+    assert!(content.contains("[storage]"));
+    assert!(!content.contains("[[skills]]"));
+    assert!(!content.contains("browser-tool"));
     assert!(!content.contains("# old"));
 }
 

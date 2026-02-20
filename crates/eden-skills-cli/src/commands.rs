@@ -1507,6 +1507,11 @@ fn print_safety_summary(reports: &[SkillSafetyReport]) {
 }
 
 fn print_plan_text(items: &[PlanItem]) {
+    if items.is_empty() {
+        println!("plan: 0 actions");
+        return;
+    }
+
     for item in items {
         println!(
             "{} {} {} -> {} ({})",
@@ -1558,36 +1563,11 @@ pub fn init(config_path: &str, force: bool) -> Result<(), EdenError> {
 
 fn default_config_template() -> String {
     // Keep this template valid and deterministic.
-    // Note: `skills` must be non-empty per `SPEC_SCHEMA.md`.
     [
         "version = 1",
         "",
         "[storage]",
         "root = \"~/.local/share/eden-skills/repos\"",
-        "",
-        "[[skills]]",
-        "id = \"browser-tool\"",
-        "",
-        "[skills.source]",
-        "repo = \"https://github.com/vercel-labs/skills.git\"",
-        "subpath = \"packages/browser\"",
-        "ref = \"main\"",
-        "",
-        "[skills.install]",
-        "mode = \"symlink\"",
-        "",
-        "[[skills.targets]]",
-        "agent = \"claude-code\"",
-        "",
-        "[[skills.targets]]",
-        "agent = \"cursor\"",
-        "",
-        "[skills.verify]",
-        "enabled = true",
-        "checks = [\"path-exists\", \"target-resolves\", \"is-symlink\"]",
-        "",
-        "[skills.safety]",
-        "no_exec_metadata_only = false",
         "",
     ]
     .join("\n")

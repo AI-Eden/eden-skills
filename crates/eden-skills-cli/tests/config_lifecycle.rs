@@ -48,15 +48,14 @@ fn add_appends_skill_and_writes_valid_toml() {
         .get("skills")
         .and_then(|v| v.as_array())
         .expect("skills should be an array");
-    assert_eq!(skills.len(), 2);
-    assert_eq!(skills[0]["id"].as_str(), Some("browser-tool"));
-    assert_eq!(skills[1]["id"].as_str(), Some("new-skill"));
+    assert_eq!(skills.len(), 1);
+    assert_eq!(skills[0]["id"].as_str(), Some("new-skill"));
     assert_eq!(
-        skills[1]["source"]["repo"].as_str(),
+        skills[0]["source"]["repo"].as_str(),
         Some("https://example.com/repo.git")
     );
-    assert_eq!(skills[1]["source"]["ref"].as_str(), Some("main"));
-    assert_eq!(skills[1]["source"]["subpath"].as_str(), Some("."));
+    assert_eq!(skills[0]["source"]["ref"].as_str(), Some("main"));
+    assert_eq!(skills[0]["source"]["subpath"].as_str(), Some("."));
 }
 
 #[test]
@@ -71,9 +70,30 @@ fn add_fails_on_duplicate_id_and_does_not_modify_file() {
         .expect("run init");
     assert_eq!(init.status.code(), Some(0));
 
+    let first_add = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args([
+            "add",
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+            "--id",
+            "browser-tool",
+            "--repo",
+            "https://example.com/repo.git",
+            "--target",
+            "claude-code",
+        ])
+        .output()
+        .expect("run first add");
+    assert_eq!(
+        first_add.status.code(),
+        Some(0),
+        "first add should succeed, stderr={}",
+        String::from_utf8_lossy(&first_add.stderr)
+    );
+
     let before = fs::read_to_string(&config_path).expect("read config");
 
-    let add = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+    let duplicate_add = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
         .args([
             "add",
             "--config",
@@ -89,10 +109,10 @@ fn add_fails_on_duplicate_id_and_does_not_modify_file() {
         .expect("run add duplicate");
 
     assert_eq!(
-        add.status.code(),
+        duplicate_add.status.code(),
         Some(2),
         "add duplicate should exit 2, stderr={}",
-        String::from_utf8_lossy(&add.stderr)
+        String::from_utf8_lossy(&duplicate_add.stderr)
     );
 
     let after = fs::read_to_string(&config_path).expect("read config");
@@ -145,12 +165,11 @@ fn remove_deletes_only_matching_skill() {
 
     let written = fs::read_to_string(&config_path).expect("read config");
     let value: toml::Value = toml::from_str(&written).expect("config should be valid toml");
-    let skills = value
-        .get("skills")
-        .and_then(|v| v.as_array())
-        .expect("skills should be an array");
-    assert_eq!(skills.len(), 1);
-    assert_eq!(skills[0]["id"].as_str(), Some("browser-tool"));
+    let skills = value.get("skills").and_then(|v| v.as_array());
+    assert!(
+        skills.is_none() || skills.is_some_and(|entries| entries.is_empty()),
+        "expected no remaining skills after remove, got: {written}"
+    );
 }
 
 #[test]
@@ -296,16 +315,9 @@ fn set_updates_only_targeted_fields_and_validates_before_write() {
         .get("skills")
         .and_then(|v| v.as_array())
         .expect("skills should be an array");
-    assert_eq!(skills.len(), 2);
+    assert_eq!(skills.len(), 1);
 
-    let browser = &skills[0];
-    assert_eq!(browser["id"].as_str(), Some("browser-tool"));
-    assert_eq!(
-        browser["source"]["repo"].as_str(),
-        Some("https://github.com/vercel-labs/skills.git")
-    );
-
-    let updated = &skills[1];
+    let updated = &skills[0];
     assert_eq!(updated["id"].as_str(), Some("new-skill"));
     assert_eq!(
         updated["source"]["repo"].as_str(),
