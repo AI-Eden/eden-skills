@@ -1,5 +1,7 @@
 pub mod adapter;
+pub mod agents;
 pub mod config;
+pub mod discovery;
 pub mod error;
 pub mod paths;
 pub mod plan;

@@ -15,13 +15,13 @@ Use this file to recover accurate context after compression.
 | MVP-006 | `SPEC_INSTALL_URL.md` 3.2 | Source format detection MUST follow documented precedence | `crates/eden-skills-core/src/source_format.rs` (`detect_install_source`) | `crates/eden-skills-core/tests/source_format_tests.rs` (`local_path_is_detected_before_shorthand`, `unmatched_source_falls_back_to_registry_name`) | completed |
 | MVP-007 | `SPEC_INSTALL_URL.md` 3.3 | Skill ID MUST be auto-derived with `--id` override | `crates/eden-skills-core/src/source_format.rs` (`derive_skill_id_from_source_repo`), `crates/eden-skills-cli/src/commands.rs` (`upsert_mode_a_skill`) | `crates/eden-skills-core/tests/source_format_tests.rs` (`auto_derived_id_uses_repo_tail_without_git_suffix`), `crates/eden-skills-cli/tests/install_url_tests.rs` (`install_url_mode_respects_id_override`, `install_url_mode_upserts_existing_id_instead_of_duplicating`) | completed |
 | MVP-008 | `SPEC_INSTALL_URL.md` 6.2 | `install` MUST auto-create config if not exists | `crates/eden-skills-cli/src/commands.rs` (`ensure_install_config_exists`) | `crates/eden-skills-cli/tests/install_url_tests.rs` (`local_path_install_persists_absolute_repo_and_skips_clone`, `install_fails_when_config_parent_directory_is_missing`) | completed |
-| MVP-009 | `SPEC_INSTALL_URL.md` 4.2 | `install` MUST discover SKILL.md in standard directories | -- | -- | planned |
-| MVP-010 | `SPEC_INSTALL_URL.md` 5.6 | `--list` MUST display discovered skills without installing | -- | -- | planned |
-| MVP-011 | `SPEC_INSTALL_URL.md` 5.1 | `--all` MUST install all discovered skills without confirmation | -- | -- | planned |
-| MVP-012 | `SPEC_INSTALL_URL.md` 5.2 | `--skill` MUST install only named skills | -- | -- | planned |
-| MVP-013 | `SPEC_INSTALL_URL.md` 5.3 | Interactive mode MUST show skills and prompt for confirmation | -- | -- | planned |
-| MVP-014 | `SPEC_INSTALL_URL.md` 5.5 | Non-TTY MUST default to `--all` behavior | -- | -- | planned |
-| MVP-015 | `SPEC_INSTALL_URL.md` 4.3 | Single-skill repos MUST skip confirmation | -- | -- | planned |
+| MVP-009 | `SPEC_INSTALL_URL.md` 4.2 | `install` MUST discover SKILL.md in standard directories | `crates/eden-skills-core/src/discovery.rs` (`discover_skills`), `crates/eden-skills-cli/src/commands.rs` (`install_local_url_mode_async`, `install_remote_url_mode_async`, `discover_remote_skills_via_temp_clone`) | `crates/eden-skills-core/tests/discovery_tests.rs`, `crates/eden-skills-cli/tests/install_discovery_tests.rs` | completed |
+| MVP-010 | `SPEC_INSTALL_URL.md` 5.6 | `--list` MUST display discovered skills without installing | `crates/eden-skills-cli/src/commands.rs` (`print_discovered_skills`, URL-mode list branches, list no-config path in `install_async`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`list_flag_prints_discovered_skills_without_modifying_config`, `remote_url_list_does_not_create_config_or_install_targets`) | completed |
+| MVP-011 | `SPEC_INSTALL_URL.md` 5.1 | `--all` MUST install all discovered skills without confirmation | `crates/eden-skills-cli/src/commands.rs` (`resolve_local_install_selection`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`skills_directory_discovery_with_all_installs_all_skills`, `packages_directory_discovery_with_all_installs_all_skills`, `remote_url_with_all_installs_all_discovered_skills`) | completed |
+| MVP-012 | `SPEC_INSTALL_URL.md` 5.2 | `--skill` MUST install only named skills | `crates/eden-skills-cli/src/commands.rs` (`select_named_skills`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`skill_flags_install_only_selected_skills`, `remote_url_with_skill_installs_only_selected_skill`, `unknown_skill_name_returns_error_with_available_names`) | completed |
+| MVP-013 | `SPEC_INSTALL_URL.md` 5.3 | Interactive mode MUST show skills and prompt for confirmation | `crates/eden-skills-cli/src/commands.rs` (`print_discovery_summary`, `prompt_install_all`, `prompt_skill_names`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`interactive_tty_confirm_yes_installs_all`, `interactive_tty_confirm_no_then_selects_named_skills`, `interactive_summary_truncates_when_more_than_eight_skills`) | completed |
+| MVP-014 | `SPEC_INSTALL_URL.md` 5.5 | Non-TTY MUST default to `--all` behavior | `crates/eden-skills-cli/src/commands.rs` (`install_stdout_is_tty`, `resolve_local_install_selection`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`non_tty_defaults_to_install_all_for_multi_skill_repo`) | completed |
+| MVP-015 | `SPEC_INSTALL_URL.md` 4.3 | Single-skill repos MUST skip confirmation | `crates/eden-skills-cli/src/commands.rs` (`resolve_local_install_selection`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`single_root_skill_installs_without_confirmation_prompt`) | completed |
 
 ## 2. Schema Amendment Requirements
 
@@ -35,10 +35,10 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| AGT-001 | `SPEC_AGENT_DETECT.md` 2.2 | `install` MUST auto-detect installed agents | -- | -- | planned |
-| AGT-002 | `SPEC_AGENT_DETECT.md` 2.1 | Detection MUST check documented agent directories | -- | -- | planned |
-| AGT-003 | `SPEC_AGENT_DETECT.md` 3 | Explicit `--target` MUST override auto-detection | -- | -- | planned |
-| AGT-004 | `SPEC_AGENT_DETECT.md` 2.3 | No agents detected MUST fall back to claude-code with warning | -- | -- | planned |
+| AGT-001 | `SPEC_AGENT_DETECT.md` 2.2 | `install` MUST auto-detect installed agents | `crates/eden-skills-core/src/agents.rs` (`detect_installed_agent_targets`), `crates/eden-skills-cli/src/commands.rs` (`resolve_url_mode_install_targets`) | `crates/eden-skills-cli/tests/install_agent_detect_tests.rs` (`install_without_target_detects_multiple_agent_directories`) | completed |
+| AGT-002 | `SPEC_AGENT_DETECT.md` 2.1 | Detection MUST check documented agent directories | `crates/eden-skills-core/src/agents.rs` (`AGENT_RULES`, `detect_installed_agent_targets_from_home`) | `crates/eden-skills-core/tests/agent_detect_tests.rs` (`detects_all_documented_agent_directories`) | completed |
+| AGT-003 | `SPEC_AGENT_DETECT.md` 3 | Explicit `--target` MUST override auto-detection | `crates/eden-skills-cli/src/commands.rs` (`resolve_url_mode_install_targets`, URL-mode install branches) | `crates/eden-skills-cli/tests/install_agent_detect_tests.rs` (`explicit_target_override_skips_auto_detection`) | completed |
+| AGT-004 | `SPEC_AGENT_DETECT.md` 2.3 | No agents detected MUST fall back to claude-code with warning | `crates/eden-skills-cli/src/commands.rs` (`resolve_url_mode_install_targets`) | `crates/eden-skills-cli/tests/install_agent_detect_tests.rs` (`install_without_target_falls_back_to_claude_with_warning`) | completed |
 
 ## 4. CLI UX Requirements
 
@@ -79,19 +79,19 @@ Use this file to recover accurate context after compression.
 | TM-P25-013 | `SPEC_TEST_MATRIX.md` 4 | Auto-derived ID | `crates/eden-skills-core/tests/source_format_tests.rs` (`auto_derived_id_uses_repo_tail_without_git_suffix`) | completed |
 | TM-P25-014 | `SPEC_TEST_MATRIX.md` 4 | ID override | `crates/eden-skills-cli/tests/install_url_tests.rs` (`install_url_mode_respects_id_override`) | completed |
 | TM-P25-015 | `SPEC_TEST_MATRIX.md` 4 | ID upsert | `crates/eden-skills-cli/tests/install_url_tests.rs` (`install_url_mode_upserts_existing_id_instead_of_duplicating`) | completed |
-| TM-P25-016 | `SPEC_TEST_MATRIX.md` 5 | Single SKILL.md at root | -- | planned |
-| TM-P25-017 | `SPEC_TEST_MATRIX.md` 5 | Multiple skills in `skills/` | -- | planned |
-| TM-P25-018 | `SPEC_TEST_MATRIX.md` 5 | Multiple skills in `packages/` | -- | planned |
-| TM-P25-019 | `SPEC_TEST_MATRIX.md` 5 | No SKILL.md found | -- | planned |
-| TM-P25-020 | `SPEC_TEST_MATRIX.md` 5 | List flag | -- | planned |
-| TM-P25-021 | `SPEC_TEST_MATRIX.md` 6 | Install all flag | -- | planned |
-| TM-P25-022 | `SPEC_TEST_MATRIX.md` 6 | Install specific skills | -- | planned |
-| TM-P25-023 | `SPEC_TEST_MATRIX.md` 6 | Unknown skill name | -- | planned |
-| TM-P25-024 | `SPEC_TEST_MATRIX.md` 6 | Interactive confirmation (TTY) | -- | planned |
-| TM-P25-025 | `SPEC_TEST_MATRIX.md` 6 | Non-TTY default | -- | planned |
-| TM-P25-026 | `SPEC_TEST_MATRIX.md` 7 | Multi-agent detection | -- | planned |
-| TM-P25-027 | `SPEC_TEST_MATRIX.md` 7 | No agent fallback | -- | planned |
-| TM-P25-028 | `SPEC_TEST_MATRIX.md` 7 | Target override | -- | planned |
+| TM-P25-016 | `SPEC_TEST_MATRIX.md` 5 | Single SKILL.md at root | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`single_root_skill_installs_without_confirmation_prompt`) | completed |
+| TM-P25-017 | `SPEC_TEST_MATRIX.md` 5 | Multiple skills in `skills/` | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`skills_directory_discovery_with_all_installs_all_skills`) | completed |
+| TM-P25-018 | `SPEC_TEST_MATRIX.md` 5 | Multiple skills in `packages/` | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`packages_directory_discovery_with_all_installs_all_skills`) | completed |
+| TM-P25-019 | `SPEC_TEST_MATRIX.md` 5 | No SKILL.md found | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`missing_skill_markdown_installs_root_with_warning`) | completed |
+| TM-P25-020 | `SPEC_TEST_MATRIX.md` 5 | List flag | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`list_flag_prints_discovered_skills_without_modifying_config`, `remote_url_list_does_not_create_config_or_install_targets`) | completed |
+| TM-P25-021 | `SPEC_TEST_MATRIX.md` 6 | Install all flag | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`skills_directory_discovery_with_all_installs_all_skills`, `remote_url_with_all_installs_all_discovered_skills`) | completed |
+| TM-P25-022 | `SPEC_TEST_MATRIX.md` 6 | Install specific skills | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`skill_flags_install_only_selected_skills`, `remote_url_with_skill_installs_only_selected_skill`) | completed |
+| TM-P25-023 | `SPEC_TEST_MATRIX.md` 6 | Unknown skill name | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`unknown_skill_name_returns_error_with_available_names`) | completed |
+| TM-P25-024 | `SPEC_TEST_MATRIX.md` 6 | Interactive confirmation (TTY) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`interactive_tty_confirm_yes_installs_all`, `interactive_tty_confirm_no_then_selects_named_skills`) | completed |
+| TM-P25-025 | `SPEC_TEST_MATRIX.md` 6 | Non-TTY default | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`non_tty_defaults_to_install_all_for_multi_skill_repo`) | completed |
+| TM-P25-026 | `SPEC_TEST_MATRIX.md` 7 | Multi-agent detection | `crates/eden-skills-cli/tests/install_agent_detect_tests.rs` (`install_without_target_detects_multiple_agent_directories`) | completed |
+| TM-P25-027 | `SPEC_TEST_MATRIX.md` 7 | No agent fallback | `crates/eden-skills-cli/tests/install_agent_detect_tests.rs` (`install_without_target_falls_back_to_claude_with_warning`) | completed |
+| TM-P25-028 | `SPEC_TEST_MATRIX.md` 7 | Target override | `crates/eden-skills-cli/tests/install_agent_detect_tests.rs` (`explicit_target_override_skips_auto_detection`) | completed |
 | TM-P25-029 | `SPEC_TEST_MATRIX.md` 8 | Fresh system install | `crates/eden-skills-cli/tests/install_url_tests.rs` (`local_path_install_persists_absolute_repo_and_skips_clone`) | completed |
 | TM-P25-030 | `SPEC_TEST_MATRIX.md` 8 | Missing parent directory | `crates/eden-skills-cli/tests/install_url_tests.rs` (`install_fails_when_config_parent_directory_is_missing`) | completed |
 | TM-P25-031 | `SPEC_TEST_MATRIX.md` 9 | TTY color output | -- | planned |

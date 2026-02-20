@@ -289,9 +289,39 @@ phase25:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    batch_3_ws_3_part2_install_discovery_selection:
+      status: completed
+      completed_at: "2026-02-20"
+      requirements: MVP-009, MVP-010, MVP-011, MVP-012, MVP-013, MVP-014, MVP-015
+      scenarios: TM-P25-016, TM-P25-017, TM-P25-018, TM-P25-019, TM-P25-020, TM-P25-021, TM-P25-022, TM-P25-023, TM-P25-024, TM-P25-025
+      notes:
+        - added SKILL.md discovery module supporting root, skills/*, and packages/* search scope
+        - implemented URL local-path multi-skill selection flow with --list, --all, and repeated --skill flags
+        - added TTY-aware interactive confirmation flow and non-TTY default-all behavior
+        - preserved single-skill direct install path and no-SKILL fallback warning/install-as-directory behavior
+        - finalized follow-up parity for remote URL sources (multi-skill discovery/selection and list no-side-effects)
+        - implemented interactive summary truncation when discovered skills exceed 8 entries
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+    batch_4_ws_4_agent_auto_detection:
+      status: completed
+      completed_at: "2026-02-20"
+      requirements: AGT-001, AGT-002, AGT-003, AGT-004
+      scenarios: TM-P25-026, TM-P25-027, TM-P25-028, TM-P25-029, TM-P25-030
+      notes:
+        - added core agent detection module with data-driven directory rules for claude, cursor, codex, and windsurf
+        - wired URL-mode install to auto-detect targets when --target is omitted
+        - preserved registry-mode install target semantics and scoped override parsing by source mode
+        - added fallback warning and default claude-code target when no known agent directories are found
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
-  - phase25_batch_3_ws_3_part2_mvp_009_015
+  - phase25_batch_5_ws_7_cli_ux_beautification
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md

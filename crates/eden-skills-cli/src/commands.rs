@@ -1,11 +1,14 @@
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::future::Future;
+use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use dialoguer::{Confirm, Input};
 use eden_skills_core::adapter::create_adapter;
+use eden_skills_core::agents::detect_installed_agent_targets;
 use eden_skills_core::config::InstallMode;
 use eden_skills_core::config::{
     config_dir_from_path, decode_registry_mode_repo, default_verify_checks_for_mode,
@@ -13,6 +16,7 @@ use eden_skills_core::config::{
     SourceConfig,
 };
 use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
+use eden_skills_core::discovery::{discover_skills, DiscoveredSkill};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
@@ -58,9 +62,12 @@ pub struct InstallRequest {
     pub source: String,
     pub id: Option<String>,
     pub r#ref: Option<String>,
+    pub skill: Vec<String>,
+    pub all: bool,
+    pub list: bool,
     pub version: Option<String>,
     pub registry: Option<String>,
-    pub target: Option<String>,
+    pub target: Vec<String>,
     pub dry_run: bool,
     pub options: CommandOptions,
 }
@@ -255,15 +262,17 @@ pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
 pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
-    ensure_install_config_exists(config_path)?;
-
     let cwd = std::env::current_dir().map_err(EdenError::Io)?;
     let detected_source = detect_install_source(&req.source, &cwd)?;
     match detected_source {
         DetectedInstallSource::RegistryName(skill_name) => {
+            ensure_install_config_exists(config_path)?;
             install_registry_mode_async(&req, config_path, &skill_name).await
         }
         DetectedInstallSource::Url(url_source) => {
+            if !req.list {
+                ensure_install_config_exists(config_path)?;
+            }
             install_url_mode_async(&req, config_path, &url_source).await
         }
     }
@@ -319,7 +328,7 @@ async fn install_registry_mode_async(
         skill_name,
         &requested_constraint,
         req.registry.as_deref(),
-        req.target.as_deref(),
+        &req.target,
     )?;
     validate_config(&config, &config_dir)?;
 
@@ -358,6 +367,56 @@ async fn install_url_mode_async(
     config_path: &Path,
     url_source: &UrlInstallSource,
 ) -> Result<(), EdenError> {
+    if url_source.is_local {
+        return install_local_url_mode_async(req, config_path, url_source).await;
+    }
+
+    install_remote_url_mode_async(req, config_path, url_source).await
+}
+
+async fn install_remote_url_mode_async(
+    req: &InstallRequest,
+    config_path: &Path,
+    url_source: &UrlInstallSource,
+) -> Result<(), EdenError> {
+    let source_ref = req
+        .r#ref
+        .clone()
+        .or_else(|| url_source.reference.clone())
+        .unwrap_or_else(|| "main".to_string());
+    let scope_subpath = url_source
+        .subpath
+        .clone()
+        .unwrap_or_else(|| ".".to_string());
+    let mut discovered =
+        discover_remote_skills_via_temp_clone(&url_source.repo, &source_ref, &scope_subpath)
+            .await?;
+    if discovered.is_empty() {
+        eprintln!("warning: No SKILL.md found; installing directory as-is.");
+    }
+
+    if req.list {
+        print_discovered_skills(&discovered, &req.source);
+        return Ok(());
+    }
+
+    if discovered.is_empty() {
+        let fallback_name = req
+            .id
+            .clone()
+            .map(Ok)
+            .unwrap_or_else(|| derive_skill_id_from_source_repo(&url_source.repo))?;
+        discovered.push(DiscoveredSkill {
+            name: fallback_name,
+            description: String::new(),
+            subpath: ".".to_string(),
+        });
+    }
+
+    let selected =
+        resolve_local_install_selection(&discovered, req.all, &req.skill, install_stdout_is_tty())?;
+    let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
+
     let loaded = load_from_file(
         config_path,
         LoadOptions {
@@ -368,50 +427,47 @@ async fn install_url_mode_async(
         eprintln!("warning: {warning}");
     }
     let config_dir = config_dir_from_path(config_path);
-
     let mut config = loaded.config;
-    let skill_id = req
-        .id
-        .clone()
-        .map(Ok)
-        .unwrap_or_else(|| derive_skill_id_from_source_repo(&url_source.repo))?;
-    let source_ref = req
-        .r#ref
-        .clone()
-        .or_else(|| url_source.reference.clone())
-        .unwrap_or_else(|| "main".to_string());
-    let source_subpath = url_source
-        .subpath
-        .clone()
-        .unwrap_or_else(|| ".".to_string());
 
-    upsert_mode_a_skill(
-        &mut config,
-        &skill_id,
-        &url_source.repo,
-        &source_subpath,
-        &source_ref,
-        req.target.as_deref(),
-    )?;
+    let mut selected_ids = Vec::new();
+    for skill in &selected {
+        let skill_id = if selected.len() == 1 {
+            req.id.clone().unwrap_or_else(|| skill.name.clone())
+        } else {
+            skill.name.clone()
+        };
+        let effective_subpath = join_scoped_subpath(&scope_subpath, &skill.subpath);
+        upsert_mode_a_skill(
+            &mut config,
+            &skill_id,
+            &url_source.repo,
+            &effective_subpath,
+            &source_ref,
+            &resolved_targets,
+        )?;
+        selected_ids.push(skill_id);
+    }
+
     validate_config(&config, &config_dir)?;
-    let single_skill_config = select_single_skill_config(&config, &skill_id)?;
+    let selected_config = select_config_skills(&config, &selected_ids);
 
     if req.dry_run {
-        print_install_dry_run(
-            req.options.json,
-            &single_skill_config,
-            &skill_id,
-            &source_ref,
-            &config_dir,
-        )?;
-        return Ok(());
+        if let Some(skill_id) = selected_ids.first() {
+            print_install_dry_run(
+                req.options.json,
+                &selected_config,
+                skill_id,
+                &source_ref,
+                &config_dir,
+            )?;
+            return Ok(());
+        }
     }
 
     write_normalized_config(config_path, &config)?;
 
-    if url_source.is_local {
-        install_local_source_skill(&single_skill_config, &config_dir, req.options.strict)?;
-    } else {
+    for skill_id in &selected_ids {
+        let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
         let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
         print_source_sync_summary(&sync_summary);
         if let Some(err) = source_sync_failure_error(&sync_summary) {
@@ -420,8 +476,441 @@ async fn install_url_mode_async(
         execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
     }
 
-    print_install_success(req.options.json, &skill_id, &source_ref)?;
+    if req.options.json {
+        let payload = serde_json::json!({
+            "skills": selected_ids,
+            "status": "installed",
+        });
+        let encoded = serde_json::to_string_pretty(&payload)
+            .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
+        println!("{encoded}");
+    } else {
+        println!("install: {} skill(s) status=installed", selected_ids.len());
+    }
+
     Ok(())
+}
+
+async fn install_local_url_mode_async(
+    req: &InstallRequest,
+    config_path: &Path,
+    url_source: &UrlInstallSource,
+) -> Result<(), EdenError> {
+    let config_dir = config_dir_from_path(config_path);
+    let source_root = resolve_path_string(&url_source.repo, &config_dir)?;
+    let scope_subpath = url_source
+        .subpath
+        .clone()
+        .unwrap_or_else(|| ".".to_string());
+    let discovery_root = normalize_lexical(&source_root.join(&scope_subpath));
+    if !discovery_root.exists() {
+        return Err(EdenError::Runtime(format!(
+            "discovery path does not exist: {}",
+            discovery_root.display()
+        )));
+    }
+
+    let mut discovered = discover_skills(&discovery_root)?;
+    if discovered.is_empty() {
+        eprintln!("warning: No SKILL.md found; installing directory as-is.");
+    }
+
+    if req.list {
+        print_discovered_skills(&discovered, &req.source);
+        return Ok(());
+    }
+
+    if discovered.is_empty() {
+        let fallback_name = req
+            .id
+            .clone()
+            .map(Ok)
+            .unwrap_or_else(|| derive_skill_id_from_source_repo(&url_source.repo))?;
+        discovered.push(DiscoveredSkill {
+            name: fallback_name,
+            description: String::new(),
+            subpath: ".".to_string(),
+        });
+    }
+
+    let selected =
+        resolve_local_install_selection(&discovered, req.all, &req.skill, install_stdout_is_tty())?;
+    let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
+
+    let loaded = load_from_file(
+        config_path,
+        LoadOptions {
+            strict: req.options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+    let mut config = loaded.config;
+    let source_ref = req
+        .r#ref
+        .clone()
+        .or_else(|| url_source.reference.clone())
+        .unwrap_or_else(|| "main".to_string());
+
+    let mut selected_ids = Vec::new();
+    for skill in &selected {
+        let skill_id = if selected.len() == 1 {
+            req.id.clone().unwrap_or_else(|| skill.name.clone())
+        } else {
+            skill.name.clone()
+        };
+        let effective_subpath = join_scoped_subpath(&scope_subpath, &skill.subpath);
+        upsert_mode_a_skill(
+            &mut config,
+            &skill_id,
+            &url_source.repo,
+            &effective_subpath,
+            &source_ref,
+            &resolved_targets,
+        )?;
+        selected_ids.push(skill_id);
+    }
+
+    validate_config(&config, &config_dir)?;
+    let selected_config = select_config_skills(&config, &selected_ids);
+
+    if req.dry_run {
+        if let Some(skill_id) = selected_ids.first() {
+            print_install_dry_run(
+                req.options.json,
+                &selected_config,
+                skill_id,
+                &source_ref,
+                &config_dir,
+            )?;
+            return Ok(());
+        }
+    }
+
+    write_normalized_config(config_path, &config)?;
+
+    for skill_id in &selected_ids {
+        let single = select_single_skill_config(&selected_config, skill_id)?;
+        install_local_source_skill(&single, &config_dir, req.options.strict)?;
+    }
+
+    if req.options.json {
+        let payload = serde_json::json!({
+            "skills": selected_ids,
+            "status": "installed",
+        });
+        let encoded = serde_json::to_string_pretty(&payload)
+            .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
+        println!("{encoded}");
+    } else {
+        println!("install: {} skill(s) status=installed", selected_ids.len());
+    }
+
+    Ok(())
+}
+
+async fn discover_remote_skills_via_temp_clone(
+    repo_url: &str,
+    reference: &str,
+    scoped_subpath: &str,
+) -> Result<Vec<DiscoveredSkill>, EdenError> {
+    let repo_url = repo_url.to_string();
+    let reference = reference.to_string();
+    let scoped_subpath = scoped_subpath.to_string();
+    tokio::task::spawn_blocking(move || {
+        discover_remote_skills_via_temp_clone_blocking(&repo_url, &reference, &scoped_subpath)
+    })
+    .await
+    .map_err(|err| EdenError::Runtime(format!("remote discovery worker failed: {err}")))?
+}
+
+fn discover_remote_skills_via_temp_clone_blocking(
+    repo_url: &str,
+    reference: &str,
+    scoped_subpath: &str,
+) -> Result<Vec<DiscoveredSkill>, EdenError> {
+    let temp_checkout = create_discovery_temp_checkout()?;
+    let repo_dir = temp_checkout.path.join("repo");
+    clone_repo_for_discovery(repo_url, reference, &repo_dir)?;
+    let discovery_root = normalize_lexical(&repo_dir.join(scoped_subpath));
+    if !discovery_root.exists() {
+        return Err(EdenError::Runtime(format!(
+            "discovery path does not exist: {}",
+            discovery_root.display()
+        )));
+    }
+    discover_skills(&discovery_root)
+}
+
+struct TempDiscoveryCheckout {
+    path: PathBuf,
+}
+
+impl Drop for TempDiscoveryCheckout {
+    fn drop(&mut self) {
+        let _ = fs::remove_dir_all(&self.path);
+    }
+}
+
+fn create_discovery_temp_checkout() -> Result<TempDiscoveryCheckout, EdenError> {
+    for attempt in 0..10u32 {
+        let unique = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map_err(|err| EdenError::Runtime(format!("system clock before unix epoch: {err}")))?
+            .as_nanos();
+        let candidate = std::env::temp_dir().join(format!(
+            "eden-skills-discovery-{}-{unique}-{attempt}",
+            std::process::id()
+        ));
+        match fs::create_dir(&candidate) {
+            Ok(()) => return Ok(TempDiscoveryCheckout { path: candidate }),
+            Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(err) => return Err(EdenError::Io(err)),
+        }
+    }
+    Err(EdenError::Runtime(
+        "failed to create temporary directory for remote discovery".to_string(),
+    ))
+}
+
+fn clone_repo_for_discovery(
+    repo_url: &str,
+    reference: &str,
+    repo_dir: &Path,
+) -> Result<(), EdenError> {
+    if let Some(parent) = repo_dir.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let branch_clone_result = run_git_command(
+        Command::new("git")
+            .arg("clone")
+            .arg("--depth")
+            .arg("1")
+            .arg("--branch")
+            .arg(reference)
+            .arg(repo_url)
+            .arg(repo_dir),
+        &format!(
+            "clone `{repo_url}` into `{}` with ref `{reference}`",
+            repo_dir.display()
+        ),
+    );
+
+    if let Err(branch_error) = branch_clone_result {
+        let fallback_clone = run_git_command(
+            Command::new("git").arg("clone").arg(repo_url).arg(repo_dir),
+            &format!(
+                "clone `{repo_url}` into `{}` without branch hint",
+                repo_dir.display()
+            ),
+        );
+        if let Err(fallback_error) = fallback_clone {
+            return Err(EdenError::Runtime(format!(
+                "branch clone attempt failed: {branch_error}; fallback clone attempt failed: {fallback_error}"
+            )));
+        }
+        run_git_command(
+            Command::new("git")
+                .arg("-C")
+                .arg(repo_dir)
+                .arg("checkout")
+                .arg(reference),
+            &format!(
+                "checkout ref `{reference}` in temporary discovery repo `{}`",
+                repo_dir.display()
+            ),
+        )
+        .map_err(EdenError::Runtime)?;
+    }
+
+    Ok(())
+}
+
+fn resolve_local_install_selection(
+    discovered: &[DiscoveredSkill],
+    all: bool,
+    named: &[String],
+    is_tty: bool,
+) -> Result<Vec<DiscoveredSkill>, EdenError> {
+    if discovered.len() == 1 {
+        return Ok(vec![discovered[0].clone()]);
+    }
+
+    if all {
+        return Ok(discovered.to_vec());
+    }
+
+    if !named.is_empty() {
+        return select_named_skills(discovered, named);
+    }
+
+    if !is_tty {
+        return Ok(discovered.to_vec());
+    }
+
+    print_discovery_summary(discovered);
+    let install_all = prompt_install_all(discovered.len())?;
+    if install_all {
+        return Ok(discovered.to_vec());
+    }
+
+    let names = prompt_skill_names()?;
+    if names.is_empty() {
+        return Err(EdenError::InvalidArguments(
+            "no skill names provided".to_string(),
+        ));
+    }
+    select_named_skills(discovered, &names)
+}
+
+fn select_named_skills(
+    discovered: &[DiscoveredSkill],
+    names: &[String],
+) -> Result<Vec<DiscoveredSkill>, EdenError> {
+    let mut selected = Vec::new();
+    let mut unknown = Vec::new();
+    for name in names {
+        if let Some(skill) = discovered.iter().find(|skill| skill.name == *name) {
+            if !selected
+                .iter()
+                .any(|existing: &DiscoveredSkill| existing.name == skill.name)
+            {
+                selected.push(skill.clone());
+            }
+        } else {
+            unknown.push(name.clone());
+        }
+    }
+
+    if !unknown.is_empty() {
+        let available = discovered
+            .iter()
+            .map(|skill| skill.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        return Err(EdenError::InvalidArguments(format!(
+            "unknown skill name(s): {}; available: {}",
+            unknown.join(", "),
+            available
+        )));
+    }
+
+    Ok(selected)
+}
+
+fn install_stdout_is_tty() -> bool {
+    if std::env::var("EDEN_SKILLS_FORCE_TTY")
+        .ok()
+        .is_some_and(|value| value == "1")
+    {
+        return true;
+    }
+    std::io::stdout().is_terminal()
+}
+
+fn prompt_install_all(skill_count: usize) -> Result<bool, EdenError> {
+    if let Ok(response) = std::env::var("EDEN_SKILLS_TEST_CONFIRM") {
+        let normalized = response.trim().to_ascii_lowercase();
+        return Ok(matches!(normalized.as_str(), "y" | "yes" | "true" | ""));
+    }
+
+    Confirm::new()
+        .with_prompt(format!("Install all {skill_count} skills?"))
+        .default(true)
+        .interact()
+        .map_err(|err| EdenError::Runtime(format!("interactive prompt failed: {err}")))
+}
+
+fn prompt_skill_names() -> Result<Vec<String>, EdenError> {
+    if let Ok(raw) = std::env::var("EDEN_SKILLS_TEST_SKILL_INPUT") {
+        return Ok(raw
+            .split_whitespace()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>());
+    }
+
+    let input: String = Input::new()
+        .with_prompt("Enter skill names to install (space-separated)")
+        .interact_text()
+        .map_err(|err| EdenError::Runtime(format!("interactive prompt failed: {err}")))?;
+    Ok(input
+        .split_whitespace()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>())
+}
+
+fn print_discovered_skills(skills: &[DiscoveredSkill], source: &str) {
+    println!("Skills in {source}:");
+    if skills.is_empty() {
+        println!("  (no SKILL.md discovered)");
+        return;
+    }
+    for skill in skills {
+        if skill.description.is_empty() {
+            println!("  {}", skill.name);
+        } else {
+            println!("  {} — {}", skill.name, skill.description);
+        }
+    }
+}
+
+fn print_discovery_summary(skills: &[DiscoveredSkill]) {
+    const MAX_DISPLAY: usize = 8;
+    if skills.len() > MAX_DISPLAY {
+        println!(
+            "Found {} skills in repository (showing first {}):",
+            skills.len(),
+            MAX_DISPLAY
+        );
+    } else {
+        println!("Found {} skills in repository:", skills.len());
+    }
+
+    let display_skills = if skills.len() > MAX_DISPLAY {
+        &skills[..MAX_DISPLAY]
+    } else {
+        skills
+    };
+    for skill in display_skills {
+        if skill.description.is_empty() {
+            println!("  {}", skill.name);
+        } else {
+            println!("  {} — {}", skill.name, skill.description);
+        }
+    }
+
+    if skills.len() > MAX_DISPLAY {
+        println!(
+            "... and {} more (use --list to see all)",
+            skills.len() - MAX_DISPLAY
+        );
+    }
+}
+
+fn join_scoped_subpath(scope_subpath: &str, discovered_subpath: &str) -> String {
+    if scope_subpath == "." {
+        return discovered_subpath.to_string();
+    }
+    if discovered_subpath == "." {
+        return scope_subpath.to_string();
+    }
+    format!("{scope_subpath}/{discovered_subpath}")
+}
+
+fn select_config_skills(config: &Config, skill_ids: &[String]) -> Config {
+    Config {
+        version: config.version,
+        storage_root: config.storage_root.clone(),
+        reactor: config.reactor,
+        skills: config
+            .skills
+            .iter()
+            .filter(|skill| skill_ids.iter().any(|id| id == &skill.id))
+            .cloned()
+            .collect(),
+    }
 }
 
 fn select_single_skill_config(config: &Config, skill_id: &str) -> Result<Config, EdenError> {
@@ -1595,9 +2084,16 @@ fn upsert_mode_b_skill(
     skill_name: &str,
     version_constraint: &str,
     registry: Option<&str>,
-    target_spec: Option<&str>,
+    target_specs: &[String],
 ) -> Result<(), EdenError> {
-    let target_override = target_spec.map(parse_install_target_spec).transpose()?;
+    let target_override = match target_specs {
+        [] => None,
+        [spec] => Some(parse_install_target_spec(spec)?),
+        _ => return Err(EdenError::InvalidArguments(
+            "registry-mode install accepts at most one --target (`local` or `docker:<container>`)"
+                .to_string(),
+        )),
+    };
     if let Some(skill) = config
         .skills
         .iter_mut()
@@ -1648,26 +2144,22 @@ fn upsert_mode_a_skill(
     repo: &str,
     subpath: &str,
     reference: &str,
-    target_spec: Option<&str>,
+    targets: &[TargetConfig],
 ) -> Result<(), EdenError> {
-    let target_override = target_spec.map(parse_install_target_spec).transpose()?;
+    let effective_targets = if targets.is_empty() {
+        vec![default_install_target()]
+    } else {
+        targets.to_vec()
+    };
     if let Some(skill) = config.skills.iter_mut().find(|skill| skill.id == skill_id) {
         skill.source = SourceConfig {
             repo: repo.to_string(),
             subpath: subpath.to_string(),
             r#ref: reference.to_string(),
         };
-        if let Some(target) = target_override {
-            skill.targets = vec![target];
-        }
+        skill.targets = effective_targets;
         return Ok(());
     }
-
-    let targets = if let Some(target) = target_override {
-        vec![target]
-    } else {
-        vec![default_install_target()]
-    };
 
     config.skills.push(SkillConfig {
         id: skill_id.to_string(),
@@ -1679,7 +2171,7 @@ fn upsert_mode_a_skill(
         install: eden_skills_core::config::InstallConfig {
             mode: InstallMode::Symlink,
         },
-        targets,
+        targets: effective_targets,
         verify: eden_skills_core::config::VerifyConfig {
             enabled: true,
             checks: default_verify_checks_for_mode(InstallMode::Symlink),
@@ -1698,6 +2190,22 @@ fn default_install_target() -> TargetConfig {
         path: None,
         environment: "local".to_string(),
     }
+}
+
+fn resolve_url_mode_install_targets(
+    target_specs: &[String],
+) -> Result<Vec<TargetConfig>, EdenError> {
+    if !target_specs.is_empty() {
+        return parse_target_specs(target_specs);
+    }
+
+    let detected = detect_installed_agent_targets()?;
+    if !detected.is_empty() {
+        return Ok(detected);
+    }
+
+    eprintln!("No installed agents detected; defaulting to claude-code (~/.claude/skills/)");
+    Ok(vec![default_install_target()])
 }
 
 fn parse_install_target_spec(spec: &str) -> Result<TargetConfig, EdenError> {

@@ -73,6 +73,9 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 source: args.source,
                 id: args.id,
                 r#ref: args.r#ref,
+                skill: args.skill,
+                all: args.all,
+                list: args.list,
                 version: args.version,
                 registry: args.registry,
                 target: args.target,
@@ -250,10 +253,16 @@ struct InstallArgs {
     id: Option<String>,
     #[arg(long)]
     r#ref: Option<String>,
+    #[arg(long, num_args = 1..)]
+    skill: Vec<String>,
+    #[arg(long)]
+    all: bool,
+    #[arg(long)]
+    list: bool,
     #[arg(long)]
     registry: Option<String>,
     #[arg(long)]
-    target: Option<String>,
+    target: Vec<String>,
     #[arg(long)]
     dry_run: bool,
 }
