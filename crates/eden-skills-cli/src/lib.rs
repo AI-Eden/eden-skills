@@ -17,8 +17,16 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
     argv.push("eden-skills".to_string());
     argv.extend(args);
 
-    let cli =
-        Cli::try_parse_from(argv).map_err(|err| EdenError::InvalidArguments(err.to_string()))?;
+    let cli = match Cli::try_parse_from(argv) {
+        Ok(cli) => cli,
+        Err(err) => match err.kind() {
+            clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion => {
+                err.print().map_err(EdenError::Io)?;
+                return Ok(());
+            }
+            _ => return Err(EdenError::InvalidArguments(err.to_string())),
+        },
+    };
 
     match cli.command {
         Commands::Plan(args) => commands::plan(

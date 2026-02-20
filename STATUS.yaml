@@ -251,7 +251,7 @@ phase2:
       deferred_followups: []
 
 phase25:
-  status: active_implementation
+  status: closeout_completed
   started_at: "2026-02-20"
   spec_files:
     - spec/phase2.5/SPEC_INSTALL_URL.md
@@ -397,9 +397,26 @@ phase25:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+  closeout_audit:
+    builder_phase25:
+      status: completed
+      completed_at: "2026-02-20"
+      completed_items:
+        - phase25_closeout_readiness_and_tag_release_dry_run (local host-target release packaging + checksum + smoke run)
+        - fixed release smoke blocker where `eden-skills --help` exited non-zero; added regression test coverage
+      local_dry_run_reference:
+        release_version: "0.1.0"
+        host_target: "x86_64-unknown-linux-gnu"
+        smoke_contract:
+          - eden-skills --help
+          - eden-skills init
+          - eden-skills install vercel-labs/agent-skills --all
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
-next_execution_targets:
-  - phase25_closeout_readiness_and_tag_release_dry_run
+next_execution_targets: []
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md

@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 use toml::Value;
 
@@ -125,6 +126,25 @@ fn release_workflow_covers_targets_archives_and_checksums() {
             "release workflow missing required snippet: {required}"
         );
     }
+}
+
+#[test]
+fn cli_help_exits_success_for_release_smoke_contract() {
+    let output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .arg("--help")
+        .output()
+        .expect("run eden-skills --help");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "--help should exit successfully for release smoke checks, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Usage:") && stdout.contains("Commands:"),
+        "--help should render usage and command listing, stdout={stdout}"
+    );
 }
 
 fn workspace_root() -> PathBuf {
