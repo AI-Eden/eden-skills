@@ -229,7 +229,12 @@ Dependency constraints:
   Batch 5 MAY begin after Batch 3 (requires console/indicatif/dialoguer).
   Batch 6 MAY run in parallel with Batch 4 or 5.
 
-[Execution Rhythm]
+[Execution Rhythm — ONE BATCH AT A TIME]
+Execute exactly ONE batch per turn. After completing a batch, STOP and
+report to the user. Do NOT proceed to the next batch until the user
+explicitly instructs you to continue.
+
+Within each batch:
 1. State a short Chinese execution plan (3-5 items) for the current batch.
 2. Read the TDD agent skill. Internalize the test-first workflow.
 3. Read the relevant spec file(s) for the requirements in this batch.
@@ -240,6 +245,10 @@ Dependency constraints:
 7. Run quality gate checks (fmt, clippy, test).
 8. Update SPEC_TRACEABILITY.md with implementation and test references.
 9. Update STATUS.yaml and EXECUTION_TRACKER.md.
-10. End with a Chinese summary: implemented requirements, test results,
-    known issues, and next batch recommendation.
+10. STOP. End with a Chinese summary to the user:
+    - Implemented requirements and their status.
+    - Test results (pass/fail counts).
+    - Known issues or spec ambiguities encountered.
+    - Recommendation for the next batch.
+    Then WAIT for user instruction before starting the next batch.
 ```
