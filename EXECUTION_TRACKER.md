@@ -114,6 +114,7 @@ Current automated tests: `163` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.5 Batch 2 (`MVP-001~008`, `TM-P25-006~015`): added source format detection (local/tree/full URL/SSH/shorthand/registry fallback), URL-mode install branch with registry-mode compatibility, skill ID derive/override/upsert, local-path no-clone install flow, and config auto-creation with missing-parent IO guard.
 - [x] Completed Phase 2.5 Batch 3 (`MVP-009~015`, `TM-P25-016~025`): added SKILL.md discovery (`root`, `skills/*`, `packages/*`), URL local-path multi-skill selection (`--list`/`--all`/`--skill`), TTY interactive confirmation flow, non-TTY default-all behavior, and fallback install-as-directory warning when no SKILL.md is found.
 - [x] Completed Phase 2.5 Batch 4 (`AGT-001~004`, `TM-P25-026~028`): added data-driven agent-directory detection (`claude/cursor/codex/windsurf`), wired URL-mode install target auto-detection, implemented no-agent fallback warning/default target, and enforced `--target` override bypass for detection while preserving registry-mode install target semantics.
+- [x] Completed Phase 2.5 Batch 5 (`UX-001~007`, `TM-P25-031~034`): added shared CLI UI context (`ui.rs`) for color/symbol/spinner policy, integrated TTY clone spinner for URL install, enforced `NO_COLOR`/`FORCE_COLOR`/`CI` behavior and non-TTY prompt degradation, and preserved install JSON output contracts.
 - [x] Closed Phase 2.5 Batch 3 follow-up gaps after interruption: extended multi-skill discovery/selection semantics to remote URL sources, made URL-mode `--list` no-side-effect for config/targets, and implemented interactive discovery truncation output for repos with more than 8 skills.
 
 ## 5. Pending Tasks with Planned LLM Ownership
@@ -256,5 +257,9 @@ Key architectural decisions for Builder reference:
    - Requirements: `AGT-001` through `AGT-004`
    - Scenarios: `TM-P25-026` through `TM-P25-028` (and regression retention for `TM-P25-029`, `TM-P25-030`)
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
-5. `spec/phase2.5/SPEC_TRACEABILITY.md` has been updated with implementation/test links and status for Batch 1 through Batch 4 items.
-6. Next recommended execution target: Batch 5 (`WS-7`, `UX-001` ~ `UX-007`).
+5. Batch 5 (WS-7) is complete with quality gate pass:
+   - Requirements: `UX-001` through `UX-007`
+   - Scenarios: `TM-P25-031` through `TM-P25-034`
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
+6. `spec/phase2.5/SPEC_TRACEABILITY.md` has been updated with implementation/test links and status for Batch 1 through Batch 5 items.
+7. Next recommended execution target: Batch 6 (`WS-5`, `DST-001` ~ `DST-003`).

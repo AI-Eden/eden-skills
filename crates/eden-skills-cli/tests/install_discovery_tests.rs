@@ -255,6 +255,7 @@ fn interactive_tty_confirm_yes_installs_all() {
     let config_path = temp.path().join("skills.toml");
     let output = eden_command(&home_dir)
         .current_dir(temp.path())
+        .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_CONFIRM", "y")
         .args(["install", "./interactive-yes", "--config"])
@@ -284,6 +285,7 @@ fn interactive_tty_confirm_no_then_selects_named_skills() {
     let config_path = temp.path().join("skills.toml");
     let output = eden_command(&home_dir)
         .current_dir(temp.path())
+        .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_CONFIRM", "n")
         .env("EDEN_SKILLS_TEST_SKILL_INPUT", "skill-b")
@@ -431,6 +433,7 @@ fn interactive_summary_truncates_when_more_than_eight_skills() {
     let config_path = temp.path().join("skills.toml");
     let output = eden_command(&home_dir)
         .current_dir(temp.path())
+        .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_CONFIRM", "y")
         .args(["install", "./truncated-summary", "--config"])

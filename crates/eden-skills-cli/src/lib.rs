@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod ui;
 
 use clap::{Args, Parser, Subcommand};
 use commands::CommandOptions;

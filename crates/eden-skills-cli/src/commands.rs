@@ -1,11 +1,11 @@
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::future::Future;
-use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
+use crate::ui::{StatusSymbol, UiContext};
 use dialoguer::{Confirm, Input};
 use eden_skills_core::adapter::create_adapter;
 use eden_skills_core::agents::detect_installed_agent_targets;
@@ -264,21 +264,22 @@ pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
     let config_path = config_path_buf.as_path();
     let cwd = std::env::current_dir().map_err(EdenError::Io)?;
     let detected_source = detect_install_source(&req.source, &cwd)?;
+    let ui = UiContext::from_env(req.options.json);
     match detected_source {
         DetectedInstallSource::RegistryName(skill_name) => {
-            ensure_install_config_exists(config_path)?;
-            install_registry_mode_async(&req, config_path, &skill_name).await
+            ensure_install_config_exists(config_path, &ui)?;
+            install_registry_mode_async(&req, config_path, &skill_name, &ui).await
         }
         DetectedInstallSource::Url(url_source) => {
             if !req.list {
-                ensure_install_config_exists(config_path)?;
+                ensure_install_config_exists(config_path, &ui)?;
             }
-            install_url_mode_async(&req, config_path, &url_source).await
+            install_url_mode_async(&req, config_path, &url_source, &ui).await
         }
     }
 }
 
-fn ensure_install_config_exists(config_path: &Path) -> Result<(), EdenError> {
+fn ensure_install_config_exists(config_path: &Path, ui: &UiContext) -> Result<(), EdenError> {
     if config_path.exists() {
         return Ok(());
     }
@@ -295,7 +296,17 @@ fn ensure_install_config_exists(config_path: &Path) -> Result<(), EdenError> {
     }
 
     fs::write(config_path, default_config_template())?;
-    println!("Created config at {}", config_path.display());
+    if !ui.json_mode() {
+        if ui.symbols_enabled() {
+            println!(
+                "{} Created config at {}",
+                ui.status_symbol(StatusSymbol::Success),
+                config_path.display()
+            );
+        } else {
+            println!("Created config at {}", config_path.display());
+        }
+    }
     Ok(())
 }
 
@@ -303,6 +314,7 @@ async fn install_registry_mode_async(
     req: &InstallRequest,
     config_path: &Path,
     skill_name: &str,
+    ui: &UiContext,
 ) -> Result<(), EdenError> {
     if req.id.is_some() || req.r#ref.is_some() {
         return Err(EdenError::InvalidArguments(
@@ -352,13 +364,15 @@ async fn install_registry_mode_async(
     write_normalized_config(config_path, &config)?;
 
     let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
-    print_source_sync_summary(&sync_summary);
+    if !req.options.json {
+        print_source_sync_summary(&sync_summary);
+    }
     if let Some(err) = source_sync_failure_error(&sync_summary) {
         return Err(err);
     }
 
     execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
-    print_install_success(req.options.json, skill_name, &requested_constraint)?;
+    print_install_success(req.options.json, skill_name, &requested_constraint, ui)?;
     Ok(())
 }
 
@@ -366,18 +380,20 @@ async fn install_url_mode_async(
     req: &InstallRequest,
     config_path: &Path,
     url_source: &UrlInstallSource,
+    ui: &UiContext,
 ) -> Result<(), EdenError> {
     if url_source.is_local {
-        return install_local_url_mode_async(req, config_path, url_source).await;
+        return install_local_url_mode_async(req, config_path, url_source, ui).await;
     }
 
-    install_remote_url_mode_async(req, config_path, url_source).await
+    install_remote_url_mode_async(req, config_path, url_source, ui).await
 }
 
 async fn install_remote_url_mode_async(
     req: &InstallRequest,
     config_path: &Path,
     url_source: &UrlInstallSource,
+    ui: &UiContext,
 ) -> Result<(), EdenError> {
     let source_ref = req
         .r#ref
@@ -388,9 +404,23 @@ async fn install_remote_url_mode_async(
         .subpath
         .clone()
         .unwrap_or_else(|| ".".to_string());
+    let clone_spinner = ui.spinner(
+        "Cloning",
+        format!("{}@{} ({})", url_source.repo, source_ref, scope_subpath),
+    );
     let mut discovered =
-        discover_remote_skills_via_temp_clone(&url_source.repo, &source_ref, &scope_subpath)
-            .await?;
+        match discover_remote_skills_via_temp_clone(&url_source.repo, &source_ref, &scope_subpath)
+            .await
+        {
+            Ok(skills) => {
+                clone_spinner.finish_success(ui);
+                skills
+            }
+            Err(err) => {
+                clone_spinner.finish_failure(ui, &err.to_string());
+                return Err(err);
+            }
+        };
     if discovered.is_empty() {
         eprintln!("warning: No SKILL.md found; installing directory as-is.");
     }
@@ -413,8 +443,12 @@ async fn install_remote_url_mode_async(
         });
     }
 
-    let selected =
-        resolve_local_install_selection(&discovered, req.all, &req.skill, install_stdout_is_tty())?;
+    let selected = resolve_local_install_selection(
+        &discovered,
+        req.all,
+        &req.skill,
+        ui.interactive_enabled(),
+    )?;
     let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
 
     let loaded = load_from_file(
@@ -469,7 +503,9 @@ async fn install_remote_url_mode_async(
     for skill_id in &selected_ids {
         let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
         let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
-        print_source_sync_summary(&sync_summary);
+        if !req.options.json {
+            print_source_sync_summary(&sync_summary);
+        }
         if let Some(err) = source_sync_failure_error(&sync_summary) {
             return Err(err);
         }
@@ -484,6 +520,12 @@ async fn install_remote_url_mode_async(
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
         println!("{encoded}");
+    } else if ui.symbols_enabled() {
+        println!(
+            "{} install: {} skill(s) status=installed",
+            ui.status_symbol(StatusSymbol::Success),
+            selected_ids.len()
+        );
     } else {
         println!("install: {} skill(s) status=installed", selected_ids.len());
     }
@@ -495,6 +537,7 @@ async fn install_local_url_mode_async(
     req: &InstallRequest,
     config_path: &Path,
     url_source: &UrlInstallSource,
+    ui: &UiContext,
 ) -> Result<(), EdenError> {
     let config_dir = config_dir_from_path(config_path);
     let source_root = resolve_path_string(&url_source.repo, &config_dir)?;
@@ -533,8 +576,12 @@ async fn install_local_url_mode_async(
         });
     }
 
-    let selected =
-        resolve_local_install_selection(&discovered, req.all, &req.skill, install_stdout_is_tty())?;
+    let selected = resolve_local_install_selection(
+        &discovered,
+        req.all,
+        &req.skill,
+        ui.interactive_enabled(),
+    )?;
     let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
 
     let loaded = load_from_file(
@@ -603,6 +650,12 @@ async fn install_local_url_mode_async(
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
         println!("{encoded}");
+    } else if ui.symbols_enabled() {
+        println!(
+            "{} install: {} skill(s) status=installed",
+            ui.status_symbol(StatusSymbol::Success),
+            selected_ids.len()
+        );
     } else {
         println!("install: {} skill(s) status=installed", selected_ids.len());
     }
@@ -798,16 +851,6 @@ fn select_named_skills(
     }
 
     Ok(selected)
-}
-
-fn install_stdout_is_tty() -> bool {
-    if std::env::var("EDEN_SKILLS_FORCE_TTY")
-        .ok()
-        .is_some_and(|value| value == "1")
-    {
-        return true;
-    }
-    std::io::stdout().is_terminal()
 }
 
 fn prompt_install_all(skill_count: usize) -> Result<bool, EdenError> {
@@ -1085,6 +1128,7 @@ fn print_install_success(
     json_mode: bool,
     skill_id: &str,
     version_or_ref: &str,
+    ui: &UiContext,
 ) -> Result<(), EdenError> {
     if json_mode {
         let payload = serde_json::json!({
@@ -1095,6 +1139,12 @@ fn print_install_success(
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
         println!("{encoded}");
+    } else if ui.symbols_enabled() {
+        println!(
+            "{} install: skill={} status=installed",
+            ui.status_symbol(StatusSymbol::Success),
+            skill_id
+        );
     } else {
         println!("install: skill={} status=installed", skill_id);
     }

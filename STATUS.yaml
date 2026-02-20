@@ -319,9 +319,24 @@ phase25:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    batch_5_ws_7_cli_ux_beautification:
+      status: completed
+      completed_at: "2026-02-20"
+      requirements: UX-001, UX-002, UX-003, UX-004, UX-005, UX-006, UX-007
+      scenarios: TM-P25-031, TM-P25-032, TM-P25-033, TM-P25-034
+      notes:
+        - added shared CLI UI module for color policy, status symbols, spinner lifecycle, and interactivity gating
+        - integrated URL install remote clone spinner and completion status rendering in TTY human mode
+        - added environment precedence handling for NO_COLOR, FORCE_COLOR, and CI with non-TTY fallback behavior
+        - preserved install JSON payload shape and gated non-JSON side-output lines in JSON mode
+        - stabilized interactive TTY tests by isolating CI environment from prompt-path fixtures
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
-  - phase25_batch_5_ws_7_cli_ux_beautification
+  - phase25_batch_6_ws_5_distribution
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md

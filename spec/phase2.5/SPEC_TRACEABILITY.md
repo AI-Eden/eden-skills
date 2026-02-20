@@ -44,13 +44,13 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| UX-001 | `SPEC_CLI_UX.md` 4 | CLI MUST use colored output with status symbols | -- | -- | planned |
-| UX-002 | `SPEC_CLI_UX.md` 6 | CLI MUST use spinner for network operations | -- | -- | planned |
-| UX-003 | `SPEC_CLI_UX.md` 4.1 | CLI MUST use `✓`/`✗`/`·`/`!` symbols for results | -- | -- | planned |
-| UX-004 | `SPEC_CLI_UX.md` 3.4 | CLI MUST respect `NO_COLOR`/`FORCE_COLOR`/`CI` env vars | -- | -- | planned |
-| UX-005 | `SPEC_CLI_UX.md` 3.3 | `--json` output MUST remain identical to Phase 1/2 | -- | -- | planned |
-| UX-006 | `SPEC_CLI_UX.md` 3.2 | Non-TTY MUST disable colors and spinners | -- | -- | planned |
-| UX-007 | `SPEC_CLI_UX.md` 5.1 | Interactive prompts MUST use `dialoguer` | -- | -- | planned |
+| UX-001 | `SPEC_CLI_UX.md` 4 | CLI MUST use colored output with status symbols | `crates/eden-skills-cli/src/ui.rs` (`UiContext::colors_enabled`, `UiContext::status_symbol`), `crates/eden-skills-cli/src/commands.rs` (`print_install_success`, URL-mode/local-mode install summaries) | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`tty_install_output_contains_ansi_color_and_status_symbols`) | completed |
+| UX-002 | `SPEC_CLI_UX.md` 6 | CLI MUST use spinner for network operations | `crates/eden-skills-cli/src/ui.rs` (`UiContext::spinner`, `UiSpinner`), `crates/eden-skills-cli/src/commands.rs` (`install_remote_url_mode_async` clone spinner integration) | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`tty_remote_install_clone_phase_shows_spinner_and_completion_status`) | completed |
+| UX-003 | `SPEC_CLI_UX.md` 4.1 | CLI MUST use `✓`/`✗`/`·`/`!` symbols for results | `crates/eden-skills-cli/src/ui.rs` (`StatusSymbol`, `UiContext::status_symbol`), `crates/eden-skills-cli/src/commands.rs` (`ensure_install_config_exists`, `print_install_success`, install summary branches) | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`tty_install_output_contains_ansi_color_and_status_symbols`, `no_color_disables_ansi_but_keeps_functional_status_output`) | completed |
+| UX-004 | `SPEC_CLI_UX.md` 3.4 | CLI MUST respect `NO_COLOR`/`FORCE_COLOR`/`CI` env vars | `crates/eden-skills-cli/src/ui.rs` (`UiContext::from_env`, `colors_enabled`, `interactive_enabled`) | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`no_color_disables_ansi_but_keeps_functional_status_output`, `force_color_enables_ansi_even_on_non_tty`, `ci_env_disables_ansi_even_when_tty_is_forced`) | completed |
+| UX-005 | `SPEC_CLI_UX.md` 3.3 | `--json` output MUST remain identical to Phase 1/2 | `crates/eden-skills-cli/src/commands.rs` (install JSON branches unchanged, non-JSON side outputs gated when `--json`) | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`install_json_output_keeps_contract_and_omits_visual_elements`) | completed |
+| UX-006 | `SPEC_CLI_UX.md` 3.2 | Non-TTY MUST disable colors and spinners | `crates/eden-skills-cli/src/ui.rs` (`spinner_enabled`, `interactive_enabled`), `crates/eden-skills-cli/src/commands.rs` (`resolve_local_install_selection` TTY gating, remote clone spinner path) | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`non_tty_remote_install_disables_spinner_output`), `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`non_tty_defaults_to_install_all_for_multi_skill_repo`) | completed |
+| UX-007 | `SPEC_CLI_UX.md` 5.1 | Interactive prompts MUST use `dialoguer` | `crates/eden-skills-cli/src/commands.rs` (`prompt_install_all` via `dialoguer::Confirm`, `prompt_skill_names` via `dialoguer::Input`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`interactive_tty_confirm_yes_installs_all`, `interactive_tty_confirm_no_then_selects_named_skills`) | completed |
 
 ## 5. Distribution Requirements
 
@@ -94,9 +94,9 @@ Use this file to recover accurate context after compression.
 | TM-P25-028 | `SPEC_TEST_MATRIX.md` 7 | Target override | `crates/eden-skills-cli/tests/install_agent_detect_tests.rs` (`explicit_target_override_skips_auto_detection`) | completed |
 | TM-P25-029 | `SPEC_TEST_MATRIX.md` 8 | Fresh system install | `crates/eden-skills-cli/tests/install_url_tests.rs` (`local_path_install_persists_absolute_repo_and_skips_clone`) | completed |
 | TM-P25-030 | `SPEC_TEST_MATRIX.md` 8 | Missing parent directory | `crates/eden-skills-cli/tests/install_url_tests.rs` (`install_fails_when_config_parent_directory_is_missing`) | completed |
-| TM-P25-031 | `SPEC_TEST_MATRIX.md` 9 | TTY color output | -- | planned |
-| TM-P25-032 | `SPEC_TEST_MATRIX.md` 9 | NO_COLOR compliance | -- | planned |
-| TM-P25-033 | `SPEC_TEST_MATRIX.md` 9 | JSON mode unchanged | -- | planned |
-| TM-P25-034 | `SPEC_TEST_MATRIX.md` 9 | Spinner during clone | -- | planned |
+| TM-P25-031 | `SPEC_TEST_MATRIX.md` 9 | TTY color output | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`tty_install_output_contains_ansi_color_and_status_symbols`) | completed |
+| TM-P25-032 | `SPEC_TEST_MATRIX.md` 9 | NO_COLOR compliance | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`no_color_disables_ansi_but_keeps_functional_status_output`) | completed |
+| TM-P25-033 | `SPEC_TEST_MATRIX.md` 9 | JSON mode unchanged | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`install_json_output_keeps_contract_and_omits_visual_elements`) | completed |
+| TM-P25-034 | `SPEC_TEST_MATRIX.md` 9 | Spinner during clone | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`tty_remote_install_clone_phase_shows_spinner_and_completion_status`) | completed |
 | TM-P25-035 | `SPEC_TEST_MATRIX.md` 10 | Cargo install | -- | planned |
 | TM-P25-036 | `SPEC_TEST_MATRIX.md` 10 | Release binary | -- | planned |
