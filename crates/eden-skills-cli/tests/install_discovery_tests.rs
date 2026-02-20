@@ -519,6 +519,46 @@ fn agent_convention_skill_directory_supports_skill_flag_selection() {
 }
 
 #[test]
+fn recursive_fallback_discovery_supports_skill_flag_selection() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("recursive-fallback-repo");
+    write_skill(
+        &repo_dir.join("vendor/tools/pdf/SKILL.md"),
+        "pdf",
+        "PDF helpers",
+    );
+    write_skill(
+        &repo_dir.join("vendor/tools/xlsx/SKILL.md"),
+        "xlsx",
+        "XLSX helpers",
+    );
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "install",
+            "./recursive-fallback-repo",
+            "--skill",
+            "pdf",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install --skill should succeed with recursive fallback discovery, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let ids = read_skill_ids(&config_path);
+    assert_eq!(ids, vec!["pdf".to_string()]);
+}
+
+#[test]
 fn remote_url_missing_skill_markdown_with_skill_flag_returns_error() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");

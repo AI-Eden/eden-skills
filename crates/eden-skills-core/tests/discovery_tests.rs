@@ -129,3 +129,91 @@ description: Review tools
     assert_eq!(discovered[1].name, "review");
     assert_eq!(discovered[1].subpath, ".agents/skills/review");
 }
+
+#[test]
+fn discovers_skills_from_claude_plugin_marketplace_manifest() {
+    let temp = tempdir().expect("tempdir");
+    fs::create_dir_all(temp.path().join("plugins/docs-plugin/skills/pdf")).expect("mkdir");
+    fs::write(
+        temp.path().join("plugins/docs-plugin/skills/pdf/SKILL.md"),
+        r#"---
+name: pdf
+description: PDF skill
+---
+"#,
+    )
+    .expect("write pdf skill");
+    fs::create_dir_all(temp.path().join(".claude-plugin")).expect("mkdir manifest dir");
+    fs::write(
+        temp.path().join(".claude-plugin/marketplace.json"),
+        r#"{
+  "metadata": { "pluginRoot": "./plugins" },
+  "plugins": [
+    {
+      "name": "docs-plugin",
+      "source": "docs-plugin",
+      "skills": ["./skills/pdf"]
+    }
+  ]
+}
+"#,
+    )
+    .expect("write marketplace manifest");
+
+    let discovered = discover_skills(temp.path()).expect("discover");
+    assert_eq!(discovered.len(), 1);
+    assert_eq!(discovered[0].name, "pdf");
+    assert_eq!(discovered[0].subpath, "plugins/docs-plugin/skills/pdf");
+}
+
+#[test]
+fn discovers_skills_from_claude_plugin_manifest() {
+    let temp = tempdir().expect("tempdir");
+    fs::create_dir_all(temp.path().join("plugins/xlsx-plugin/skills/xlsx")).expect("mkdir");
+    fs::write(
+        temp.path().join("plugins/xlsx-plugin/skills/xlsx/SKILL.md"),
+        r#"---
+name: xlsx
+description: XLSX skill
+---
+"#,
+    )
+    .expect("write xlsx skill");
+    fs::create_dir_all(temp.path().join(".claude-plugin")).expect("mkdir manifest dir");
+    fs::write(
+        temp.path().join(".claude-plugin/plugin.json"),
+        r#"{
+  "metadata": { "pluginRoot": "./plugins" },
+  "name": "xlsx-plugin",
+  "source": "xlsx-plugin",
+  "skills": ["./skills/xlsx"]
+}
+"#,
+    )
+    .expect("write plugin manifest");
+
+    let discovered = discover_skills(temp.path()).expect("discover");
+    assert_eq!(discovered.len(), 1);
+    assert_eq!(discovered[0].name, "xlsx");
+    assert_eq!(discovered[0].subpath, "plugins/xlsx-plugin/skills/xlsx");
+}
+
+#[test]
+fn falls_back_to_recursive_search_when_standard_locations_have_no_skills() {
+    let temp = tempdir().expect("tempdir");
+    fs::create_dir_all(temp.path().join("vendor/tools/pdf")).expect("mkdir");
+    fs::write(
+        temp.path().join("vendor/tools/pdf/SKILL.md"),
+        r#"---
+name: pdf
+description: PDF tool
+---
+"#,
+    )
+    .expect("write pdf skill");
+
+    let discovered = discover_skills(temp.path()).expect("discover");
+    assert_eq!(discovered.len(), 1);
+    assert_eq!(discovered[0].name, "pdf");
+    assert_eq!(discovered[0].subpath, "vendor/tools/pdf");
+}
