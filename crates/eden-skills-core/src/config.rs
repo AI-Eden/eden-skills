@@ -71,6 +71,7 @@ pub struct InstallConfig {
     pub mode: InstallMode,
 }
 
+// TODO: Add more agent kinds here.
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum AgentKind {

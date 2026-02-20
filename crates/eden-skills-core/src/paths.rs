@@ -4,6 +4,7 @@ use std::path::{Component, Path, PathBuf};
 use crate::config::{AgentKind, TargetConfig};
 use crate::error::EdenError;
 
+// TODO: Add more agent paths here.
 pub fn default_agent_path(agent: &AgentKind) -> Option<&'static str> {
     match agent {
         AgentKind::ClaudeCode => Some("~/.claude/skills"),

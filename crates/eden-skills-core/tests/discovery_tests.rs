@@ -96,3 +96,36 @@ fn returns_empty_when_no_skill_markdown_exists() {
     let discovered = discover_skills(temp.path()).expect("discover");
     assert!(discovered.is_empty());
 }
+
+#[test]
+fn discovers_skills_under_agent_convention_directories() {
+    let temp = tempdir().expect("tempdir");
+    fs::create_dir_all(temp.path().join(".claude/skills/pdf")).expect("mkdir");
+    fs::create_dir_all(temp.path().join(".agents/skills/review")).expect("mkdir");
+    fs::write(
+        temp.path().join(".claude/skills/pdf/SKILL.md"),
+        r#"---
+name: pdf
+description: PDF tools
+---
+"#,
+    )
+    .expect("write pdf skill");
+    fs::write(
+        temp.path().join(".agents/skills/review/SKILL.md"),
+        r#"---
+name: review
+description: Review tools
+---
+"#,
+    )
+    .expect("write review skill");
+
+    let mut discovered = discover_skills(temp.path()).expect("discover");
+    discovered.sort_by(|left, right| left.name.cmp(&right.name));
+    assert_eq!(discovered.len(), 2);
+    assert_eq!(discovered[0].name, "pdf");
+    assert_eq!(discovered[0].subpath, ".claude/skills/pdf");
+    assert_eq!(discovered[1].name, "review");
+    assert_eq!(discovered[1].subpath, ".agents/skills/review");
+}

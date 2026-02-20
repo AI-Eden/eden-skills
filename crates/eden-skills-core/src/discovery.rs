@@ -3,6 +3,45 @@ use std::path::Path;
 
 use crate::error::EdenError;
 
+const DISCOVERY_PARENT_DIRS: &[&str] = &[
+    "skills",
+    "packages",
+    "skills/.curated",
+    "skills/.experimental",
+    "skills/.system",
+    ".agents/skills",
+    ".agent/skills",
+    ".augment/skills",
+    ".claude/skills",
+    ".cline/skills",
+    ".codebuddy/skills",
+    ".commandcode/skills",
+    ".continue/skills",
+    ".cortex/skills",
+    ".crush/skills",
+    ".factory/skills",
+    ".goose/skills",
+    ".junie/skills",
+    ".iflow/skills",
+    ".kilocode/skills",
+    ".kiro/skills",
+    ".kode/skills",
+    ".mcpjam/skills",
+    ".vibe/skills",
+    ".mux/skills",
+    ".openhands/skills",
+    ".pi/skills",
+    ".qoder/skills",
+    ".qwen/skills",
+    ".roo/skills",
+    ".trae/skills",
+    ".windsurf/skills",
+    ".zencoder/skills",
+    ".neovate/skills",
+    ".pochi/skills",
+    ".adal/skills",
+];
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscoveredSkill {
     pub name: String,
@@ -18,8 +57,12 @@ pub fn discover_skills(root: &Path) -> Result<Vec<DiscoveredSkill>, EdenError> {
         discovered.push(parse_skill_markdown(&root_skill, ".", root)?);
     }
 
-    discovered.extend(discover_directory_children(root, "skills")?);
-    discovered.extend(discover_directory_children(root, "packages")?);
+    for parent_dir in DISCOVERY_PARENT_DIRS {
+        discovered.extend(discover_directory_children(root, parent_dir)?);
+    }
+
+    let mut seen_subpaths = std::collections::HashSet::new();
+    discovered.retain(|skill| seen_subpaths.insert(skill.subpath.clone()));
     Ok(discovered)
 }
 
