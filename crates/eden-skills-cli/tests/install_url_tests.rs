@@ -7,7 +7,7 @@ use std::process::Command;
 use tempfile::tempdir;
 
 #[test]
-fn local_path_install_persists_absolute_repo_and_skips_clone() {
+fn local_path_install_persists_absolute_repo_and_stages_source_into_storage_root() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let source_dir = temp.path().join("test-skills");
@@ -46,14 +46,15 @@ fn local_path_install_persists_absolute_repo_and_skips_clone() {
         .expect("source repo should be string");
     common::assert_paths_resolve_to_same_location(&source_dir, Path::new(actual_repo));
 
-    let storage_root = home_dir
-        .join(".local")
-        .join("share")
-        .join("eden-skills")
-        .join("repos");
+    let storage_root = home_dir.join(".eden-skills").join("skills");
+    let staged_skill_root = storage_root.join("test-skills");
     assert!(
-        !storage_root.join("test-skills").exists(),
-        "local path install should not clone into storage root"
+        staged_skill_root.exists(),
+        "local path install should stage source into storage root"
+    );
+    assert!(
+        staged_skill_root.join("README.md").exists(),
+        "staged skill root should contain copied source contents"
     );
 }
 
@@ -267,7 +268,7 @@ fn install_url_mode_upserts_existing_id_instead_of_duplicating() {
 version = 1
 
 [storage]
-root = "~/.local/share/eden-skills/repos"
+root = "~/.eden-skills/skills"
 
 [[skills]]
 id = "my-skill"

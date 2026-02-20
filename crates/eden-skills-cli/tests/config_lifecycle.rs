@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::Path;
 use std::process::Command;
 
 use tempfile::tempdir;
@@ -355,6 +356,82 @@ fn set_updates_only_targeted_fields_and_validates_before_write() {
 }
 
 #[test]
+fn remove_scans_known_agent_dirs_and_storage_root() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let config_path = temp.path().join("skills.toml");
+
+    let init = eden_command_with_home(&home_dir)
+        .args(["init", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run init");
+    assert_eq!(
+        init.status.code(),
+        Some(0),
+        "init should succeed, stderr={}",
+        String::from_utf8_lossy(&init.stderr)
+    );
+
+    let add = eden_command_with_home(&home_dir)
+        .args([
+            "add",
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+            "--id",
+            "scan-skill",
+            "--repo",
+            "https://example.com/repo.git",
+            "--target",
+            "claude-code",
+        ])
+        .output()
+        .expect("run add");
+    assert_eq!(
+        add.status.code(),
+        Some(0),
+        "add should succeed, stderr={}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    let claude_target = home_dir.join(".claude/skills/scan-skill");
+    let shared_agents_target = home_dir.join(".agents/skills/scan-skill");
+    let storage_target = home_dir.join(".eden-skills/skills/scan-skill");
+    fs::create_dir_all(&claude_target).expect("create claude target");
+    fs::create_dir_all(&shared_agents_target).expect("create shared agents target");
+    fs::create_dir_all(&storage_target).expect("create storage target");
+
+    let remove = eden_command_with_home(&home_dir)
+        .args([
+            "remove",
+            "scan-skill",
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+        ])
+        .output()
+        .expect("run remove");
+    assert_eq!(
+        remove.status.code(),
+        Some(0),
+        "remove should succeed, stderr={}",
+        String::from_utf8_lossy(&remove.stderr)
+    );
+
+    assert!(
+        !claude_target.exists(),
+        "remove should clean configured claude target"
+    );
+    assert!(
+        !shared_agents_target.exists(),
+        "remove should scan known agent roots and clean shared .agents target"
+    );
+    assert!(
+        !storage_target.exists(),
+        "remove should clean canonical source under storage root"
+    );
+}
+
+#[test]
 fn add_accepts_supported_agent_aliases_from_skills_ecosystem() {
     let temp = tempdir().expect("tempdir");
     let config_path = temp.path().join("skills.toml");
@@ -403,4 +480,12 @@ fn add_accepts_supported_agent_aliases_from_skills_ecosystem() {
         written.contains("agent = \"windsurf\""),
         "config should persist windsurf target alias, config=\n{written}"
     );
+}
+
+fn eden_command_with_home(home_dir: &Path) -> Command {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
+    command.env("HOME", home_dir);
+    #[cfg(windows)]
+    command.env("USERPROFILE", home_dir);
+    command
 }

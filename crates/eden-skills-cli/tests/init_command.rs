@@ -24,6 +24,7 @@ fn init_creates_config_when_missing() {
     let content = fs::read_to_string(&config_path).expect("read config");
     assert!(content.contains("version = 1"));
     assert!(content.contains("[storage]"));
+    assert!(content.contains("root = \"~/.eden-skills/skills\""));
     assert!(!content.contains("[[skills]]"));
 
     let validate_output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))

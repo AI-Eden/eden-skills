@@ -4,6 +4,41 @@ use std::path::{Component, Path, PathBuf};
 use crate::config::{AgentKind, TargetConfig};
 use crate::error::EdenError;
 
+const KNOWN_DEFAULT_AGENT_PATHS: &[&str] = &[
+    "~/.adal/skills",
+    "~/.agent/skills",
+    "~/.agents/skills",
+    "~/.augment/skills",
+    "~/.claude/skills",
+    "~/.cline/skills",
+    "~/.codebuddy/skills",
+    "~/.commandcode/skills",
+    "~/.continue/skills",
+    "~/.cortex/skills",
+    "~/.crush/skills",
+    "~/.factory/skills",
+    "~/.goose/skills",
+    "~/.iflow/skills",
+    "~/.junie/skills",
+    "~/.kilocode/skills",
+    "~/.kiro/skills",
+    "~/.kode/skills",
+    "~/.mcpjam/skills",
+    "~/.mux/skills",
+    "~/.neovate/skills",
+    "~/.openhands/skills",
+    "~/.pi/skills",
+    "~/.pochi/skills",
+    "~/.qoder/skills",
+    "~/.qwen/skills",
+    "~/.roo/skills",
+    "~/.trae/skills",
+    "~/.vibe/skills",
+    "~/.windsurf/skills",
+    "~/.zencoder/skills",
+    "~/skills",
+];
+
 pub fn default_agent_path(agent: &AgentKind) -> Option<&'static str> {
     match agent {
         AgentKind::Amp => Some("~/.agents/skills"),
@@ -49,6 +84,10 @@ pub fn default_agent_path(agent: &AgentKind) -> Option<&'static str> {
         AgentKind::Zencoder => Some("~/.zencoder/skills"),
         AgentKind::Custom => None,
     }
+}
+
+pub fn known_default_agent_paths() -> &'static [&'static str] {
+    KNOWN_DEFAULT_AGENT_PATHS
 }
 
 pub fn resolve_target_path(target: &TargetConfig, config_dir: &Path) -> Result<PathBuf, EdenError> {

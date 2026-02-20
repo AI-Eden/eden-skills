@@ -9,7 +9,7 @@ use crate::error::EdenError;
 use crate::paths::resolve_path_string;
 use crate::reactor::{DEFAULT_CONCURRENCY_LIMIT, MAX_CONCURRENCY_LIMIT, MIN_CONCURRENCY_LIMIT};
 
-const DEFAULT_STORAGE_ROOT: &str = "~/.local/share/eden-skills/repos";
+const DEFAULT_STORAGE_ROOT: &str = "~/.eden-skills/skills";
 const REGISTRY_MODE_REPO_PREFIX: &str = "registry://";
 
 #[derive(Debug, Clone, PartialEq, Eq)]

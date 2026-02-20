@@ -25,10 +25,7 @@ agent = "claude-code"
     .expect("write config");
 
     let loaded = load_from_file(&config_path, LoadOptions::default()).expect("load config");
-    assert_eq!(
-        loaded.config.storage_root,
-        "~/.local/share/eden-skills/repos"
-    );
+    assert_eq!(loaded.config.storage_root, "~/.eden-skills/skills");
     assert_eq!(loaded.config.skills.len(), 1);
     assert_eq!(loaded.config.skills[0].source.subpath, ".");
     assert_eq!(loaded.config.skills[0].source.r#ref, "main");

@@ -389,6 +389,9 @@ phase25:
         - default target paths now derive from `~/` + Project Path convention for newly supported agents
         - extended auto-detection coverage to project-path-derived global agent directories with canonical mapping for shared `.agents` root
         - added regression tests for alias parsing, expanded default path resolution, and updated auto-detection/install target behavior
+        - local-path install now stages sources into canonical storage root before target install fan-out
+        - remove now performs cleanup of canonical storage entries and scans known local agent roots for stale per-agent installs
+        - default `storage.root` now points to `~/.eden-skills/skills` (replacing legacy `~/.local/share/eden-skills/repos`)
       quality_gate:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed

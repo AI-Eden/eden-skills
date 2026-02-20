@@ -19,7 +19,9 @@ use eden_skills_core::config::{
 use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::discovery::{discover_skills, DiscoveredSkill};
 use eden_skills_core::error::EdenError;
-use eden_skills_core::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
+use eden_skills_core::paths::{
+    known_default_agent_paths, normalize_lexical, resolve_path_string, resolve_target_path,
+};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::reactor::{SkillReactor, MAX_CONCURRENCY_LIMIT, MIN_CONCURRENCY_LIMIT};
 use eden_skills_core::registry::{
@@ -1093,8 +1095,12 @@ fn install_local_source_skill(
         .skills
         .first()
         .ok_or_else(|| EdenError::Runtime("local install skill is missing".to_string()))?;
-    let source_root = resolve_path_string(&skill.source.repo, config_dir)?;
-    let source_path = normalize_lexical(&source_root.join(&skill.source.subpath));
+    let source_repo_root = resolve_path_string(&skill.source.repo, config_dir)?;
+    let storage_root = resolve_path_string(&single_skill_config.storage_root, config_dir)?;
+    let staged_repo_root = normalize_lexical(&storage_root.join(&skill.id));
+
+    stage_local_source_into_storage(&source_repo_root, &staged_repo_root)?;
+    let source_path = normalize_lexical(&staged_repo_root.join(&skill.source.subpath));
     if !source_path.exists() {
         return Err(EdenError::Runtime(format!(
             "source path missing for skill `{}`: {}",
@@ -1144,6 +1150,25 @@ fn install_local_source_skill(
         )));
     }
 
+    Ok(())
+}
+
+fn stage_local_source_into_storage(
+    source_repo_root: &Path,
+    staged_repo_root: &Path,
+) -> Result<(), EdenError> {
+    if !source_repo_root.exists() {
+        return Err(EdenError::Runtime(format!(
+            "local source path does not exist: {}",
+            source_repo_root.display()
+        )));
+    }
+
+    ensure_parent_dir(staged_repo_root)?;
+    if fs::symlink_metadata(staged_repo_root).is_ok() {
+        remove_path(staged_repo_root)?;
+    }
+    copy_recursively(source_repo_root, staged_repo_root)?;
     Ok(())
 }
 
@@ -2159,6 +2184,7 @@ fn upsert_mode_b_skill(
     registry: Option<&str>,
     target_specs: &[String],
 ) -> Result<(), EdenError> {
+    let install_mode = default_install_mode();
     let target_override = match target_specs {
         [] => None,
         [spec] => Some(parse_install_target_spec(spec)?),
@@ -2196,13 +2222,11 @@ fn upsert_mode_b_skill(
             subpath: ".".to_string(),
             r#ref: version_constraint.to_string(),
         },
-        install: eden_skills_core::config::InstallConfig {
-            mode: InstallMode::Symlink,
-        },
+        install: eden_skills_core::config::InstallConfig { mode: install_mode },
         targets,
         verify: eden_skills_core::config::VerifyConfig {
             enabled: true,
-            checks: default_verify_checks_for_mode(InstallMode::Symlink),
+            checks: default_verify_checks_for_mode(install_mode),
         },
         safety: eden_skills_core::config::SafetyConfig {
             no_exec_metadata_only: false,
@@ -2219,6 +2243,7 @@ fn upsert_mode_a_skill(
     reference: &str,
     targets: &[TargetConfig],
 ) -> Result<(), EdenError> {
+    let install_mode = default_install_mode();
     let effective_targets = if targets.is_empty() {
         vec![default_install_target()]
     } else {
@@ -2241,13 +2266,11 @@ fn upsert_mode_a_skill(
             subpath: subpath.to_string(),
             r#ref: reference.to_string(),
         },
-        install: eden_skills_core::config::InstallConfig {
-            mode: InstallMode::Symlink,
-        },
+        install: eden_skills_core::config::InstallConfig { mode: install_mode },
         targets: effective_targets,
         verify: eden_skills_core::config::VerifyConfig {
             enabled: true,
-            checks: default_verify_checks_for_mode(InstallMode::Symlink),
+            checks: default_verify_checks_for_mode(install_mode),
         },
         safety: eden_skills_core::config::SafetyConfig {
             no_exec_metadata_only: false,
@@ -2263,6 +2286,41 @@ fn default_install_target() -> TargetConfig {
         path: None,
         environment: "local".to_string(),
     }
+}
+
+fn default_install_mode() -> InstallMode {
+    #[cfg(not(windows))]
+    {
+        InstallMode::Symlink
+    }
+    #[cfg(windows)]
+    {
+        if windows_supports_symlink_creation() {
+            InstallMode::Symlink
+        } else {
+            InstallMode::Copy
+        }
+    }
+}
+
+#[cfg(windows)]
+fn windows_supports_symlink_creation() -> bool {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    let probe_root = std::env::temp_dir().join(format!("eden-skills-symlink-probe-{nonce}"));
+    let source_dir = probe_root.join("source");
+    let link_dir = probe_root.join("link");
+
+    let created = fs::create_dir_all(&source_dir)
+        .and_then(|_| std::os::windows::fs::symlink_dir(&source_dir, &link_dir))
+        .is_ok();
+
+    let _ = fs::remove_dir_all(&probe_root);
+    created
 }
 
 fn resolve_url_mode_install_targets(
@@ -2418,7 +2476,7 @@ fn default_config_template() -> String {
         "version = 1",
         "",
         "[storage]",
-        "root = \"~/.local/share/eden-skills/repos\"",
+        "root = \"~/.eden-skills/skills\"",
         "",
     ]
     .join("\n")
@@ -2622,7 +2680,7 @@ pub async fn remove_async(
     };
 
     let removed_skill = config.skills[idx].clone();
-    uninstall_skill_targets(&removed_skill, &config_dir).await?;
+    uninstall_skill_targets(&removed_skill, &config_dir, &config.storage_root).await?;
     config.skills.remove(idx);
     validate_config(&config, &config_dir)?;
     write_normalized_config(config_path, &config)?;
@@ -2643,7 +2701,11 @@ pub async fn remove_async(
     Ok(())
 }
 
-async fn uninstall_skill_targets(skill: &SkillConfig, config_dir: &Path) -> Result<(), EdenError> {
+async fn uninstall_skill_targets(
+    skill: &SkillConfig,
+    config_dir: &Path,
+    storage_root: &str,
+) -> Result<(), EdenError> {
     for target in &skill.targets {
         let target_root = resolve_target_path(target, config_dir)?;
         let installed_target = normalize_lexical(&target_root.join(&skill.id));
@@ -2652,6 +2714,39 @@ async fn uninstall_skill_targets(skill: &SkillConfig, config_dir: &Path) -> Resu
             .uninstall(&installed_target)
             .await
             .map_err(EdenError::from)?;
+    }
+    remove_from_known_local_agent_targets(&skill.id, config_dir)?;
+    remove_from_storage_root(skill, storage_root, config_dir)?;
+    Ok(())
+}
+
+fn remove_from_known_local_agent_targets(
+    skill_id: &str,
+    config_dir: &Path,
+) -> Result<(), EdenError> {
+    let mut scanned_roots = HashSet::new();
+    for raw_root in known_default_agent_paths() {
+        let resolved_root = resolve_path_string(raw_root, config_dir)?;
+        if !scanned_roots.insert(resolved_root.clone()) {
+            continue;
+        }
+        let candidate = normalize_lexical(&resolved_root.join(skill_id));
+        if fs::symlink_metadata(&candidate).is_ok() {
+            remove_path(&candidate)?;
+        }
+    }
+    Ok(())
+}
+
+fn remove_from_storage_root(
+    skill: &SkillConfig,
+    storage_root: &str,
+    config_dir: &Path,
+) -> Result<(), EdenError> {
+    let resolved_storage_root = resolve_path_string(storage_root, config_dir)?;
+    let canonical_skill_dir = normalize_lexical(&resolved_storage_root.join(&skill.id));
+    if fs::symlink_metadata(&canonical_skill_dir).is_ok() {
+        remove_path(&canonical_skill_dir)?;
     }
     Ok(())
 }

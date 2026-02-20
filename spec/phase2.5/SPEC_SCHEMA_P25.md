@@ -57,7 +57,7 @@ The `init` command MUST generate a minimal valid config with no skill entries:
 version = 1
 
 [storage]
-root = "~/.local/share/eden-skills/repos"
+root = "~/.eden-skills/skills"
 ```
 
 This config is immediately usable with `eden-skills install <source>`.

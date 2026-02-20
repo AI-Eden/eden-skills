@@ -10,7 +10,7 @@ Config file MUST be valid TOML and follow:
 version = 1
 
 [storage]
-root = "~/.local/share/eden-skills/repos"
+root = "~/.eden-skills/skills"
 
 [[skills]]
 id = "browser-tool"
@@ -52,7 +52,7 @@ no_exec_metadata_only = false
 
 ## 3. Optional Fields and Defaults
 
-- `storage.root`: default `~/.local/share/eden-skills/repos`
+- `storage.root`: default `~/.eden-skills/skills`
 - `source.ref`: default `main`
 - `source.subpath`: default `.`
 - `install.mode`: default `symlink` (`symlink|copy`)
