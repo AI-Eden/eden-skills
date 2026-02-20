@@ -117,6 +117,7 @@ Current automated tests: `163` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.5 Batch 5 (`UX-001~007`, `TM-P25-031~034`): added shared CLI UI context (`ui.rs`) for color/symbol/spinner policy, integrated TTY clone spinner for URL install, enforced `NO_COLOR`/`FORCE_COLOR`/`CI` behavior and non-TTY prompt degradation, and preserved install JSON output contracts.
 - [x] Closed Phase 2.5 Batch 3 follow-up gaps after interruption: extended multi-skill discovery/selection semantics to remote URL sources, made URL-mode `--list` no-side-effect for config/targets, and implemented interactive discovery truncation output for repos with more than 8 skills.
 - [x] Completed Phase 2.5 discovery compatibility hardening (post-Batch 5): shipped P0 guardrail to block silent root fallback on failed `--skill` selection, expanded ecosystem discovery roots, added `.claude-plugin` manifest discovery, and added bounded recursive fallback (`max_depth=6`, `max_results=256`).
+- [x] Completed Phase 2.5 default-config bootstrap hardening (post-Batch 5): switched default config path to `~/.eden-skills/skills.toml`, allowed `install` to auto-create missing default parent directory, and preserved missing-parent failure for non-default `--config` paths.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -266,5 +267,9 @@ Key architectural decisions for Builder reference:
    - Requirements: `MVP-009`, `MVP-012`
    - Scenarios: `TM-P25-023`, `TM-P25-037`, `TM-P25-038`, `TM-P25-039`, `TM-P25-040`
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
-7. `spec/phase2.5/SPEC_INSTALL_URL.md`, `SPEC_TEST_MATRIX.md`, and `SPEC_TRACEABILITY.md` are synchronized with implemented discovery behavior.
-8. Next recommended execution target: Batch 6 (`WS-5`, `DST-001` ~ `DST-003`).
+7. Post-Batch 5 default-config bootstrap hardening is complete:
+   - Requirement: `MVP-008`
+   - Scenarios: `TM-P25-030`, `TM-P25-041`
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
+8. `spec/phase2.5/SPEC_INSTALL_URL.md`, `SPEC_TEST_MATRIX.md`, and `SPEC_TRACEABILITY.md` are synchronized with implemented discovery behavior.
+9. Next recommended execution target: Batch 6 (`WS-5`, `DST-001` ~ `DST-003`).

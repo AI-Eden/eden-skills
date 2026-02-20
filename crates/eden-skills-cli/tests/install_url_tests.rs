@@ -82,6 +82,43 @@ fn install_fails_when_config_parent_directory_is_missing() {
 }
 
 #[test]
+fn install_default_config_path_auto_creates_missing_parent_directory() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let source_dir = temp.path().join("test-skills");
+    fs::create_dir_all(&source_dir).expect("create source dir");
+    fs::write(source_dir.join("README.md"), "demo skill").expect("write source file");
+
+    let default_config_parent = home_dir.join(".eden-skills");
+    let default_config_path = default_config_parent.join("skills.toml");
+    assert!(
+        !default_config_parent.exists(),
+        "test precondition: default config parent should be missing"
+    );
+
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args(["install", "./test-skills"])
+        .output()
+        .expect("run install");
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install should succeed for default config path, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert!(
+        default_config_parent.exists(),
+        "default config parent should be auto-created"
+    );
+    assert!(
+        default_config_path.exists(),
+        "default config file should be created"
+    );
+}
+
+#[test]
 fn local_path_precedence_wins_over_shorthand_shape() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");

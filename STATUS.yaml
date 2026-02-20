@@ -349,6 +349,20 @@ phase25:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    post_batch_5_default_config_bootstrap_hardening:
+      status: completed
+      completed_at: "2026-02-20"
+      requirements: MVP-008
+      scenarios: TM-P25-030, TM-P25-041
+      notes:
+        - aligned default config path to ~/.eden-skills/skills.toml across CLI and specs/docs
+        - install now auto-creates missing parent directory for default config path bootstrap
+        - preserved missing-parent IO failure for non-default --config paths as typo guard
+        - added install URL regression coverage for default-path parent auto-creation
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
   - phase25_batch_6_ws_5_distribution

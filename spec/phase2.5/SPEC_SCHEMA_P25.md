@@ -72,9 +72,12 @@ resolved `--config` path does not exist:
 - The CLI MUST emit: `Created config at <path>`.
 - The install command MUST then proceed normally, adding the installed skill
   to the newly created config.
-- This auto-creation MUST NOT trigger if `--config` points to an explicitly
-  non-existent path that the user appears to have mistyped (i.e., the parent
-  directory does not exist). In that case, the CLI MUST fail with an IO error.
+- For the default config path (`~/.eden-skills/skills.toml`), the CLI MUST
+  auto-create a missing parent directory (`~/.eden-skills`) before writing
+  the config file.
+- For non-default config paths, auto-creation MUST NOT trigger when `--config`
+  points to a path with a missing parent directory (likely user typo). In that
+  case, the CLI MUST fail with an IO error.
 
 ## 4. Normative Requirements
 

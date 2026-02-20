@@ -294,6 +294,10 @@ When the config file at the resolved `--config` path does not exist:
 - The CLI MUST create a minimal valid config (see `SPEC_SCHEMA_P25.md`).
 - The CLI MUST emit an informational message: `Created config at <path>`.
 - Install proceeds using the newly created config.
+- For default path `~/.eden-skills/skills.toml`, missing parent directory
+  `~/.eden-skills` MUST be auto-created.
+- For non-default `--config` paths with missing parent directory, install
+  MUST fail with an IO error.
 
 ### 6.3 Local Source Handling
 

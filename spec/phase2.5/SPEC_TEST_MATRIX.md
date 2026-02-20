@@ -196,6 +196,13 @@ Docker is NOT required for Phase 2.5 tests (adapter tests remain in Phase 2).
   directory does not exist, the CLI fails with an IO error (does not
   silently create arbitrary directory trees).
 
+### TM-P25-041: Default Config Parent Auto-Creation
+
+- When config path is default (`~/.eden-skills/skills.toml`) and
+  `~/.eden-skills/` does not exist, `install` auto-creates the parent
+  directory and then auto-creates config.
+- Install continues successfully after config creation.
+
 ## 9. CLI UX Scenarios
 
 ### TM-P25-031: TTY Color Output

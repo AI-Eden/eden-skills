@@ -6,6 +6,7 @@ use std::process::Command;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::ui::{StatusSymbol, UiContext};
+use crate::DEFAULT_CONFIG_PATH;
 use dialoguer::{Confirm, Input};
 use eden_skills_core::adapter::create_adapter;
 use eden_skills_core::agents::detect_installed_agent_targets;
@@ -262,37 +263,47 @@ pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
 pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
+    let default_config_path = resolve_config_path(DEFAULT_CONFIG_PATH)?;
+    let auto_create_missing_parent = config_path == default_config_path.as_path();
     let cwd = std::env::current_dir().map_err(EdenError::Io)?;
     let detected_source = detect_install_source(&req.source, &cwd)?;
     let ui = UiContext::from_env(req.options.json);
     match detected_source {
         DetectedInstallSource::RegistryName(skill_name) => {
-            ensure_install_config_exists(config_path, &ui)?;
+            ensure_install_config_exists(config_path, &ui, auto_create_missing_parent)?;
             install_registry_mode_async(&req, config_path, &skill_name, &ui).await
         }
         DetectedInstallSource::Url(url_source) => {
             if !req.list {
-                ensure_install_config_exists(config_path, &ui)?;
+                ensure_install_config_exists(config_path, &ui, auto_create_missing_parent)?;
             }
             install_url_mode_async(&req, config_path, &url_source, &ui).await
         }
     }
 }
 
-fn ensure_install_config_exists(config_path: &Path, ui: &UiContext) -> Result<(), EdenError> {
+fn ensure_install_config_exists(
+    config_path: &Path,
+    ui: &UiContext,
+    auto_create_missing_parent: bool,
+) -> Result<(), EdenError> {
     if config_path.exists() {
         return Ok(());
     }
 
     let parent = config_path.parent().unwrap_or(Path::new("."));
     if !parent.exists() {
-        return Err(EdenError::Io(std::io::Error::new(
-            std::io::ErrorKind::NotFound,
-            format!(
-                "config parent directory does not exist: {}",
-                parent.display()
-            ),
-        )));
+        if auto_create_missing_parent {
+            fs::create_dir_all(parent)?;
+        } else {
+            return Err(EdenError::Io(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!(
+                    "config parent directory does not exist: {}",
+                    parent.display()
+                ),
+            )));
+        }
     }
 
     fs::write(config_path, default_config_template())?;
