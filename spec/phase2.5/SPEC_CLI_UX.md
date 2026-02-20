@@ -227,8 +227,9 @@ SHOULD summarize progress:
 | **UX-003** | Builder | **P0** | CLI MUST use `✓`/`✗`/`·`/`!` symbols for action results. | Each install action shows appropriate symbol. |
 | **UX-004** | Builder | **P0** | CLI MUST respect `NO_COLOR`, `FORCE_COLOR`, and `CI` environment variables. | `NO_COLOR=1 eden-skills install ...` produces output without ANSI codes. |
 | **UX-005** | Builder | **P0** | `--json` output MUST remain identical to Phase 1/2 contracts. | JSON output schema unchanged; no visual elements in JSON. |
-| **UX-006** | Builder | **P1** | Non-TTY output MUST disable colors, spinners, and prompts. | Piped output (`| cat`) contains no ANSI escape codes. |
+| **UX-006** | Builder | **P1** | Non-TTY output MUST disable colors, spinners, and prompts. | Piped output (`\| cat`) contains no ANSI escape codes. |
 | **UX-007** | Builder | **P0** | Interactive prompts MUST use `dialoguer` for confirmation and text input. | Install multi-skill prompt uses `dialoguer::Confirm` and `dialoguer::Input`. |
+| **UX-008** | Builder | **P1** | On Windows systems without symlink permission, `install` MUST fall back to hardcopy mode and emit a warning that installs may be slower. | Simulated no-symlink-permission install emits warning and persists `install.mode = "copy"`. |
 
 ## 8. Migration Strategy
 

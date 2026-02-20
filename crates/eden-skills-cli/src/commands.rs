@@ -109,6 +109,12 @@ struct RegistrySyncResult {
     detail: Option<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct DefaultInstallModeDecision {
+    mode: InstallMode,
+    warn_windows_hardcopy_fallback: bool,
+}
+
 const REGISTRY_SYNC_MARKER_FILE: &str = ".eden-last-sync";
 const REGISTRY_STALE_THRESHOLD_SECS: u64 = 7 * 24 * 60 * 60;
 
@@ -270,6 +276,9 @@ pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
     let cwd = std::env::current_dir().map_err(EdenError::Io)?;
     let detected_source = detect_install_source(&req.source, &cwd)?;
     let ui = UiContext::from_env(req.options.json);
+    if !req.list {
+        warn_windows_hardcopy_fallback_if_needed(&ui, resolve_default_install_mode_decision());
+    }
     match detected_source {
         DetectedInstallSource::RegistryName(skill_name) => {
             ensure_install_config_exists(config_path, &ui, auto_create_missing_parent)?;
@@ -2289,17 +2298,56 @@ fn default_install_target() -> TargetConfig {
 }
 
 fn default_install_mode() -> InstallMode {
-    #[cfg(not(windows))]
-    {
-        InstallMode::Symlink
+    resolve_default_install_mode_decision().mode
+}
+
+fn resolve_default_install_mode_decision() -> DefaultInstallModeDecision {
+    if let Some(forced_symlink_supported) = forced_windows_symlink_support_for_tests() {
+        return decide_default_install_mode(true, forced_symlink_supported);
     }
+
     #[cfg(windows)]
     {
-        if windows_supports_symlink_creation() {
-            InstallMode::Symlink
-        } else {
-            InstallMode::Copy
-        }
+        decide_default_install_mode(true, windows_supports_symlink_creation())
+    }
+    #[cfg(not(windows))]
+    {
+        decide_default_install_mode(false, true)
+    }
+}
+
+fn decide_default_install_mode(
+    is_windows: bool,
+    symlink_supported: bool,
+) -> DefaultInstallModeDecision {
+    if is_windows && !symlink_supported {
+        return DefaultInstallModeDecision {
+            mode: InstallMode::Copy,
+            warn_windows_hardcopy_fallback: true,
+        };
+    }
+    DefaultInstallModeDecision {
+        mode: InstallMode::Symlink,
+        warn_windows_hardcopy_fallback: false,
+    }
+}
+
+fn forced_windows_symlink_support_for_tests() -> Option<bool> {
+    match std::env::var("EDEN_SKILLS_TEST_WINDOWS_SYMLINK_SUPPORTED")
+        .ok()
+        .as_deref()
+    {
+        Some("1") => Some(true),
+        Some("0") => Some(false),
+        _ => None,
+    }
+}
+
+fn warn_windows_hardcopy_fallback_if_needed(ui: &UiContext, decision: DefaultInstallModeDecision) {
+    if decision.warn_windows_hardcopy_fallback && !ui.json_mode() {
+        eprintln!(
+            "warning: Windows symlink permission is unavailable; falling back to hardcopy mode; this may slow down installs."
+        );
     }
 }
 

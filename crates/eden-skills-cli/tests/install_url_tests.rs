@@ -59,6 +59,54 @@ fn local_path_install_persists_absolute_repo_and_stages_source_into_storage_root
 }
 
 #[test]
+fn install_warns_when_windows_symlink_permission_missing_and_falls_back_to_hardcopy() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let source_dir = temp.path().join("test-skills");
+    fs::create_dir_all(&source_dir).expect("create source dir");
+    fs::write(source_dir.join("README.md"), "demo skill").expect("write source file");
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .env("EDEN_SKILLS_TEST_WINDOWS_SYMLINK_SUPPORTED", "0")
+        .args(["install", "./test-skills", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("falling back to hardcopy mode"),
+        "missing hardcopy fallback warning, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("may slow down installs"),
+        "warning should mention potential performance impact, stderr={stderr}"
+    );
+
+    let config_text = fs::read_to_string(&config_path).expect("read config");
+    let config_value: toml::Value = toml::from_str(&config_text).expect("valid toml");
+    let skills = config_value
+        .get("skills")
+        .and_then(|value| value.as_array())
+        .expect("skills array");
+    assert_eq!(skills.len(), 1);
+    assert_eq!(
+        skills[0]["install"]["mode"].as_str(),
+        Some("copy"),
+        "expected install mode to fall back to copy, config=\n{config_text}"
+    );
+}
+
+#[test]
 fn install_fails_when_config_parent_directory_is_missing() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");

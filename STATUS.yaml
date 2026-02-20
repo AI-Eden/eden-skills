@@ -382,8 +382,8 @@ phase25:
     post_batch_6_agent_support_expansion:
       status: completed
       completed_at: "2026-02-20"
-      requirements: AGT-002, AGT-003
-      scenarios: TM-P25-026, TM-P25-028
+      requirements: AGT-002, AGT-003, UX-008
+      scenarios: TM-P25-026, TM-P25-028, TM-P25-042
       notes:
         - expanded supported install target aliases to align with skills.sh Supported Agents naming
         - default target paths now derive from `~/` + Project Path convention for newly supported agents
@@ -392,6 +392,7 @@ phase25:
         - local-path install now stages sources into canonical storage root before target install fan-out
         - remove now performs cleanup of canonical storage entries and scans known local agent roots for stale per-agent installs
         - default `storage.root` now points to `~/.eden-skills/skills` (replacing legacy `~/.local/share/eden-skills/repos`)
+        - Windows without symlink permission now emits explicit hardcopy fallback warning that installs may be slower
       quality_gate:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed

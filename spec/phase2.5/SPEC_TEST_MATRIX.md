@@ -227,6 +227,12 @@ Docker is NOT required for Phase 2.5 tests (adapter tests remain in Phase 2).
 - During `install` Git clone, a spinner is visible on TTY.
 - Spinner is replaced with completion status when done.
 
+### TM-P25-042: Windows Hardcopy Fallback Warning
+
+- When Windows symlink permission is unavailable during `install`, CLI falls
+  back to hardcopy mode for persisted skill install config.
+- CLI emits a warning that hardcopy fallback may slow down installs.
+
 ## 10. Distribution Scenarios
 
 ### TM-P25-035: Cargo Install
