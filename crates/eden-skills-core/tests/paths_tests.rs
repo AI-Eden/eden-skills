@@ -108,6 +108,50 @@ fn resolve_target_path_fails_for_custom_without_paths() {
 }
 
 #[test]
+fn resolve_target_path_supports_extended_agent_default_paths() {
+    let _env_guard = env_lock().lock().expect("lock env");
+    let _home_reset = EnvVarReset::capture("HOME");
+    let _userprofile_reset = EnvVarReset::capture("USERPROFILE");
+    let home = tempdir().expect("tempdir home");
+    env::set_var("HOME", home.path());
+
+    let dir = tempdir().expect("tempdir");
+    let config_dir = dir.path();
+
+    let opencode = TargetConfig {
+        agent: AgentKind::Opencode,
+        expected_path: None,
+        path: None,
+        environment: "local".to_string(),
+    };
+    let windsurf = TargetConfig {
+        agent: AgentKind::Windsurf,
+        expected_path: None,
+        path: None,
+        environment: "local".to_string(),
+    };
+    let adal = TargetConfig {
+        agent: AgentKind::Adal,
+        expected_path: None,
+        path: None,
+        environment: "local".to_string(),
+    };
+
+    assert_eq!(
+        resolve_target_path(&opencode, config_dir).expect("resolve opencode"),
+        home.path().join(".agents").join("skills")
+    );
+    assert_eq!(
+        resolve_target_path(&windsurf, config_dir).expect("resolve windsurf"),
+        home.path().join(".windsurf").join("skills")
+    );
+    assert_eq!(
+        resolve_target_path(&adal, config_dir).expect("resolve adal"),
+        home.path().join(".adal").join("skills")
+    );
+}
+
+#[test]
 fn resolve_path_string_expands_tilde_and_normalizes() {
     let _env_guard = env_lock().lock().expect("lock env");
     let _home_reset = EnvVarReset::capture("HOME");

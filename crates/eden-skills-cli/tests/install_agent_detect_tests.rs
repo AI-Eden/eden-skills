@@ -9,7 +9,7 @@ fn install_without_target_detects_multiple_agent_directories() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     fs::create_dir_all(home_dir.join(".claude")).expect("create .claude");
-    fs::create_dir_all(home_dir.join(".cursor")).expect("create .cursor");
+    fs::create_dir_all(home_dir.join(".agents")).expect("create .agents");
     let repo_dir = temp.path().join("agent-detect-repo");
     write_root_skill_repo(&repo_dir, "agent-skill");
 
@@ -32,7 +32,7 @@ fn install_without_target_detects_multiple_agent_directories() {
         "claude target should be installed"
     );
     assert!(
-        home_dir.join(".cursor/skills/agent-skill").exists(),
+        home_dir.join(".agents/skills/agent-skill").exists(),
         "cursor target should be installed"
     );
 
@@ -84,7 +84,7 @@ fn explicit_target_override_skips_auto_detection() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     fs::create_dir_all(home_dir.join(".claude")).expect("create .claude");
-    fs::create_dir_all(home_dir.join(".cursor")).expect("create .cursor");
+    fs::create_dir_all(home_dir.join(".agents")).expect("create .agents");
     let repo_dir = temp.path().join("override-repo");
     write_root_skill_repo(&repo_dir, "override-skill");
 
@@ -109,7 +109,7 @@ fn explicit_target_override_skips_auto_detection() {
     );
 
     assert!(
-        home_dir.join(".cursor/skills/override-skill").exists(),
+        home_dir.join(".agents/skills/override-skill").exists(),
         "cursor target should be installed"
     );
     assert!(

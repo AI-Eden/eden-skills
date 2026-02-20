@@ -379,6 +379,20 @@ phase25:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    post_batch_6_agent_support_expansion:
+      status: completed
+      completed_at: "2026-02-20"
+      requirements: AGT-002, AGT-003
+      scenarios: TM-P25-026, TM-P25-028
+      notes:
+        - expanded supported install target aliases to align with skills.sh Supported Agents naming
+        - default target paths now derive from `~/` + Project Path convention for newly supported agents
+        - extended auto-detection coverage to project-path-derived global agent directories with canonical mapping for shared `.agents` root
+        - added regression tests for alias parsing, expanded default path resolution, and updated auto-detection/install target behavior
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
   - phase25_closeout_readiness_and_tag_release_dry_run

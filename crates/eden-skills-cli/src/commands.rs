@@ -2753,49 +2753,40 @@ pub fn set(req: SetRequest) -> Result<(), EdenError> {
 }
 
 fn agent_kind_label(agent: &AgentKind) -> &'static str {
-    match agent {
-        AgentKind::ClaudeCode => "claude-code",
-        AgentKind::Cursor => "cursor",
-        AgentKind::Custom => "custom",
-    }
+    agent.as_str()
 }
 
 fn parse_target_specs(specs: &[String]) -> Result<Vec<TargetConfig>, EdenError> {
     let mut targets = Vec::with_capacity(specs.len());
     for spec in specs {
-        match spec.as_str() {
-            "claude-code" => targets.push(TargetConfig {
-                agent: AgentKind::ClaudeCode,
+        if let Some(agent) = AgentKind::from_target_spec(spec) {
+            targets.push(TargetConfig {
+                agent,
                 expected_path: None,
                 path: None,
                 environment: "local".to_string(),
-            }),
-            "cursor" => targets.push(TargetConfig {
-                agent: AgentKind::Cursor,
-                expected_path: None,
-                path: None,
-                environment: "local".to_string(),
-            }),
-            _ => {
-                if let Some(rest) = spec.strip_prefix("custom:") {
-                    if rest.trim().is_empty() {
-                        return Err(EdenError::InvalidArguments(
-                            "invalid target spec `custom:`: path is required".to_string(),
-                        ));
-                    }
-                    targets.push(TargetConfig {
-                        agent: AgentKind::Custom,
-                        expected_path: None,
-                        path: Some(rest.to_string()),
-                        environment: "local".to_string(),
-                    });
-                    continue;
-                }
-                return Err(EdenError::InvalidArguments(format!(
-                    "invalid target spec `{spec}` (expected `claude-code`, `cursor`, or `custom:<path>`)"
-                )));
-            }
+            });
+            continue;
         }
+
+        if let Some(rest) = spec.strip_prefix("custom:") {
+            if rest.trim().is_empty() {
+                return Err(EdenError::InvalidArguments(
+                    "invalid target spec `custom:`: path is required".to_string(),
+                ));
+            }
+            targets.push(TargetConfig {
+                agent: AgentKind::Custom,
+                expected_path: None,
+                path: Some(rest.to_string()),
+                environment: "local".to_string(),
+            });
+            continue;
+        }
+
+        return Err(EdenError::InvalidArguments(format!(
+            "invalid target spec `{spec}` (expected a supported agent id or `custom:<path>`)"
+        )));
     }
     Ok(targets)
 }

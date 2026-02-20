@@ -192,3 +192,32 @@ fn load_phase1_style_config_with_five_skills_for_backward_compatibility() {
     assert_eq!(loaded.config.skills[0].id, "skill-0");
     assert_eq!(loaded.config.skills[4].id, "skill-4");
 }
+
+#[test]
+fn load_valid_config_with_extended_agent_aliases() {
+    let dir = tempdir().expect("tempdir");
+    let config_path = dir.path().join("skills.toml");
+    fs::write(
+        &config_path,
+        r#"
+version = 1
+
+[[skills]]
+id = "x"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/skills.git"
+
+[[skills.targets]]
+agent = "opencode"
+
+[[skills.targets]]
+agent = "windsurf"
+"#,
+    )
+    .expect("write config");
+
+    let loaded = load_from_file(&config_path, LoadOptions::default()).expect("load config");
+    assert_eq!(loaded.config.skills.len(), 1);
+    assert_eq!(loaded.config.skills[0].targets.len(), 2);
+}

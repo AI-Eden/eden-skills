@@ -353,3 +353,54 @@ fn set_updates_only_targeted_fields_and_validates_before_write() {
         "config must not be modified on validation failure"
     );
 }
+
+#[test]
+fn add_accepts_supported_agent_aliases_from_skills_ecosystem() {
+    let temp = tempdir().expect("tempdir");
+    let config_path = temp.path().join("skills.toml");
+
+    let init = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["init", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run init");
+    assert_eq!(
+        init.status.code(),
+        Some(0),
+        "init should succeed, stderr={}",
+        String::from_utf8_lossy(&init.stderr)
+    );
+
+    let add = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args([
+            "add",
+            "--config",
+            config_path.to_str().expect("utf8 path"),
+            "--id",
+            "ecosystem-skill",
+            "--repo",
+            "https://example.com/repo.git",
+            "--target",
+            "opencode",
+            "--target",
+            "windsurf",
+        ])
+        .output()
+        .expect("run add");
+    assert_eq!(
+        add.status.code(),
+        Some(0),
+        "add should accept ecosystem agent aliases, stderr={}",
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    let written = fs::read_to_string(&config_path).expect("read config");
+    assert!(
+        written.contains("agent = \"opencode\""),
+        "config should persist opencode target alias, config=\n{written}"
+    );
+    assert!(
+        written.contains("agent = \"windsurf\""),
+        "config should persist windsurf target alias, config=\n{written}"
+    );
+}

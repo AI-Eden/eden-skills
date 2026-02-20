@@ -60,7 +60,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 - [x] Phase 2 closeout matrix re-verified on all targets (`CI` run `22176017545`: `ubuntu-latest`, `macos-latest`, `windows-latest`).
 
-Current automated tests: `165` (workspace unit/integration-style tests).
+Current automated tests: `169` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -119,6 +119,7 @@ Current automated tests: `165` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.5 discovery compatibility hardening (post-Batch 5): shipped P0 guardrail to block silent root fallback on failed `--skill` selection, expanded ecosystem discovery roots, added `.claude-plugin` manifest discovery, and added bounded recursive fallback (`max_depth=6`, `max_results=256`).
 - [x] Completed Phase 2.5 default-config bootstrap hardening (post-Batch 5): switched default config path to `~/.eden-skills/skills.toml`, allowed `install` to auto-create missing default parent directory, and preserved missing-parent failure for non-default `--config` paths.
 - [x] Completed Phase 2.5 Batch 6 (`DST-001~003`, `TM-P25-035~036`): made CLI crate publishable as `eden-skills` for `cargo install`, added a multi-platform release workflow with `v*` tag trigger and 5-target packaging, added SHA-256 release checksum generation, and added dedicated distribution TDD coverage (`distribution_tests`).
+- [x] Completed Phase 2.5 post-Batch 6 agent support expansion: aligned supported `--target` aliases with skills.sh Supported Agents set, adopted project-path-derived global path defaults for new agents, expanded auto-detection rule coverage, and added regression tests for alias parsing/path resolution/detection.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -276,5 +277,9 @@ Key architectural decisions for Builder reference:
    - Requirements: `DST-001`, `DST-002`, `DST-003`
    - Scenarios: `TM-P25-035`, `TM-P25-036`
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
-9. `spec/phase2.5/SPEC_INSTALL_URL.md`, `SPEC_TEST_MATRIX.md`, and `SPEC_TRACEABILITY.md` are synchronized with implemented distribution and discovery behavior.
-10. Next recommended execution target: Phase 2.5 closeout readiness + tagged release dry-run.
+9. Post-Batch 6 agent support expansion is complete with quality gate pass:
+   - Scope: expanded `--target` alias matrix and project-path-derived global path defaults for newly supported agents
+   - Regression coverage: alias parsing (`config_lifecycle`), default-path resolution (`paths_tests`), and auto-detection (`agent_detect_tests`/`install_agent_detect_tests`)
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
+10. `spec/phase2.5/SPEC_INSTALL_URL.md`, `SPEC_TEST_MATRIX.md`, and `SPEC_TRACEABILITY.md` are synchronized with implemented distribution and agent/discovery behavior.
+11. Next recommended execution target: Phase 2.5 closeout readiness + tagged release dry-run.
