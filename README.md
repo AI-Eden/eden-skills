@@ -43,23 +43,41 @@ Prerequisites:
 - Git
 - Docker (optional, only for Docker targets)
 
-Build and run locally:
+Install from source (recommended):
 
 ```bash
 git clone https://github.com/AI-Eden/eden-skills.git
 cd eden-skills
 
+# Install to ~/.cargo/bin/eden-skills
+cargo install --path crates/eden-skills-cli --locked --force
+
+# Verify install
+eden-skills install --help
+```
+
+If `eden-skills` is not found, add Cargo bin to your `PATH`:
+
+```bash
+export PATH="$HOME/.cargo/bin:$PATH"
+```
+
+Run without installing (development mode):
+
+```bash
+# From repository root: /path/to/eden-skills
+
 # Initialize a demo config in current directory
-cargo run -p eden-skills-cli -- init --config ./skills.demo.toml
+cargo run -p eden-skills -- init --config ./skills.demo.toml
 
 # Dry-run the action graph
-cargo run -p eden-skills-cli -- plan --config ./skills.demo.toml
+cargo run -p eden-skills -- plan --config ./skills.demo.toml
 
 # Apply changes
-cargo run -p eden-skills-cli -- apply --config ./skills.demo.toml
+cargo run -p eden-skills -- apply --config ./skills.demo.toml
 
 # Diagnose drift or risk findings
-cargo run -p eden-skills-cli -- doctor --config ./skills.demo.toml
+cargo run -p eden-skills -- doctor --config ./skills.demo.toml
 ```
 
 For a complete, production-style walkthrough, start with:
