@@ -12,6 +12,14 @@ It manages the full lifecycle from planning and apply to diagnostics, repair, re
 - Cross-platform CI (Linux/macOS/Windows): passing
 - Phase 3 (crawler/taxonomy/curation engine): not implemented yet
 
+### Development Notice
+
+`eden-skills` is still under active development.
+
+- Please avoid using it in production environments for now unless you can tolerate breaking changes and evolving behavior.
+- Community contributions are very welcome (issues, bug reports, docs, tests, and pull requests).
+- If you want to contribute, please align changes with the spec-first workflow in [`spec/`](spec/) and track updates in [`STATUS.yaml`](STATUS.yaml) / [`EXECUTION_TRACKER.md`](EXECUTION_TRACKER.md).
+
 Authoritative status files:
 
 - [Status Snapshot](STATUS.yaml) (machine-readable status)
