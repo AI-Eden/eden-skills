@@ -1,0 +1,69 @@
+     Running tests/install_url_tests.rs (target/debug/deps/install_url_tests-1451599e38bff3f4)
+
+running 6 tests
+test install_fails_when_config_parent_directory_is_missing ... ok
+test install_url_mode_respects_id_override ... ok
+test install_url_mode_upserts_existing_id_instead_of_duplicating ... FAILED
+test local_path_install_persists_absolute_repo_and_skips_clone ... FAILED
+test local_path_precedence_wins_over_shorthand_shape ... FAILED
+test registry_name_input_still_uses_registry_mode ... ok
+
+failures:
+
+---- install_url_mode_upserts_existing_id_instead_of_duplicating stdout ----
+
+thread 'install_url_mode_upserts_existing_id_instead_of_duplicating' (54775) panicked at crates/eden-skills-cli/tests/install_url_tests.rs:272:5:
+assertion `left == right` failed
+  left: Some("/private/var/folders/9r/xzfp9lgn603578400ms53lr00000gn/T/.tmpH5DpaE/my-skill")
+ right: Some("/var/folders/9r/xzfp9lgn603578400ms53lr00000gn/T/.tmpH5DpaE/my-skill")
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- local_path_install_persists_absolute_repo_and_skips_clone stdout ----
+
+error: test failed, to rerun pass `-p eden-skills-cli --test install_url_tests`
+thread 'local_path_install_persists_absolute_repo_and_skips_clone' (54788) panicked at crates/eden-skills-cli/tests/install_url_tests.rs:43:5:
+assertion `left == right` failed
+  left: Some("/private/var/folders/9r/xzfp9lgn603578400ms53lr00000gn/T/.tmpC9oSOV/test-skills")
+ right: Some("/var/folders/9r/xzfp9lgn603578400ms53lr00000gn/T/.tmpC9oSOV/test-skills")
+
+---- local_path_precedence_wins_over_shorthand_shape stdout ----
+
+thread 'local_path_precedence_wins_over_shorthand_shape' (54790) panicked at crates/eden-skills-cli/tests/install_url_tests.rs:107:5:
+expected local absolute path to be persisted, config=
+version = 1
+
+[storage]
+root = "~/.local/share/eden-skills/repos"
+
+[[skills]]
+id = "repo"
+
+[skills.source]
+repo = "/private/var/folders/9r/xzfp9lgn603578400ms53lr00000gn/T/.tmp5TjZDW/owner/repo"
+subpath = "."
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "claude-code"
+
+[skills.verify]
+enabled = true
+checks = ["path-exists", "target-resolves", "is-symlink"]
+
+[skills.safety]
+no_exec_metadata_only = false
+
+
+
+
+failures:
+    install_url_mode_upserts_existing_id_instead_of_duplicating
+    local_path_install_persists_absolute_repo_and_skips_clone
+    local_path_precedence_wins_over_shorthand_shape
+
+test result: FAILED. 3 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.10s
+
+Error: Process completed with exit code 101.
