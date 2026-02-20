@@ -642,6 +642,10 @@ pub fn validate_config(config: &Config, config_dir: &Path) -> Result<(), EdenErr
 }
 
 fn validate_repo_url(url: &str, field_path: &str) -> Result<(), EdenError> {
+    if Path::new(url).is_absolute() {
+        return Ok(());
+    }
+
     let is_https = url.starts_with("https://");
     let is_ssh = url.starts_with("ssh://");
     let is_scp_like = url.starts_with("git@") && url.contains(':');

@@ -7,5 +7,6 @@ pub mod reactor;
 pub mod registry;
 pub mod safety;
 pub mod source;
+pub mod source_format;
 pub mod state;
 pub mod verify;

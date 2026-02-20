@@ -70,7 +70,9 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
         Commands::Install(args) => {
             commands::install_async(commands::InstallRequest {
                 config_path: args.config,
-                skill_name: args.skill_name,
+                source: args.source,
+                id: args.id,
+                r#ref: args.r#ref,
                 version: args.version,
                 registry: args.registry,
                 target: args.target,
@@ -234,7 +236,7 @@ struct UpdateArgs {
 
 #[derive(Debug, Clone, Args)]
 struct InstallArgs {
-    skill_name: String,
+    source: String,
 
     #[arg(long, default_value = DEFAULT_CONFIG_PATH)]
     config: String,
@@ -244,6 +246,10 @@ struct InstallArgs {
     json: bool,
     #[arg(long)]
     version: Option<String>,
+    #[arg(long)]
+    id: Option<String>,
+    #[arg(long)]
+    r#ref: Option<String>,
     #[arg(long)]
     registry: Option<String>,
     #[arg(long)]

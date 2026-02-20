@@ -23,6 +23,10 @@ use eden_skills_core::registry::{
 };
 use eden_skills_core::safety::{analyze_skills, persist_reports, LicenseStatus, SkillSafetyReport};
 use eden_skills_core::source::{sync_sources_async, sync_sources_async_with_reactor, SyncSummary};
+use eden_skills_core::source_format::{
+    derive_skill_id_from_source_repo, detect_install_source, DetectedInstallSource,
+    UrlInstallSource,
+};
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -51,7 +55,9 @@ pub struct UpdateRequest {
 #[derive(Debug, Clone)]
 pub struct InstallRequest {
     pub config_path: String,
-    pub skill_name: String,
+    pub source: String,
+    pub id: Option<String>,
+    pub r#ref: Option<String>,
     pub version: Option<String>,
     pub registry: Option<String>,
     pub target: Option<String>,
@@ -249,6 +255,52 @@ pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
 pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
+    ensure_install_config_exists(config_path)?;
+
+    let cwd = std::env::current_dir().map_err(EdenError::Io)?;
+    let detected_source = detect_install_source(&req.source, &cwd)?;
+    match detected_source {
+        DetectedInstallSource::RegistryName(skill_name) => {
+            install_registry_mode_async(&req, config_path, &skill_name).await
+        }
+        DetectedInstallSource::Url(url_source) => {
+            install_url_mode_async(&req, config_path, &url_source).await
+        }
+    }
+}
+
+fn ensure_install_config_exists(config_path: &Path) -> Result<(), EdenError> {
+    if config_path.exists() {
+        return Ok(());
+    }
+
+    let parent = config_path.parent().unwrap_or(Path::new("."));
+    if !parent.exists() {
+        return Err(EdenError::Io(std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            format!(
+                "config parent directory does not exist: {}",
+                parent.display()
+            ),
+        )));
+    }
+
+    fs::write(config_path, default_config_template())?;
+    println!("Created config at {}", config_path.display());
+    Ok(())
+}
+
+async fn install_registry_mode_async(
+    req: &InstallRequest,
+    config_path: &Path,
+    skill_name: &str,
+) -> Result<(), EdenError> {
+    if req.id.is_some() || req.r#ref.is_some() {
+        return Err(EdenError::InvalidArguments(
+            "--id/--ref are only supported for URL-mode install sources".to_string(),
+        ));
+    }
+
     let loaded = load_from_file(
         config_path,
         LoadOptions {
@@ -264,91 +316,27 @@ pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
     let requested_constraint = req.version.clone().unwrap_or_else(|| "*".to_string());
     upsert_mode_b_skill(
         &mut config,
-        &req.skill_name,
+        skill_name,
         &requested_constraint,
         req.registry.as_deref(),
         req.target.as_deref(),
     )?;
     validate_config(&config, &config_dir)?;
 
-    let mut single_skill_config = Config {
-        version: config.version,
-        storage_root: config.storage_root.clone(),
-        reactor: config.reactor,
-        skills: config
-            .skills
-            .iter()
-            .find(|skill| skill.id == req.skill_name)
-            .cloned()
-            .into_iter()
-            .collect(),
-    };
-    if single_skill_config.skills.is_empty() {
-        return Err(EdenError::Runtime(format!(
-            "failed to select installed skill `{}`",
-            req.skill_name
-        )));
-    }
+    let mut single_skill_config = select_single_skill_config(&config, skill_name)?;
 
     // Validate resolvability before sync/install, producing actionable errors when cache is missing.
-    let resolved_for_install =
+    single_skill_config =
         resolve_registry_mode_skills_for_execution(config_path, &single_skill_config, &config_dir)?;
-    single_skill_config = resolved_for_install;
 
     if req.dry_run {
-        let resolved_skill = single_skill_config
-            .skills
-            .first()
-            .ok_or_else(|| EdenError::Runtime("resolved install skill is missing".to_string()))?;
-        let resolved_targets = resolved_skill
-            .targets
-            .iter()
-            .map(|target| {
-                let resolved_path = resolve_target_path(target, &config_dir)
-                    .map(|path| path.display().to_string())
-                    .unwrap_or_else(|err| format!("ERROR: {err}"));
-                serde_json::json!({
-                    "agent": agent_kind_label(&target.agent),
-                    "environment": target.environment,
-                    "path": resolved_path,
-                })
-            })
-            .collect::<Vec<_>>();
-
-        if req.options.json {
-            let payload = serde_json::json!({
-                "skill": req.skill_name,
-                "version": requested_constraint,
-                "dry_run": true,
-                "resolved": {
-                    "repo": resolved_skill.source.repo.clone(),
-                    "ref": resolved_skill.source.r#ref.clone(),
-                    "subpath": resolved_skill.source.subpath.clone(),
-                },
-                "targets": resolved_targets,
-            });
-            let encoded = serde_json::to_string_pretty(&payload).map_err(|err| {
-                EdenError::Runtime(format!("failed to encode install json: {err}"))
-            })?;
-            println!("{encoded}");
-        } else {
-            println!(
-                "install dry-run: skill={} version={} repo={} ref={} subpath={}",
-                req.skill_name,
-                requested_constraint,
-                resolved_skill.source.repo,
-                resolved_skill.source.r#ref,
-                resolved_skill.source.subpath
-            );
-            for target in &resolved_targets {
-                println!(
-                    "  target agent={} environment={} path={}",
-                    target["agent"].as_str().unwrap_or("unknown"),
-                    target["environment"].as_str().unwrap_or("unknown"),
-                    target["path"].as_str().unwrap_or("unknown")
-                );
-            }
-        }
+        print_install_dry_run(
+            req.options.json,
+            &single_skill_config,
+            skill_name,
+            &requested_constraint,
+            &config_dir,
+        )?;
         return Ok(());
     }
 
@@ -360,7 +348,171 @@ pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
         return Err(err);
     }
 
-    let plan = build_plan(&single_skill_config, &config_dir)?;
+    execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
+    print_install_success(req.options.json, skill_name, &requested_constraint)?;
+    Ok(())
+}
+
+async fn install_url_mode_async(
+    req: &InstallRequest,
+    config_path: &Path,
+    url_source: &UrlInstallSource,
+) -> Result<(), EdenError> {
+    let loaded = load_from_file(
+        config_path,
+        LoadOptions {
+            strict: req.options.strict,
+        },
+    )?;
+    for warning in loaded.warnings {
+        eprintln!("warning: {warning}");
+    }
+    let config_dir = config_dir_from_path(config_path);
+
+    let mut config = loaded.config;
+    let skill_id = req
+        .id
+        .clone()
+        .map(Ok)
+        .unwrap_or_else(|| derive_skill_id_from_source_repo(&url_source.repo))?;
+    let source_ref = req
+        .r#ref
+        .clone()
+        .or_else(|| url_source.reference.clone())
+        .unwrap_or_else(|| "main".to_string());
+    let source_subpath = url_source
+        .subpath
+        .clone()
+        .unwrap_or_else(|| ".".to_string());
+
+    upsert_mode_a_skill(
+        &mut config,
+        &skill_id,
+        &url_source.repo,
+        &source_subpath,
+        &source_ref,
+        req.target.as_deref(),
+    )?;
+    validate_config(&config, &config_dir)?;
+    let single_skill_config = select_single_skill_config(&config, &skill_id)?;
+
+    if req.dry_run {
+        print_install_dry_run(
+            req.options.json,
+            &single_skill_config,
+            &skill_id,
+            &source_ref,
+            &config_dir,
+        )?;
+        return Ok(());
+    }
+
+    write_normalized_config(config_path, &config)?;
+
+    if url_source.is_local {
+        install_local_source_skill(&single_skill_config, &config_dir, req.options.strict)?;
+    } else {
+        let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
+        print_source_sync_summary(&sync_summary);
+        if let Some(err) = source_sync_failure_error(&sync_summary) {
+            return Err(err);
+        }
+        execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
+    }
+
+    print_install_success(req.options.json, &skill_id, &source_ref)?;
+    Ok(())
+}
+
+fn select_single_skill_config(config: &Config, skill_id: &str) -> Result<Config, EdenError> {
+    let single = Config {
+        version: config.version,
+        storage_root: config.storage_root.clone(),
+        reactor: config.reactor,
+        skills: config
+            .skills
+            .iter()
+            .find(|skill| skill.id == skill_id)
+            .cloned()
+            .into_iter()
+            .collect(),
+    };
+    if single.skills.is_empty() {
+        return Err(EdenError::Runtime(format!(
+            "failed to select installed skill `{skill_id}`"
+        )));
+    }
+    Ok(single)
+}
+
+fn print_install_dry_run(
+    json_mode: bool,
+    single_skill_config: &Config,
+    skill_id: &str,
+    version_or_ref: &str,
+    config_dir: &Path,
+) -> Result<(), EdenError> {
+    let resolved_skill = single_skill_config
+        .skills
+        .first()
+        .ok_or_else(|| EdenError::Runtime("resolved install skill is missing".to_string()))?;
+    let resolved_targets = resolved_skill
+        .targets
+        .iter()
+        .map(|target| {
+            let resolved_path = resolve_target_path(target, config_dir)
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|err| format!("ERROR: {err}"));
+            serde_json::json!({
+                "agent": agent_kind_label(&target.agent),
+                "environment": target.environment,
+                "path": resolved_path,
+            })
+        })
+        .collect::<Vec<_>>();
+
+    if json_mode {
+        let payload = serde_json::json!({
+            "skill": skill_id,
+            "version": version_or_ref,
+            "dry_run": true,
+            "resolved": {
+                "repo": resolved_skill.source.repo.clone(),
+                "ref": resolved_skill.source.r#ref.clone(),
+                "subpath": resolved_skill.source.subpath.clone(),
+            },
+            "targets": resolved_targets,
+        });
+        let encoded = serde_json::to_string_pretty(&payload)
+            .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
+        println!("{encoded}");
+    } else {
+        println!(
+            "install dry-run: skill={} version={} repo={} ref={} subpath={}",
+            skill_id,
+            version_or_ref,
+            resolved_skill.source.repo,
+            resolved_skill.source.r#ref,
+            resolved_skill.source.subpath
+        );
+        for target in &resolved_targets {
+            println!(
+                "  target agent={} environment={} path={}",
+                target["agent"].as_str().unwrap_or("unknown"),
+                target["environment"].as_str().unwrap_or("unknown"),
+                target["path"].as_str().unwrap_or("unknown")
+            );
+        }
+    }
+    Ok(())
+}
+
+fn execute_install_plan(
+    single_skill_config: &Config,
+    config_dir: &Path,
+    strict: bool,
+) -> Result<(), EdenError> {
+    let plan = build_plan(single_skill_config, config_dir)?;
     let mut conflicts = 0usize;
     for item in &plan {
         match item.action {
@@ -369,25 +521,94 @@ pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
             Action::Noop => {}
         }
     }
-    if req.options.strict && conflicts > 0 {
+    if strict && conflicts > 0 {
+        return Err(EdenError::Conflict(format!(
+            "strict mode blocked install: {conflicts} conflict entries"
+        )));
+    }
+    Ok(())
+}
+
+fn install_local_source_skill(
+    single_skill_config: &Config,
+    config_dir: &Path,
+    strict: bool,
+) -> Result<(), EdenError> {
+    let skill = single_skill_config
+        .skills
+        .first()
+        .ok_or_else(|| EdenError::Runtime("local install skill is missing".to_string()))?;
+    let source_root = resolve_path_string(&skill.source.repo, config_dir)?;
+    let source_path = normalize_lexical(&source_root.join(&skill.source.subpath));
+    if !source_path.exists() {
+        return Err(EdenError::Runtime(format!(
+            "source path missing for skill `{}`: {}",
+            skill.id,
+            source_path.display()
+        )));
+    }
+
+    let mut conflicts = 0usize;
+    for target in &skill.targets {
+        let target_root = resolve_target_path(target, config_dir)?;
+        let target_path = normalize_lexical(&target_root.join(&skill.id));
+        match fs::symlink_metadata(&target_path) {
+            Ok(metadata)
+                if matches!(skill.install.mode, InstallMode::Symlink)
+                    && !metadata.file_type().is_symlink() =>
+            {
+                conflicts += 1;
+                continue;
+            }
+            Ok(metadata)
+                if matches!(skill.install.mode, InstallMode::Copy)
+                    && metadata.file_type().is_symlink() =>
+            {
+                conflicts += 1;
+                continue;
+            }
+            Ok(_) => {}
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => return Err(EdenError::Io(err)),
+        }
+
+        let item = PlanItem {
+            skill_id: skill.id.clone(),
+            source_path: source_path.display().to_string(),
+            target_path: target_path.display().to_string(),
+            install_mode: skill.install.mode,
+            action: Action::Update,
+            reasons: vec![],
+        };
+        apply_plan_item(&item)?;
+    }
+
+    if strict && conflicts > 0 {
         return Err(EdenError::Conflict(format!(
             "strict mode blocked install: {conflicts} conflict entries"
         )));
     }
 
-    if req.options.json {
+    Ok(())
+}
+
+fn print_install_success(
+    json_mode: bool,
+    skill_id: &str,
+    version_or_ref: &str,
+) -> Result<(), EdenError> {
+    if json_mode {
         let payload = serde_json::json!({
-            "skill": req.skill_name,
-            "version": requested_constraint,
+            "skill": skill_id,
+            "version": version_or_ref,
             "status": "installed",
         });
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
         println!("{encoded}");
     } else {
-        println!("install: skill={} status=installed", req.skill_name);
+        println!("install: skill={} status=installed", skill_id);
     }
-
     Ok(())
 }
 
@@ -1405,6 +1626,55 @@ fn upsert_mode_b_skill(
             repo: encode_registry_mode_repo(registry),
             subpath: ".".to_string(),
             r#ref: version_constraint.to_string(),
+        },
+        install: eden_skills_core::config::InstallConfig {
+            mode: InstallMode::Symlink,
+        },
+        targets,
+        verify: eden_skills_core::config::VerifyConfig {
+            enabled: true,
+            checks: default_verify_checks_for_mode(InstallMode::Symlink),
+        },
+        safety: eden_skills_core::config::SafetyConfig {
+            no_exec_metadata_only: false,
+        },
+    });
+    Ok(())
+}
+
+fn upsert_mode_a_skill(
+    config: &mut Config,
+    skill_id: &str,
+    repo: &str,
+    subpath: &str,
+    reference: &str,
+    target_spec: Option<&str>,
+) -> Result<(), EdenError> {
+    let target_override = target_spec.map(parse_install_target_spec).transpose()?;
+    if let Some(skill) = config.skills.iter_mut().find(|skill| skill.id == skill_id) {
+        skill.source = SourceConfig {
+            repo: repo.to_string(),
+            subpath: subpath.to_string(),
+            r#ref: reference.to_string(),
+        };
+        if let Some(target) = target_override {
+            skill.targets = vec![target];
+        }
+        return Ok(());
+    }
+
+    let targets = if let Some(target) = target_override {
+        vec![target]
+    } else {
+        vec![default_install_target()]
+    };
+
+    config.skills.push(SkillConfig {
+        id: skill_id.to_string(),
+        source: SourceConfig {
+            repo: repo.to_string(),
+            subpath: subpath.to_string(),
+            r#ref: reference.to_string(),
         },
         install: eden_skills_core::config::InstallConfig {
             mode: InstallMode::Symlink,

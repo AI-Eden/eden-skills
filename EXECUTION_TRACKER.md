@@ -60,7 +60,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 - [x] Phase 2 closeout matrix re-verified on all targets (`CI` run `22176017545`: `ubuntu-latest`, `macos-latest`, `windows-latest`).
 
-Current automated tests: `127` (workspace unit/integration-style tests).
+Current automated tests: `140` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -111,6 +111,7 @@ Current automated tests: `127` (workspace unit/integration-style tests).
 - [x] Completed Phase 2 Track B Batch 6 (`SCH-P2-001/002/003/004/006`, `CMD-P2-001/002/003`): extended schema parsing for `[registries]` + Mode B + target `environment` with stable Phase 2 validation codes, implemented `update`/`install` commands, and wired `apply`/`repair` to resolve Mode B skills from cached registries before source sync, with dedicated Phase 2 schema/command tests.
 - [x] Completed Phase 2 Track B Batch 7 (`ARC-003/004/007/104/105/107/110/203/204/205/206`, `SCH-P2-005`, `CMD-P2-004/005/006`): added `[reactor].concurrency` schema and CLI override chain, install dry-run mode, Phase 2 doctor findings (`REGISTRY_STALE`/`DOCKER_NOT_FOUND`/`ADAPTER_HEALTH_FAIL`), registry manifest/shallow/offline hardening, cancellation-aware reactor execution, adapter uninstall contract plus remove-time target cleanup, and Windows symlink remediation hints.
 - [x] Completed Phase 2.5 Batch 1 (`SCH-P25-001/002/003`, `TM-P25-001~005`): allowed empty/omitted `skills` arrays in config loading and validation, updated `init` to generate minimal config, added empty-config plan/apply tests, and updated lifecycle baseline tests for empty-init semantics.
+- [x] Completed Phase 2.5 Batch 2 (`MVP-001~008`, `TM-P25-006~015`): added source format detection (local/tree/full URL/SSH/shorthand/registry fallback), URL-mode install branch with registry-mode compatibility, skill ID derive/override/upsert, local-path no-clone install flow, and config auto-creation with missing-parent IO guard.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -238,5 +239,10 @@ Key architectural decisions for Builder reference:
    - Requirements: `SCH-P25-001`, `SCH-P25-002`, `SCH-P25-003`
    - Scenarios: `TM-P25-001` through `TM-P25-005`
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
-2. `spec/phase2.5/SPEC_TRACEABILITY.md` has been updated with implementation/test links and status for Batch 1 items.
-3. Next recommended execution target: Batch 2 (`WS-3` part 1, `MVP-001` ~ `MVP-008`).
+2. Batch 2 (WS-3 part 1) is complete with quality gate pass:
+   - Requirements: `MVP-001` through `MVP-008`
+   - Scenarios: `TM-P25-006` through `TM-P25-015`
+   - Additional covered scenarios: `TM-P25-029`, `TM-P25-030`
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
+3. `spec/phase2.5/SPEC_TRACEABILITY.md` has been updated with implementation/test links and status for Batch 1 and Batch 2 items.
+4. Next recommended execution target: Batch 3 (`WS-3` part 2, `MVP-009` ~ `MVP-015`).

@@ -275,9 +275,23 @@ phase25:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    batch_2_ws_3_part1_install_url_core:
+      status: completed
+      completed_at: "2026-02-20"
+      requirements: MVP-001, MVP-002, MVP-003, MVP-004, MVP-005, MVP-006, MVP-007, MVP-008
+      scenarios: TM-P25-006, TM-P25-007, TM-P25-008, TM-P25-009, TM-P25-010, TM-P25-011, TM-P25-012, TM-P25-013, TM-P25-014, TM-P25-015
+      notes:
+        - added source format detection module with precedence rules and GitHub shorthand/tree parsing
+        - extended install command with URL-mode branch while preserving existing registry-mode behavior
+        - implemented local path install flow without git clone plus id derivation/override/upsert and config auto-creation
+        - expanded validation to accept absolute local source paths in config
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
-  - phase25_batch_2_ws_3_part1_mvp_001_008
+  - phase25_batch_3_ws_3_part2_mvp_009_015
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md
