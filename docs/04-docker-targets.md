@@ -53,7 +53,7 @@ Example diagnostics:
 
 ```bash
 ES="cargo run -p eden-skills-cli --"
-CONFIG="${HOME}/.config/eden-skills/skills.toml"
+CONFIG="${HOME}/.eden-skills/skills.toml"
 $ES doctor --config "$CONFIG"
 ```
 

@@ -6,7 +6,7 @@ use commands::CommandOptions;
 use eden_skills_core::config::InstallMode;
 use eden_skills_core::error::EdenError;
 
-pub const DEFAULT_CONFIG_PATH: &str = "~/.config/eden-skills/skills.toml";
+pub const DEFAULT_CONFIG_PATH: &str = "~/.eden-skills/skills.toml";
 
 pub async fn run() -> Result<(), EdenError> {
     run_with_args(std::env::args().skip(1).collect()).await

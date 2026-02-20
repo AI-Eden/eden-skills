@@ -69,7 +69,7 @@ Phase 1 implementation language is **Rust** (deterministic, typed, single-binary
 The tool must support a configuration-driven approach (Infrastructure as Code):
 
 ```toml
-# ~/.config/eden-skills/skills.toml (Draft Schema)
+# ~/.eden-skills/skills.toml (Draft Schema)
 version = 1
 
 [[skills]]

@@ -24,7 +24,7 @@ Recommended setup (if config does not exist yet):
 
 ```bash
 ES="cargo run -p eden-skills-cli --"
-CONFIG="${HOME}/.config/eden-skills/skills.toml"
+CONFIG="${HOME}/.eden-skills/skills.toml"
 $ES init --config "$CONFIG"
 ```
 

@@ -89,11 +89,11 @@ fn init_overwrites_when_force_is_set() {
 fn init_supports_tilde_in_config_path() {
     let temp = tempdir().expect("tempdir");
     let home = temp.path();
-    let config_path = home.join(".config").join("eden-skills").join("skills.toml");
+    let config_path = home.join(".eden-skills").join("skills.toml");
 
     let output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
         .env("HOME", home)
-        .args(["init", "--config", "~/.config/eden-skills/skills.toml"])
+        .args(["init", "--config", "~/.eden-skills/skills.toml"])
         .output()
         .expect("run init with tilde");
 

@@ -4,7 +4,7 @@ Normative command contract for `eden-skills` CLI.
 
 ## 1. Global Flags
 
-- `--config <path>`: config file path, default `~/.config/eden-skills/skills.toml`
+- `--config <path>`: config file path, default `~/.eden-skills/skills.toml`
 - `--json`: emit machine-readable output
 - `--strict`: unknown keys and warnings become errors
 
@@ -224,7 +224,7 @@ These commands are RECOMMENDED for post-Phase-1 CLI UX and may be implemented in
 
 ### 4.1 `init`
 
-- MUST create default config at `~/.config/eden-skills/skills.toml` when absent.
+- MUST create default config at `~/.eden-skills/skills.toml` when absent.
 - MUST fail safely unless `--force` when file already exists.
 
 ### 4.2 `add`
@@ -339,7 +339,7 @@ The JSON output MUST be backwards compatible:
 `config import` MUST support:
 
 - `--from <path>`: source config TOML path to import
-- `--config <path>`: destination config path (default `~/.config/eden-skills/skills.toml`)
+- `--config <path>`: destination config path (default `~/.eden-skills/skills.toml`)
 - `--dry-run`: do not write; instead emit normalized TOML to stdout
 
 Validation rules:

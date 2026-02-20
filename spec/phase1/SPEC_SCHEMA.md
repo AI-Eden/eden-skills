@@ -1,6 +1,6 @@
 # SPEC_SCHEMA.md
 
-Normative schema for `~/.config/eden-skills/skills.toml`.
+Normative schema for `~/.eden-skills/skills.toml`.
 
 ## 1. Top-Level Structure
 

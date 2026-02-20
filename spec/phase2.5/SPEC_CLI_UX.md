@@ -183,7 +183,7 @@ Findings MUST be grouped by severity and color-coded:
 ### 5.6 `init`
 
 ```text
-  ✓ Created config at ~/.config/eden-skills/skills.toml
+  ✓ Created config at ~/.eden-skills/skills.toml
 
   Next steps:
     eden-skills install <owner/repo>     Install a skill from GitHub

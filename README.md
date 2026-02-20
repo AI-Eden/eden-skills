@@ -79,7 +79,7 @@ Primary commands:
 
 Global patterns:
 
-- `--config <path>`: custom config path (default: `~/.config/eden-skills/skills.toml`)
+- `--config <path>`: custom config path (default: `~/.eden-skills/skills.toml`)
 - `--strict`: convert drift/warnings into strict failure semantics
 - `--json`: machine-readable output for automation
 - `--concurrency <n>`: override reactor concurrency on `apply`, `repair`, `update`
