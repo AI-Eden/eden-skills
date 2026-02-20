@@ -8,12 +8,13 @@ This file is designed for fast recovery after context compression.
 1. `spec/README.md`
 2. `spec/phase1/SPEC_*.md` (Phase 1 CLI behavior contracts)
 3. `spec/phase2/SPEC_*.md` (Phase 2 architecture contracts)
-4. `spec/phase1/SPEC_TRACEABILITY.md` or `spec/phase2/SPEC_TRACEABILITY.md`
-5. `spec/phase1/PHASE1_BUILDER_REMAINING.md` or `spec/phase2/PHASE2_BUILDER_REMAINING.md`
-6. `STATUS.yaml`
-7. `EXECUTION_TRACKER.md`
-8. `ROADMAP.md`
-9. `README.md`
+4. `spec/phase2.5/SPEC_*.md` (Phase 2.5 MVP launch contracts)
+5. `spec/phase1/SPEC_TRACEABILITY.md` or `spec/phase2/SPEC_TRACEABILITY.md` or `spec/phase2.5/SPEC_TRACEABILITY.md`
+6. `spec/phase1/PHASE1_BUILDER_REMAINING.md` or `spec/phase2/PHASE2_BUILDER_REMAINING.md`
+7. `STATUS.yaml`
+8. `EXECUTION_TRACKER.md`
+9. `ROADMAP.md`
+10. `README.md`
 
 ## 2. Authority Order
 
@@ -35,8 +36,8 @@ When files disagree, follow:
 
 1. Update `spec/` first for behavior changes.
 2. Implement code to match spec.
-3. Update tests, especially `spec/phase1/SPEC_TEST_MATRIX.md` or `spec/phase2/SPEC_TEST_MATRIX.md` scenarios.
-4. Update `spec/phase1/SPEC_TRACEABILITY.md` or `spec/phase2/SPEC_TRACEABILITY.md` links for changed requirements.
+3. Update tests, especially `spec/phase1/SPEC_TEST_MATRIX.md`, `spec/phase2/SPEC_TEST_MATRIX.md`, or `spec/phase2.5/SPEC_TEST_MATRIX.md` scenarios.
+4. Update `spec/phase1/SPEC_TRACEABILITY.md`, `spec/phase2/SPEC_TRACEABILITY.md`, or `spec/phase2.5/SPEC_TRACEABILITY.md` links for changed requirements.
 5. Update `STATUS.yaml` and `EXECUTION_TRACKER.md`.
 
 ## 5. Quick Start Task Routing
@@ -55,6 +56,14 @@ When files disagree, follow:
 - If task is Phase 2 schema extension: start from `spec/phase2/SPEC_SCHEMA_EXT.md`.
 - If task is Phase 2 new commands: start from `spec/phase2/SPEC_COMMANDS_EXT.md`.
 
+### Phase 2.5 (MVP Launch)
+
+- If task is install from URL or source format parsing: start from `spec/phase2.5/SPEC_INSTALL_URL.md`.
+- If task is schema amendment (empty skills, init): start from `spec/phase2.5/SPEC_SCHEMA_P25.md`.
+- If task is agent auto-detection: start from `spec/phase2.5/SPEC_AGENT_DETECT.md`.
+- If task is CLI output beautification: start from `spec/phase2.5/SPEC_CLI_UX.md`.
+- If task is binary distribution or release workflow: start from `spec/phase2.5/SPEC_DISTRIBUTION.md`.
+
 ### General
 
 - If task is progress planning: use `STATUS.yaml` first, then `EXECUTION_TRACKER.md`.
@@ -64,5 +73,7 @@ When files disagree, follow:
 
 - Preserve `skills.toml` as source-of-truth config.
 - Keep command semantics deterministic and idempotent.
-- Do not introduce Phase 3 crawler/taxonomy implementation into Phase 1 or Phase 2 specs.
+- Do not introduce Phase 3 crawler/taxonomy implementation into Phase 1, Phase 2, or Phase 2.5 specs.
 - Phase 1 spec files (`spec/phase1/`) are frozen; changes require explicit user approval.
+- Phase 2 spec files (`spec/phase2/`) are frozen; changes require explicit user approval.
+- Phase 2.5 amends one Phase 1 validation rule (empty skills array) with user approval.

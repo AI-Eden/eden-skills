@@ -19,16 +19,25 @@ spec/
 │   ├── SPEC_TEST_MATRIX.md
 │   ├── SPEC_TRACEABILITY.md
 │   └── PHASE1_BUILDER_REMAINING.md
-└── phase2/                (Phase 2: Hyper-Loop Core Architecture)
+├── phase2/                (Phase 2: Hyper-Loop Core Architecture - FROZEN)
+│   ├── README.md
+│   ├── SPEC_REACTOR.md
+│   ├── SPEC_ADAPTER.md
+│   ├── SPEC_REGISTRY.md
+│   ├── SPEC_SCHEMA_EXT.md
+│   ├── SPEC_COMMANDS_EXT.md
+│   ├── SPEC_TEST_MATRIX.md
+│   ├── SPEC_TRACEABILITY.md
+│   └── PHASE2_BUILDER_REMAINING.md
+└── phase2.5/              (Phase 2.5: MVP Launch)
     ├── README.md
-    ├── SPEC_REACTOR.md
-    ├── SPEC_ADAPTER.md
-    ├── SPEC_REGISTRY.md
-    ├── SPEC_SCHEMA_EXT.md
-    ├── SPEC_COMMANDS_EXT.md
+    ├── SPEC_INSTALL_URL.md
+    ├── SPEC_SCHEMA_P25.md
+    ├── SPEC_AGENT_DETECT.md
+    ├── SPEC_CLI_UX.md
+    ├── SPEC_DISTRIBUTION.md
     ├── SPEC_TEST_MATRIX.md
-    ├── SPEC_TRACEABILITY.md
-    └── PHASE2_BUILDER_REMAINING.md
+    └── SPEC_TRACEABILITY.md
 ```
 
 ## Phase 1: CLI Foundation (FROZEN)
@@ -56,6 +65,20 @@ Files with `_EXT` suffix extend Phase 1 base contracts (read the base file first
 - `phase2/SPEC_TRACEABILITY.md`: Phase 2 requirement-to-implementation mapping
 - `phase2/PHASE2_BUILDER_REMAINING.md`: indexed list of remaining Builder-owned Phase 2 closeout tasks
 
+## Phase 2.5: MVP Launch
+
+Phase 2.5 bridges the implemented Phase 2 architecture to a usable MVP product.
+It adds URL-based install, agent auto-detection, CLI beautification, and binary
+distribution — without introducing any Phase 3 features (crawler, taxonomy, curation).
+
+- `phase2.5/SPEC_INSTALL_URL.md`: install from URL with source format parsing, SKILL.md discovery, interactive flow (MVP-001~015)
+- `phase2.5/SPEC_SCHEMA_P25.md`: schema amendment for empty skills array and minimal init template (SCH-P25-001~003)
+- `phase2.5/SPEC_AGENT_DETECT.md`: agent auto-detection for install targets (AGT-001~004)
+- `phase2.5/SPEC_CLI_UX.md`: CLI output beautification with colors, spinners, symbols (UX-001~007)
+- `phase2.5/SPEC_DISTRIBUTION.md`: binary distribution via GitHub Releases and cargo install (DST-001~003)
+- `phase2.5/SPEC_TEST_MATRIX.md`: Phase 2.5 acceptance test scenarios (TM-P25-001~036)
+- `phase2.5/SPEC_TRACEABILITY.md`: Phase 2.5 requirement-to-implementation mapping
+
 ## Rule of Authority
 
 When documents disagree, follow this order:
@@ -76,7 +99,7 @@ Keywords are interpreted as:
 
 ## Contributor Workflow
 
-1. Identify which phase the change belongs to (`phase1/` or `phase2/`).
+1. Identify which phase the change belongs to (`phase1/`, `phase2/`, or `phase2.5/`).
 2. Update the relevant spec file first.
 3. Implement code to match the spec.
 4. Add or update tests from the corresponding `SPEC_TEST_MATRIX.md`.
@@ -92,6 +115,12 @@ Phase 2 `_EXT` spec files extend Phase 1 base contracts:
 - `SPEC_SCHEMA_EXT.md` extends `phase1/SPEC_SCHEMA.md`
 - `SPEC_COMMANDS_EXT.md` extends `phase1/SPEC_COMMANDS.md`
 
-When reading an `_EXT` file, always read the corresponding Phase 1 base file first.
-The base file defines the foundation; the `_EXT` file defines additive changes only.
-`_EXT` files MUST NOT contradict or override Phase 1 base semantics.
+Phase 2.5 `_P25` spec files amend Phase 1 or extend Phase 2 contracts:
+
+- `SPEC_SCHEMA_P25.md` amends `phase1/SPEC_SCHEMA.md` (relaxes one validation rule)
+- `SPEC_INSTALL_URL.md` extends `phase2/SPEC_COMMANDS_EXT.md` (adds URL-mode install)
+
+When reading an extension file, always read the corresponding base file first.
+The base file defines the foundation; extension files define additive changes only.
+Extension files MUST NOT contradict base semantics except where explicitly noted
+as an amendment (Phase 2.5 `SPEC_SCHEMA_P25.md` Section 2 is the sole exception).
