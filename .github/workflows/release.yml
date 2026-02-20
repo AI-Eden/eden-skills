@@ -1,0 +1,235 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  validate-version:
+    name: validate release tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Ensure tag matches workspace version
+        env:
+          GIT_TAG: ${{ github.ref_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import tomllib
+
+          tag = os.environ["GIT_TAG"]
+          if not tag.startswith("v"):
+              raise SystemExit(f"Release tag must start with 'v', got: {tag}")
+
+          workspace = tomllib.loads(pathlib.Path("Cargo.toml").read_text(encoding="utf-8"))
+          expected = workspace["workspace"]["package"]["version"]
+          actual = tag[1:]
+
+          if actual != expected:
+              raise SystemExit(
+                  f"Tag version mismatch: tag={actual}, workspace version={expected}"
+              )
+
+          print(f"release version validated: {actual}")
+          PY
+
+  test:
+    name: cargo test (${{ matrix.os }})
+    needs: validate-version
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Run full test suite
+        run: cargo test --workspace
+
+  build:
+    name: build (${{ matrix.target }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive_ext: tar.gz
+            binary_name: eden-skills
+            use_cross: "false"
+            run_smoke: "true"
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            archive_ext: tar.gz
+            binary_name: eden-skills
+            use_cross: "true"
+            run_smoke: "false"
+          - os: macos-13
+            target: x86_64-apple-darwin
+            archive_ext: tar.gz
+            binary_name: eden-skills
+            use_cross: "false"
+            run_smoke: "true"
+          - os: macos-14
+            target: aarch64-apple-darwin
+            archive_ext: tar.gz
+            binary_name: eden-skills
+            use_cross: "false"
+            run_smoke: "true"
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            archive_ext: zip
+            binary_name: eden-skills.exe
+            use_cross: "false"
+            run_smoke: "true"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Set release version
+        shell: bash
+        run: |
+          echo "VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      - name: Install cross for Linux ARM build
+        if: matrix.use_cross == 'true'
+        shell: bash
+        run: cargo install cross --locked
+
+      - name: Add Rust target
+        if: matrix.use_cross == 'false'
+        shell: bash
+        run: rustup target add "${{ matrix.target }}"
+
+      - name: Build release binary
+        shell: bash
+        run: |
+          TARGET="${{ matrix.target }}"
+          if [ "${{ matrix.use_cross }}" = "true" ]; then
+            cross build --release --target "${TARGET}" -p eden-skills
+          else
+            cargo build --release --target "${TARGET}" -p eden-skills
+          fi
+
+      - name: Create release archive
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          ARCHIVE_EXT: ${{ matrix.archive_ext }}
+          BINARY_NAME: ${{ matrix.binary_name }}
+        run: |
+          python - <<'PY'
+          import os
+          import pathlib
+          import tarfile
+          import zipfile
+
+          target = os.environ["TARGET"]
+          archive_ext = os.environ["ARCHIVE_EXT"]
+          binary_name = os.environ["BINARY_NAME"]
+          version = os.environ["VERSION"]
+
+          binary_path = pathlib.Path("target") / target / "release" / binary_name
+          if not binary_path.exists():
+              raise SystemExit(f"Binary not found: {binary_path}")
+
+          dist_dir = pathlib.Path("dist")
+          dist_dir.mkdir(exist_ok=True)
+          archive = dist_dir / f"eden-skills-{version}-{target}.{archive_ext}"
+
+          if archive_ext == "zip":
+              with zipfile.ZipFile(archive, "w", compression=zipfile.ZIP_DEFLATED) as zipped:
+                  zipped.write(binary_path, arcname=binary_name)
+          else:
+              with tarfile.open(archive, "w:gz") as tar:
+                  tar.add(binary_path, arcname=binary_name)
+
+          print(f"packaged {archive}")
+          PY
+
+      - name: Smoke test packaged binary
+        if: matrix.run_smoke == 'true'
+        shell: bash
+        env:
+          TARGET: ${{ matrix.target }}
+          ARCHIVE_EXT: ${{ matrix.archive_ext }}
+          BINARY_NAME: ${{ matrix.binary_name }}
+        run: |
+          ARCHIVE="dist/eden-skills-${VERSION}-${TARGET}.${ARCHIVE_EXT}"
+          mkdir -p smoke-bin
+
+          if [ "${ARCHIVE_EXT}" = "zip" ]; then
+            python -c "import zipfile; zipfile.ZipFile(r'${ARCHIVE}').extractall('smoke-bin')"
+          else
+            tar -xzf "${ARCHIVE}" -C smoke-bin
+          fi
+
+          chmod +x "smoke-bin/${BINARY_NAME}" || true
+          SMOKE_HOME="$(pwd)/smoke-home"
+          mkdir -p "${SMOKE_HOME}"
+
+          # Smoke contract:
+          # eden-skills --help
+          # eden-skills init
+          # eden-skills install vercel-labs/agent-skills --all
+          "smoke-bin/${BINARY_NAME}" --help >/dev/null
+          HOME="${SMOKE_HOME}" USERPROFILE="${SMOKE_HOME}" "smoke-bin/${BINARY_NAME}" init >/dev/null
+          HOME="${SMOKE_HOME}" USERPROFILE="${SMOKE_HOME}" "smoke-bin/${BINARY_NAME}" install vercel-labs/agent-skills --all >/dev/null
+
+      - name: Upload release archive artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: dist/eden-skills-*-${{ matrix.target }}.${{ matrix.archive_ext }}
+          if-no-files-found: error
+
+  release:
+    name: publish release assets
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download packaged artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          merge-multiple: true
+          path: dist
+
+      - name: Generate SHA-256 checksums
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          cd dist
+          sha256sum eden-skills-*.tar.gz eden-skills-*.zip > "eden-skills-${VERSION}-checksums.txt"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: |
+            dist/eden-skills-*.tar.gz
+            dist/eden-skills-*.zip
+            dist/eden-skills-*-checksums.txt

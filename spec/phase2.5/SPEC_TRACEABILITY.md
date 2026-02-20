@@ -56,9 +56,9 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| DST-001 | `SPEC_DISTRIBUTION.md` 2.1 | CLI MUST be installable via `cargo install eden-skills` | -- | -- | planned |
-| DST-002 | `SPEC_DISTRIBUTION.md` 2.2 | GitHub Actions MUST produce release binaries | -- | -- | planned |
-| DST-003 | `SPEC_DISTRIBUTION.md` 3.2 | Release archives MUST include SHA-256 checksums | -- | -- | planned |
+| DST-001 | `SPEC_DISTRIBUTION.md` 2.1 | CLI MUST be installable via `cargo install eden-skills` | `crates/eden-skills-cli/Cargo.toml` (publishable package metadata, `name = "eden-skills"`, versioned `eden-skills-core` dependency, `[[bin]]` naming), `crates/eden-skills-cli/README.md` | `crates/eden-skills-cli/tests/distribution_tests.rs` (`cargo_install_manifest_is_crates_io_ready`) | completed |
+| DST-002 | `SPEC_DISTRIBUTION.md` 2.2 | GitHub Actions MUST produce release binaries | `.github/workflows/release.yml` (`v*` tag trigger, cross-platform test job, 5-target build matrix, release asset upload) | `crates/eden-skills-cli/tests/distribution_tests.rs` (`release_workflow_covers_targets_archives_and_checksums`) | completed |
+| DST-003 | `SPEC_DISTRIBUTION.md` 3.2 | Release archives MUST include SHA-256 checksums | `.github/workflows/release.yml` (`Generate SHA-256 checksums` step, checksum asset attached in release) | `crates/eden-skills-cli/tests/distribution_tests.rs` (`release_workflow_covers_targets_archives_and_checksums`) | completed |
 
 ## 6. Test Matrix Coverage
 
@@ -99,8 +99,8 @@ Use this file to recover accurate context after compression.
 | TM-P25-032 | `SPEC_TEST_MATRIX.md` 9 | NO_COLOR compliance | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`no_color_disables_ansi_but_keeps_functional_status_output`) | completed |
 | TM-P25-033 | `SPEC_TEST_MATRIX.md` 9 | JSON mode unchanged | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`install_json_output_keeps_contract_and_omits_visual_elements`) | completed |
 | TM-P25-034 | `SPEC_TEST_MATRIX.md` 9 | Spinner during clone | `crates/eden-skills-cli/tests/cli_ux_tests.rs` (`tty_remote_install_clone_phase_shows_spinner_and_completion_status`) | completed |
-| TM-P25-035 | `SPEC_TEST_MATRIX.md` 10 | Cargo install | -- | planned |
-| TM-P25-036 | `SPEC_TEST_MATRIX.md` 10 | Release binary | -- | planned |
+| TM-P25-035 | `SPEC_TEST_MATRIX.md` 10 | Cargo install | `crates/eden-skills-cli/tests/distribution_tests.rs` (`cargo_install_manifest_is_crates_io_ready`), `.github/workflows/release.yml` (`Smoke test packaged binary` includes `eden-skills --help`) | completed |
+| TM-P25-036 | `SPEC_TEST_MATRIX.md` 10 | Release binary | `crates/eden-skills-cli/tests/distribution_tests.rs` (`release_workflow_covers_targets_archives_and_checksums`), `.github/workflows/release.yml` (`Smoke test packaged binary` includes `eden-skills init` and `eden-skills install vercel-labs/agent-skills --all`) | completed |
 | TM-P25-037 | `SPEC_TEST_MATRIX.md` 12 | Agent-convention directory discovery | `crates/eden-skills-core/tests/discovery_tests.rs` (`discovers_skills_under_agent_convention_directories`), `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`agent_convention_skill_directory_supports_skill_flag_selection`) | completed |
 | TM-P25-038 | `SPEC_TEST_MATRIX.md` 12 | Marketplace manifest discovery | `crates/eden-skills-core/tests/discovery_tests.rs` (`discovers_skills_from_claude_plugin_marketplace_manifest`) | completed |
 | TM-P25-039 | `SPEC_TEST_MATRIX.md` 12 | Plugin manifest discovery | `crates/eden-skills-core/tests/discovery_tests.rs` (`discovers_skills_from_claude_plugin_manifest`) | completed |

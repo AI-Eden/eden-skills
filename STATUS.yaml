@@ -363,9 +363,25 @@ phase25:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    batch_6_ws_5_distribution:
+      status: completed
+      completed_at: "2026-02-20"
+      requirements: DST-001, DST-002, DST-003
+      scenarios: TM-P25-035, TM-P25-036
+      notes:
+        - updated CLI crate packaging for crates.io installability (`cargo install eden-skills`) with complete package metadata
+        - added crate-local README and versioned core dependency to satisfy publishability constraints
+        - introduced release workflow for `v*` tags with version validation and full workspace tests
+        - added five-target release matrix with platform-specific archive packaging (`.tar.gz` / `.zip`)
+        - added SHA-256 checksum generation and GitHub release asset upload
+        - added packaged-binary smoke sequence (`--help`, `init`, `install ... --all`) in release workflow
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
-  - phase25_batch_6_ws_5_distribution
+  - phase25_closeout_readiness_and_tag_release_dry_run
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md
