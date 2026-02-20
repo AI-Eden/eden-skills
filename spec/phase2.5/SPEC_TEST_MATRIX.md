@@ -245,3 +245,15 @@ A release candidate MUST pass:
 - At least one agent detection test (TM-P25-026 ~ TM-P25-028) per platform.
 - CLI UX tests (TM-P25-031 ~ TM-P25-034) on at least one platform.
 - `cargo install` smoke test (TM-P25-035) on at least one platform.
+
+## 12. Cross-Platform Path Assertion Rule
+
+For tests that validate persisted local absolute paths:
+
+- Tests MUST compare canonicalized filesystem locations instead of raw path strings.
+- On macOS, `/var/...` and `/private/var/...` SHOULD be treated as equivalent
+  when they resolve to the same canonical location.
+- CLI integration tests SHOULD use shared test helpers for this assertion style
+  (for example, `assert_paths_resolve_to_same_location` in
+  `crates/eden-skills-cli/tests/common/mod.rs`) to avoid repeated ad-hoc
+  path-comparison logic.

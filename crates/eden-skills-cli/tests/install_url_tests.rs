@@ -1,3 +1,5 @@
+mod common;
+
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -42,7 +44,7 @@ fn local_path_install_persists_absolute_repo_and_skips_clone() {
     let actual_repo = skills[0]["source"]["repo"]
         .as_str()
         .expect("source repo should be string");
-    assert_paths_point_to_same_location(&source_dir, Path::new(actual_repo));
+    common::assert_paths_resolve_to_same_location(&source_dir, Path::new(actual_repo));
 
     let storage_root = home_dir
         .join(".local")
@@ -112,7 +114,7 @@ fn local_path_precedence_wins_over_shorthand_shape() {
     let actual_repo = skills[0]["source"]["repo"]
         .as_str()
         .expect("source repo should be string");
-    assert_paths_point_to_same_location(&source_dir, Path::new(actual_repo));
+    common::assert_paths_resolve_to_same_location(&source_dir, Path::new(actual_repo));
 }
 
 #[test]
@@ -273,7 +275,7 @@ agent = "claude-code"
     let actual_repo = skills[0]["source"]["repo"]
         .as_str()
         .expect("source repo should be string");
-    assert_paths_point_to_same_location(&source_dir, Path::new(actual_repo));
+    common::assert_paths_resolve_to_same_location(&source_dir, Path::new(actual_repo));
 }
 
 fn eden_command(home_dir: &Path) -> Command {
@@ -380,20 +382,4 @@ fn as_file_url(path: &Path) -> String {
 
 fn toml_escape_path(path: &Path) -> String {
     path.display().to_string().replace('\\', "\\\\")
-}
-
-fn assert_paths_point_to_same_location(expected: &Path, actual: &Path) {
-    let expected_canonical = fs::canonicalize(expected).unwrap_or_else(|err| {
-        panic!(
-            "failed to canonicalize expected path `{}`: {err}",
-            expected.display()
-        )
-    });
-    let actual_canonical = fs::canonicalize(actual).unwrap_or_else(|err| {
-        panic!(
-            "failed to canonicalize actual path `{}`: {err}",
-            actual.display()
-        )
-    });
-    assert_eq!(expected_canonical, actual_canonical);
 }

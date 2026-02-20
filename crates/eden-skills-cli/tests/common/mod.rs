@@ -110,6 +110,22 @@ pub fn resolved_symlink(path: &Path) -> PathBuf {
     }
 }
 
+pub fn assert_paths_resolve_to_same_location(expected: &Path, actual: &Path) {
+    let expected_canonical = fs::canonicalize(expected).unwrap_or_else(|err| {
+        panic!(
+            "failed to canonicalize expected path `{}`: {err}",
+            expected.display()
+        )
+    });
+    let actual_canonical = fs::canonicalize(actual).unwrap_or_else(|err| {
+        panic!(
+            "failed to canonicalize actual path `{}`: {err}",
+            actual.display()
+        )
+    });
+    assert_eq!(expected_canonical, actual_canonical);
+}
+
 #[cfg(unix)]
 pub fn make_read_only_dir(path: &Path) -> fs::Permissions {
     fs::create_dir_all(path).expect("create restricted directory");
