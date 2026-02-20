@@ -67,7 +67,9 @@ This contract is stable and intended for CI/CD automation.
 Tip:
 
 ```bash
-cargo run -p eden-skills-cli -- doctor --config ./skills.toml --json
+ES="cargo run -p eden-skills-cli --"
+CONFIG="${HOME}/.config/eden-skills/skills.toml"
+$ES doctor --config "$CONFIG" --json
 ```
 
 Use JSON mode for machine parsing and policy gates.
@@ -78,14 +80,14 @@ For CI quality checks:
 
 ```bash
 set -e
-cargo run -p eden-skills-cli -- plan --config ./skills.toml --json > plan.json
-cargo run -p eden-skills-cli -- doctor --config ./skills.toml --json > doctor.json
+$ES plan --config "$CONFIG" --json > plan.json
+$ES doctor --config "$CONFIG" --json > doctor.json
 ```
 
 For strict policy enforcement:
 
 ```bash
-cargo run -p eden-skills-cli -- doctor --config ./skills.toml --strict
+$ES doctor --config "$CONFIG" --strict
 ```
 
 Non-zero exits can be directly consumed by pipeline gates.

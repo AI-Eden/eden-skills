@@ -82,7 +82,7 @@ resolved `--config` path does not exist:
 | :--- | :--- | :--- | :--- | :--- |
 | **SCH-P25-001** | Builder | **P0** | `skills` array MAY be empty; empty config MUST pass validation. | Config with no `[[skills]]` entries loads without error. |
 | **SCH-P25-002** | Builder | **P0** | `init` template MUST produce a minimal config without dummy skills. | `eden-skills init` creates config with `version = 1`, `[storage]`, no skills. |
-| **SCH-P25-003** | Builder | **P0** | Phase 1 and Phase 2 configs with non-empty skills MUST remain valid. | Existing `skills.toml` with 5 skills loads and validates unchanged. |
+| **SCH-P25-003** | Builder | **P0** | Phase 1 and Phase 2 configs with non-empty skills MUST remain valid. | Legacy non-empty `skills.toml` fixtures (for example, 5 skills) load and validate unchanged. |
 
 ## 5. Backward Compatibility
 

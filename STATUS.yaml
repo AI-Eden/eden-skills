@@ -334,6 +334,21 @@ phase25:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+    post_batch_5_ws3_discovery_compatibility_hardening:
+      status: completed
+      completed_at: "2026-02-20"
+      requirements: MVP-009, MVP-012
+      scenarios: TM-P25-023, TM-P25-037, TM-P25-038, TM-P25-039, TM-P25-040
+      notes:
+        - applied P0 hotfix to prevent root-directory fallback when explicit --skill selection fails
+        - expanded discovery coverage to ecosystem agent-convention parent directories with deduplication
+        - added plugin-manifest-based discovery for .claude-plugin marketplace and plugin manifests
+        - added bounded recursive fallback discovery (max depth 6, max results 256, skip .git)
+        - synchronized Phase 2.5 spec and traceability docs with implemented discovery behavior
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
 
 next_execution_targets:
   - phase25_batch_6_ws_5_distribution

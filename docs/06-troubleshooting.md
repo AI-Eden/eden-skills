@@ -7,16 +7,18 @@ This page maps common failures to concrete recovery steps.
 1. Run diagnostics:
 
 ```bash
-cargo run -p eden-skills-cli -- doctor --config ./skills.toml
+ES="cargo run -p eden-skills-cli --"
+CONFIG="${HOME}/.config/eden-skills/skills.toml"
+$ES doctor --config "$CONFIG"
 ```
 
-2. If drift exists, try:
+1. If drift exists, try:
 
 ```bash
-cargo run -p eden-skills-cli -- repair --config ./skills.toml
+$ES repair --config "$CONFIG"
 ```
 
-3. If source sync failed, inspect the `source sync failed ...` detail line (includes `skill`, `stage`, `repo_dir`, `detail`).
+1. If source sync failed, inspect the `source sync failed ...` detail line (includes `skill`, `stage`, `repo_dir`, `detail`).
 
 ## Common Cases
 
@@ -41,13 +43,13 @@ Meaning:
 Fixes:
 
 ```bash
-cargo run -p eden-skills-cli -- repair --config ./skills.toml
+$ES repair --config "$CONFIG"
 ```
 
 If conflicts persist, inspect:
 
 ```bash
-cargo run -p eden-skills-cli -- plan --config ./skills.toml
+$ES plan --config "$CONFIG"
 ```
 
 ### C) `TARGET_NOT_SYMLINK` or copy/symlink mode mismatch
@@ -96,7 +98,7 @@ Meaning:
 Fix:
 
 ```bash
-cargo run -p eden-skills-cli -- update --config ./skills.toml
+$ES update --config "$CONFIG"
 ```
 
 ### G) `INVALID_SEMVER` / `UNKNOWN_REGISTRY` / `MISSING_REGISTRIES`
@@ -129,7 +131,7 @@ The runtime error includes this remediation hint.
 Use JSON output in automation:
 
 ```bash
-cargo run -p eden-skills-cli -- doctor --config ./skills.toml --json > doctor.json
+$ES doctor --config "$CONFIG" --json > doctor.json
 ```
 
 `doctor.json` includes stable keys:
@@ -147,7 +149,7 @@ cargo run -p eden-skills-cli -- doctor --config ./skills.toml --json > doctor.js
 Use strict mode when drift must fail fast:
 
 ```bash
-cargo run -p eden-skills-cli -- doctor --config ./skills.toml --strict
+$ES doctor --config "$CONFIG" --strict
 ```
 
 Strict mode is ideal for CI policy gates where unresolved issues should block promotion.

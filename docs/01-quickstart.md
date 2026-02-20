@@ -37,7 +37,7 @@ $ES init --config ./skills.quickstart.toml
 Expected result:
 
 - A new file `skills.quickstart.toml` is created.
-- It contains one starter skill (`browser-tool`) with sane defaults.
+- It contains a minimal valid config (`version = 1` and `[storage]`) with no preset skills.
 
 ## Step 2: Preview Planned Actions
 

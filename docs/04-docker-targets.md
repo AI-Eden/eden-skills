@@ -53,7 +53,8 @@ Example diagnostics:
 
 ```bash
 ES="cargo run -p eden-skills-cli --"
-$ES doctor --config ./skills.toml
+CONFIG="${HOME}/.config/eden-skills/skills.toml"
+$ES doctor --config "$CONFIG"
 ```
 
 ## Adapter Contract: Symlink Fallback
@@ -87,7 +88,7 @@ Relevant finding codes:
 When using:
 
 ```bash
-$ES remove --config ./skills.toml <skill-id>
+$ES remove --config "$CONFIG" <skill-id>
 ```
 
 the CLI uses adapter uninstall semantics for each target.  
@@ -98,7 +99,7 @@ For Docker targets, uninstall is performed through container commands.
 For deterministic CI/test scenarios:
 
 ```bash
-EDEN_SKILLS_DOCKER_BIN=/path/to/docker $ES doctor --config ./skills.toml
+EDEN_SKILLS_DOCKER_BIN=/path/to/docker $ES doctor --config "$CONFIG"
 ```
 
 If the binary path is invalid, `doctor` will report `DOCKER_NOT_FOUND`.

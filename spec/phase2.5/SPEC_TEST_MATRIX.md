@@ -38,8 +38,8 @@ Docker is NOT required for Phase 2.5 tests (adapter tests remain in Phase 2).
 
 ### TM-P25-005: Backward Compatibility
 
-- Existing Phase 1/2 `skills.toml` with 5 skills loads and validates
-  unchanged under the amended schema.
+- A legacy non-empty Phase 1/2 `skills.toml` fixture (for example, 5 skills)
+  loads and validates unchanged under the amended schema.
 - All Phase 1 and Phase 2 tests pass without modification.
 
 ## 3. Source Format Scenarios
@@ -149,6 +149,8 @@ Docker is NOT required for Phase 2.5 tests (adapter tests remain in Phase 2).
 
 - `eden-skills install user/repo --skill nonexistent` fails with an error
   listing available skill names.
+- If discovery returns no skills and `--skill` is provided, install MUST fail
+  (no root-directory fallback install).
 
 ### TM-P25-024: Interactive Confirmation (TTY)
 
@@ -245,8 +247,33 @@ A release candidate MUST pass:
 - At least one agent detection test (TM-P25-026 ~ TM-P25-028) per platform.
 - CLI UX tests (TM-P25-031 ~ TM-P25-034) on at least one platform.
 - `cargo install` smoke test (TM-P25-035) on at least one platform.
+- Discovery compatibility tests (TM-P25-037 ~ TM-P25-040) on at least one platform.
 
-## 12. Cross-Platform Path Assertion Rule
+## 12. Discovery Compatibility Scenarios
+
+### TM-P25-037: Agent-Convention Directory Discovery
+
+- Repository with skills under agent convention roots (e.g.
+  `.claude/skills/pdf/SKILL.md`, `.agents/skills/review/SKILL.md`) is
+  discovered without requiring recursive fallback.
+
+### TM-P25-038: Marketplace Manifest Discovery
+
+- Repository with `.claude-plugin/marketplace.json` that declares plugin
+  skill paths discovers those skills when standard roots do not contain them.
+
+### TM-P25-039: Plugin Manifest Discovery
+
+- Repository with `.claude-plugin/plugin.json` that declares `source` +
+  `skills` discovers those skills when standard roots do not contain them.
+
+### TM-P25-040: Recursive Fallback Discovery
+
+- If standard-root scan and plugin-manifest scan return zero, bounded
+  recursive discovery finds nested `SKILL.md` directories (for example
+  `vendor/tools/pdf/SKILL.md`).
+
+## 13. Cross-Platform Path Assertion Rule
 
 For tests that validate persisted local absolute paths:
 

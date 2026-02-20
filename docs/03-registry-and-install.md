@@ -20,6 +20,14 @@ This tutorial explains the Phase 2 registry workflow and the `install` command.
 - At least one registry under `[registries]`
 - Registry cache initialized via `update`
 
+Recommended setup (if config does not exist yet):
+
+```bash
+ES="cargo run -p eden-skills-cli --"
+CONFIG="${HOME}/.config/eden-skills/skills.toml"
+$ES init --config "$CONFIG"
+```
+
 ## 1) Configure Registries
 
 Add a section like:
@@ -37,8 +45,7 @@ Priority rule:
 ## 2) Sync Registry Indexes
 
 ```bash
-ES="cargo run -p eden-skills-cli --"
-$ES update --config ./skills.toml
+$ES update --config "$CONFIG"
 ```
 
 Useful options:
@@ -56,25 +63,25 @@ Important behavior:
 Default target (local):
 
 ```bash
-$ES install browser-tool --config ./skills.toml
+$ES install browser-tool --config "$CONFIG"
 ```
 
 Pin version or range:
 
 ```bash
-$ES install browser-tool --config ./skills.toml --version "^2.0"
+$ES install browser-tool --config "$CONFIG" --version "^2.0"
 ```
 
 Restrict to one registry:
 
 ```bash
-$ES install browser-tool --config ./skills.toml --registry official
+$ES install browser-tool --config "$CONFIG" --registry official
 ```
 
 Override target for this install:
 
 ```bash
-$ES install browser-tool --config ./skills.toml --target docker:my-agent
+$ES install browser-tool --config "$CONFIG" --target docker:my-agent
 ```
 
 Target format for `install --target`:
@@ -88,7 +95,7 @@ For Docker-target operational checks and caveats, continue with `04-docker-targe
 ## 4) Dry-Run Before Writing
 
 ```bash
-$ES install browser-tool --config ./skills.toml --version "~2.3" --dry-run
+$ES install browser-tool --config "$CONFIG" --version "~2.3" --dry-run
 ```
 
 Dry-run behavior:
@@ -102,7 +109,7 @@ Dry-run behavior:
 Even after `install`, running a full reconciliation is recommended:
 
 ```bash
-$ES apply --config ./skills.toml
+$ES apply --config "$CONFIG"
 ```
 
 This ensures all skills (Mode A + Mode B) converge to desired state.

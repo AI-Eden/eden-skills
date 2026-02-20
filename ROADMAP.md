@@ -189,7 +189,7 @@ This section remains a strategic checklist.
 
 1. [x] **Initialize Repo:** Create `eden-skills`.
 2. [x] **Freeze Specs:** Define Phase 1 contracts (`spec/phase1/SPEC_SCHEMA.md`, etc.).
-3. [x] **Draft Config:** Create `skills.toml` with manual Git sources.
+3. [x] **Draft Config:** Establish configuration baseline (historical milestone; root sample `skills.toml` removed for MVP cleanliness).
 4. [x] **Rust CLI Build:** Implement `plan/apply/doctor/repair` (Serial & Local).
 5. [x] **Safety Gate MVP:** Implement risk metadata persistence and checks.
 6. [x] **CLI UX Refactor:** Adopt `clap` for robust subcommand parsing.

@@ -102,24 +102,32 @@ description: What this skill does
 Instructions for the agent...
 ```
 
-### 4.2 Search Directories
+### 4.2 Standard Search Directories
 
-When `--skill` is not specified and no subpath is provided, the CLI MUST
-search for `SKILL.md` files in the following locations within the cloned
-repository, in order:
+When discovery runs (repository root by default, or scoped subpath from
+tree URL), the CLI MUST first scan a deterministic set of parent directories
+and their immediate subdirectories for `SKILL.md`:
 
-1. Root directory (if it contains `SKILL.md`)
-2. `skills/` and its immediate subdirectories
-3. `packages/` and its immediate subdirectories
+1. Root directory (`./SKILL.md`)
+2. `skills/`
+3. `packages/`
+4. `skills/.curated/`
+5. `skills/.experimental/`
+6. `skills/.system/`
+7. Agent-convention parent directories (for example `.claude/skills/`,
+   `.agents/skills/`, `.agent/skills/`, `.aider/skills/`, `.kiro/skills/`,
+   `.qwen/skills/`, `.windsurf/skills/`, `.goosehints/skills/`, and other
+   documented agent skill roots)
 
-The search MUST NOT recurse beyond two directory levels from the repository
-root to bound execution time.
+The implementation SHOULD keep this list data-driven to simplify ecosystem
+expansion.
 
 ### 4.3 Discovery Results
 
 | Found | Behavior |
 | :--- | :--- |
-| 0 skills | Install the entire repo root (or subpath if provided) as a single unnamed skill. Emit a warning: "No SKILL.md found; installing directory as-is." |
+| 0 skills | If `--skill` is NOT provided: install the entire repo root (or subpath if provided) as a single unnamed skill and emit warning "No SKILL.md found; installing directory as-is." |
+| 0 skills + `--skill` | MUST fail with invalid arguments (do NOT silently fall back to root install). |
 | 1 skill | Install directly without confirmation prompt. |
 | 2+ skills | Enter multi-skill resolution (Section 5). |
 
@@ -128,6 +136,33 @@ root to bound execution time.
 When `--subpath` or a GitHub tree URL provides an explicit path, discovery
 is scoped to that subtree only. If a `SKILL.md` exists at the subpath root,
 it is treated as a single-skill install.
+
+### 4.5 Plugin Manifest Discovery
+
+In addition to directory scanning, the CLI SHOULD inspect Claude plugin
+manifests when present:
+
+- `.claude-plugin/marketplace.json`
+- `.claude-plugin/plugin.json`
+
+If manifest parsing succeeds, discovery MUST resolve plugin skill paths from:
+
+- `metadata.pluginRoot`
+- plugin/source entry (`plugins[].source` or top-level `source`)
+- declared skill paths (`plugins[].skills` or top-level `skills`)
+
+Resolved paths that contain `SKILL.md` MUST be included in the discovered
+skill set.
+
+### 4.6 Recursive Fallback Discovery
+
+If standard directory scan and plugin-manifest discovery both return zero
+skills, the CLI SHOULD run a bounded recursive fallback search:
+
+- Search child directories for `SKILL.md`.
+- Skip `.git` directory trees.
+- Enforce bounded traversal (`max_depth = 6`, `max_results = 256`).
+- Preserve deterministic ordering (lexicographic traversal).
 
 ## 5. Multi-Skill Resolution
 
@@ -152,6 +187,10 @@ eden-skills install vercel-labs/agent-skills --skill browser-tool --skill filesy
 
 When a `--skill` name does not match any discovered skill, the CLI MUST
 fail with an error listing available skill names.
+
+`--skill` validation MUST take precedence over single-skill shortcuts.
+If a repository has one discovered skill but its name does not match the
+requested `--skill`, the command MUST fail.
 
 ### 5.3 Interactive Mode (No Flag)
 
@@ -237,7 +276,8 @@ only listing is performed.
    (see `SPEC_SCHEMA_P25.md` Section 3).
 3. **Clone/update repository** → into `<storage.root>/<derived-id>/`.
    Use existing `source.rs` sync logic.
-4. **Discover skills** → scan for `SKILL.md` in standard directories (Section 4.2).
+4. **Discover skills** → scan standard directories, plugin manifests, then
+   bounded recursive fallback (Section 4.2 ~ 4.6).
 5. **Resolve selection** → apply `--all`, `--skill`, or interactive mode (Section 5).
 6. **Detect targets** → auto-detect installed agents or use `--target`
    (see `SPEC_AGENT_DETECT.md`).
@@ -277,10 +317,10 @@ When `<source>` is a local path:
 | **MVP-006** | Builder | **P0** | Source format detection MUST follow Section 3.2 precedence. | Each format is correctly classified without ambiguity. |
 | **MVP-007** | Builder | **P0** | Skill ID MUST be auto-derived from source with `--id` override. | Derived ID matches expected pattern; `--id` overrides it. |
 | **MVP-008** | Builder | **P0** | `install` MUST auto-create config file if it does not exist. | Install on fresh system creates config and completes. |
-| **MVP-009** | Builder | **P0** | `install` MUST discover `SKILL.md` files in standard directories (Section 4.2). | Multi-skill repo correctly lists discovered skills. |
+| **MVP-009** | Builder | **P0** | `install` MUST discover `SKILL.md` via standard directories, plugin manifests, and bounded recursive fallback (Section 4.2 ~ 4.6). | Multi-skill repos in ecosystem directory layouts and plugin manifests are discoverable. |
 | **MVP-010** | Builder | **P0** | `--list` flag MUST display discovered skills without installing. | `--list` output shows skill names and descriptions; no filesystem changes. |
 | **MVP-011** | Builder | **P0** | `--all` flag MUST install all discovered skills without confirmation. | `--all` installs every discovered skill. |
-| **MVP-012** | Builder | **P0** | `--skill` flag MUST install only named skills. | `--skill browser-tool` installs only that skill. |
+| **MVP-012** | Builder | **P0** | `--skill` flag MUST install only named skills and MUST fail on unknown names without root fallback. | `--skill browser-tool` installs only that skill; unknown names fail with available options. |
 | **MVP-013** | Builder | **P0** | Interactive mode MUST show discovered skills and prompt for confirmation. | TTY prompt displays skill list; `y` installs all; `n` prompts for names. |
 | **MVP-014** | Builder | **P1** | Non-TTY MUST default to `--all` behavior (no blocking prompts). | Piped command installs all without prompting. |
 | **MVP-015** | Builder | **P1** | Single-skill repos MUST skip confirmation and install directly. | Repo with one SKILL.md installs without prompt. |
@@ -300,4 +340,3 @@ When `<source>` is a local path:
 - `install` from private repos with SSH key or token authentication.
 - Interactive skill selection with `dialoguer` multi-select (fuzzy search).
 - `install` with dependency resolution between skills.
-- Plugin manifest discovery (`.claude-plugin/marketplace.json`).

@@ -28,7 +28,7 @@ Legend:
 
 - [x] Initialize Repo (`Cargo workspace`, crates, toolchain)
 - [x] Freeze Specs (`spec/README.md`, `spec/phase1/SPEC_*` baseline established)
-- [x] Draft Config (`skills.toml` with 5 skills)
+- [x] Draft Config baseline (historical milestone; root sample `skills.toml` removed for MVP cleanliness)
 - [x] Rust CLI Build (`plan/apply/doctor/repair` implemented; source sync/no-exec/strict-vs-verify precedence hardening completed; closeout audit completed)
 - [x] Test Matrix completion (all 7 scenarios automated; CI hosted pass verified)
 - [ ] Crawler RFC (Claude-owned)
@@ -116,6 +116,7 @@ Current automated tests: `163` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.5 Batch 4 (`AGT-001~004`, `TM-P25-026~028`): added data-driven agent-directory detection (`claude/cursor/codex/windsurf`), wired URL-mode install target auto-detection, implemented no-agent fallback warning/default target, and enforced `--target` override bypass for detection while preserving registry-mode install target semantics.
 - [x] Completed Phase 2.5 Batch 5 (`UX-001~007`, `TM-P25-031~034`): added shared CLI UI context (`ui.rs`) for color/symbol/spinner policy, integrated TTY clone spinner for URL install, enforced `NO_COLOR`/`FORCE_COLOR`/`CI` behavior and non-TTY prompt degradation, and preserved install JSON output contracts.
 - [x] Closed Phase 2.5 Batch 3 follow-up gaps after interruption: extended multi-skill discovery/selection semantics to remote URL sources, made URL-mode `--list` no-side-effect for config/targets, and implemented interactive discovery truncation output for repos with more than 8 skills.
+- [x] Completed Phase 2.5 discovery compatibility hardening (post-Batch 5): shipped P0 guardrail to block silent root fallback on failed `--skill` selection, expanded ecosystem discovery roots, added `.claude-plugin` manifest discovery, and added bounded recursive fallback (`max_depth=6`, `max_results=256`).
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -261,5 +262,9 @@ Key architectural decisions for Builder reference:
    - Requirements: `UX-001` through `UX-007`
    - Scenarios: `TM-P25-031` through `TM-P25-034`
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
-6. `spec/phase2.5/SPEC_TRACEABILITY.md` has been updated with implementation/test links and status for Batch 1 through Batch 5 items.
-7. Next recommended execution target: Batch 6 (`WS-5`, `DST-001` ~ `DST-003`).
+6. Post-Batch 5 discovery compatibility hardening is complete:
+   - Requirements: `MVP-009`, `MVP-012`
+   - Scenarios: `TM-P25-023`, `TM-P25-037`, `TM-P25-038`, `TM-P25-039`, `TM-P25-040`
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`
+7. `spec/phase2.5/SPEC_INSTALL_URL.md`, `SPEC_TEST_MATRIX.md`, and `SPEC_TRACEABILITY.md` are synchronized with implemented discovery behavior.
+8. Next recommended execution target: Batch 6 (`WS-5`, `DST-001` ~ `DST-003`).
