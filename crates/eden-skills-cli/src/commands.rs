@@ -431,6 +431,12 @@ async fn install_remote_url_mode_async(
     }
 
     if discovered.is_empty() {
+        if !req.all && !req.skill.is_empty() {
+            return Err(EdenError::InvalidArguments(format!(
+                "unknown skill name(s): {}; available: (none discovered)",
+                req.skill.join(", ")
+            )));
+        }
         let fallback_name = req
             .id
             .clone()
@@ -564,6 +570,12 @@ async fn install_local_url_mode_async(
     }
 
     if discovered.is_empty() {
+        if !req.all && !req.skill.is_empty() {
+            return Err(EdenError::InvalidArguments(format!(
+                "unknown skill name(s): {}; available: (none discovered)",
+                req.skill.join(", ")
+            )));
+        }
         let fallback_name = req
             .id
             .clone()
@@ -787,16 +799,16 @@ fn resolve_local_install_selection(
     named: &[String],
     is_tty: bool,
 ) -> Result<Vec<DiscoveredSkill>, EdenError> {
-    if discovered.len() == 1 {
-        return Ok(vec![discovered[0].clone()]);
-    }
-
     if all {
         return Ok(discovered.to_vec());
     }
 
     if !named.is_empty() {
         return select_named_skills(discovered, named);
+    }
+
+    if discovered.len() == 1 {
+        return Ok(vec![discovered[0].clone()]);
     }
 
     if !is_tty {

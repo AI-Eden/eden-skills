@@ -126,6 +126,67 @@ fn missing_skill_markdown_installs_root_with_warning() {
 }
 
 #[test]
+fn single_discovered_skill_with_unmatched_skill_flag_returns_error() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("single-skill-mismatch");
+    write_skill(&repo_dir.join("SKILL.md"), "single-skill", "demo");
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "install",
+            "./single-skill-mismatch",
+            "--skill",
+            "missing",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "unmatched --skill should return invalid arguments, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("unknown skill name"), "stderr={stderr}");
+    assert!(stderr.contains("single-skill"), "stderr={stderr}");
+}
+
+#[test]
+fn missing_skill_markdown_with_skill_flag_returns_error_instead_of_root_fallback() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("no-skill-md-select");
+    fs::create_dir_all(&repo_dir).expect("mkdir repo");
+    fs::write(repo_dir.join("README.md"), "demo").expect("write readme");
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "install",
+            "./no-skill-md-select",
+            "--skill",
+            "missing",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "missing discovery + --skill should fail, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_no_skills_persisted(&config_path);
+}
+
+#[test]
 fn list_flag_prints_discovered_skills_without_modifying_config() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
@@ -418,6 +479,28 @@ fn remote_url_list_does_not_create_config_or_install_targets() {
 }
 
 #[test]
+fn remote_url_missing_skill_markdown_with_skill_flag_returns_error() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = init_git_repo_without_skill(temp.path(), "remote-no-skill-select");
+    let source = as_file_url(&repo_dir);
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .args(["install", &source, "--skill", "missing", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "remote missing discovery + --skill should fail, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_no_skills_persisted(&config_path);
+}
+
+#[test]
 fn interactive_summary_truncates_when_more_than_eight_skills() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
@@ -498,6 +581,19 @@ fn init_git_skill_repo(base: &Path, name: &str, skills: &[&str]) -> std::path::P
     repo
 }
 
+fn init_git_repo_without_skill(base: &Path, name: &str) -> std::path::PathBuf {
+    let repo = base.join(name);
+    fs::create_dir_all(&repo).expect("mkdir repo");
+    fs::write(repo.join("README.md"), "demo").expect("write readme");
+    run_git(&repo, &["init"]);
+    run_git(&repo, &["config", "user.email", "test@example.com"]);
+    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
+    run_git(&repo, &["add", "."]);
+    run_git(&repo, &["commit", "-m", "init"]);
+    run_git(&repo, &["branch", "-M", "main"]);
+    repo
+}
+
 fn run_git(cwd: &Path, args: &[&str]) {
     let output = Command::new("git")
         .args(args)
@@ -541,4 +637,16 @@ fn read_skill_ids(config_path: &Path) -> Vec<String> {
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default()
+}
+
+fn assert_no_skills_persisted(config_path: &Path) {
+    if !config_path.exists() {
+        return;
+    }
+    let ids = read_skill_ids(config_path);
+    assert!(
+        ids.is_empty(),
+        "failed selection should not persist skill entries, config={}",
+        config_path.display()
+    );
 }
