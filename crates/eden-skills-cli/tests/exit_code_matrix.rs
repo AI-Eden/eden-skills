@@ -92,8 +92,8 @@ fn apply_reports_skipped_source_sync_on_repeated_run() {
     );
     let stdout = String::from_utf8_lossy(&second_apply.stdout);
     assert!(
-        stdout.contains("source sync: cloned=0 updated=0 skipped=1 failed=0"),
-        "expected skipped source sync summary, got: {stdout}"
+        stdout.contains("source sync: cloned=0 updated=0 skipped=0 failed=0"),
+        "noop-optimized apply skips unchanged skills before sync, got: {stdout}"
     );
 }
 

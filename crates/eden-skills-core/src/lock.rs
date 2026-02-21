@@ -1,3 +1,4 @@
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
 use serde::{Deserialize, Serialize};
@@ -142,6 +143,119 @@ pub fn build_lock_from_config(
         version: LOCK_VERSION,
         skills: entries,
     })
+}
+
+/// Skill-level diff classification between TOML config and lock file.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SkillDiffStatus {
+    Added,
+    Changed,
+    Unchanged,
+}
+
+/// Result of diffing TOML config against lock file (SPEC_LOCK.md Section 5.1).
+#[derive(Debug, Clone)]
+pub struct LockDiffResult {
+    /// Lock entries for skills present in lock but absent from TOML.
+    pub removed: Vec<LockSkillEntry>,
+    /// Diff status for each TOML skill, keyed by skill id.
+    pub statuses: HashMap<String, SkillDiffStatus>,
+}
+
+/// Compute the three-way diff between desired config and last-known lock state.
+/// When `lock` is `None` (missing/corrupted), all skills are classified as Added
+/// and there are no removals.
+pub fn compute_lock_diff(
+    config: &Config,
+    lock: &Option<LockFile>,
+    config_dir: &Path,
+) -> Result<LockDiffResult, EdenError> {
+    let lock = match lock {
+        Some(l) => l,
+        None => {
+            let statuses = config
+                .skills
+                .iter()
+                .map(|s| (s.id.clone(), SkillDiffStatus::Added))
+                .collect();
+            return Ok(LockDiffResult {
+                removed: Vec::new(),
+                statuses,
+            });
+        }
+    };
+
+    let lock_map: HashMap<&str, &LockSkillEntry> =
+        lock.skills.iter().map(|e| (e.id.as_str(), e)).collect();
+    let toml_ids: HashSet<&str> = config.skills.iter().map(|s| s.id.as_str()).collect();
+
+    let mut statuses = HashMap::new();
+    for skill in &config.skills {
+        match lock_map.get(skill.id.as_str()) {
+            None => {
+                statuses.insert(skill.id.clone(), SkillDiffStatus::Added);
+            }
+            Some(lock_entry) => {
+                let changed = skill_config_differs_from_lock(skill, lock_entry, config_dir)?;
+                let status = if changed {
+                    SkillDiffStatus::Changed
+                } else {
+                    SkillDiffStatus::Unchanged
+                };
+                statuses.insert(skill.id.clone(), status);
+            }
+        }
+    }
+
+    let removed = lock
+        .skills
+        .iter()
+        .filter(|e| !toml_ids.contains(e.id.as_str()))
+        .cloned()
+        .collect();
+
+    Ok(LockDiffResult { removed, statuses })
+}
+
+/// Compare a TOML skill config against a lock entry to detect changes
+/// (SPEC_LOCK.md Section 5.3).
+fn skill_config_differs_from_lock(
+    skill: &crate::config::SkillConfig,
+    lock_entry: &LockSkillEntry,
+    config_dir: &Path,
+) -> Result<bool, EdenError> {
+    if skill.source.repo != lock_entry.source_repo {
+        return Ok(true);
+    }
+    if skill.source.subpath != lock_entry.source_subpath {
+        return Ok(true);
+    }
+    if skill.source.r#ref != lock_entry.source_ref {
+        return Ok(true);
+    }
+    if skill.install.mode.as_str() != lock_entry.install_mode {
+        return Ok(true);
+    }
+
+    let mut config_targets: Vec<(String, String)> = Vec::with_capacity(skill.targets.len());
+    for target in &skill.targets {
+        let target_root = resolve_target_path(target, config_dir)?;
+        let target_path = target_root.join(&skill.id);
+        config_targets.push((
+            target.agent.as_str().to_string(),
+            target_path.display().to_string(),
+        ));
+    }
+    config_targets.sort();
+
+    let mut lock_targets: Vec<(String, String)> = lock_entry
+        .targets
+        .iter()
+        .map(|t| (t.agent.clone(), t.path.clone()))
+        .collect();
+    lock_targets.sort();
+
+    Ok(config_targets != lock_targets)
 }
 
 /// Minimal ISO 8601 UTC timestamp formatter (avoids external datetime dependency).

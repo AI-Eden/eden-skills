@@ -16,6 +16,7 @@ pub enum Action {
     Update,
     Noop,
     Conflict,
+    Remove,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

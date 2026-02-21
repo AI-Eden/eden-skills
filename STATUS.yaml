@@ -442,6 +442,24 @@ phase27:
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
         total_tests: 212
+    batch_2_wp1_part2_diff_driven_reconciliation:
+      status: completed
+      completed_at: "2026-02-21"
+      requirements: LCK-001, LCK-007, LCK-008, LCK-010
+      scenarios: TM-P27-004, TM-P27-005, TM-P27-010, TM-P27-011, TM-P27-015
+      notes:
+        - added Action::Remove variant to plan.rs Action enum
+        - added lock diff algorithm (compute_lock_diff) with SkillDiffStatus (Added/Changed/Unchanged) and removed entries
+        - integrated diff into apply (orphan removal via uninstall_orphaned_lock_entries, noop optimization via filter_config_for_sync)
+        - integrated diff into plan (build_remove_plan_items generates Remove PlanItems from lock)
+        - added resolved_commit capture (collect_resolved_commits reads HEAD SHA after sync, write_lock_for_config_with_commits)
+        - fixed pre-existing Windows bug in source_format.rs (looks_like_local_path did not handle Windows absolute paths)
+        - 8 core diff tests + 6 CLI integration tests added
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+        total_tests: 226
 
 next_execution_targets: []
 

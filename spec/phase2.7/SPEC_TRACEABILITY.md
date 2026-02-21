@@ -10,16 +10,16 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| LCK-001 | `SPEC_LOCK.md` 5.2 | `apply` MUST generate `Remove` actions for skills in lock but absent from TOML | | | pending |
+| LCK-001 | `SPEC_LOCK.md` 5.2 | `apply` MUST generate `Remove` actions for skills in lock but absent from TOML | `eden-skills-core/src/lock.rs` (`compute_lock_diff`), `eden-skills-cli/src/commands.rs` (`uninstall_orphaned_lock_entries`) | `lock_diff_tests.rs` (TM-P27-004) | done |
 | LCK-002 | `SPEC_LOCK.md` 4.1 | Lock file MUST be written after every mutating command | `eden-skills-cli/src/commands.rs` (`write_lock_for_config`, init/apply/repair/install/remove) | `lock_lifecycle_tests.rs` (TM-P27-001~003, TM-P27-012) | done |
 | LCK-003 | `SPEC_LOCK.md` 3.1 | Lock file MUST use TOML format with required fields | `eden-skills-core/src/lock.rs` (`LockFile`, `LockSkillEntry`, `LockTarget`, `write_lock_file`) | `lock_tests.rs` (round_trip, contains_all_required_fields) | done |
 | LCK-004 | `SPEC_LOCK.md` 2.2 | Lock file MUST be co-located with config file | `eden-skills-core/src/lock.rs` (`lock_path_for_config`) | `lock_tests.rs` (replaces_toml, appends_lock), `lock_lifecycle_tests.rs` (co_located) | done |
 | LCK-005 | `SPEC_LOCK.md` 4.3 | Missing lock file MUST NOT cause errors | `eden-skills-core/src/lock.rs` (`read_lock_file`) | `lock_tests.rs` (missing_returns_none), `lock_lifecycle_tests.rs` (TM-P27-006) | done |
 | LCK-006 | `SPEC_LOCK.md` 4.4 | Corrupted lock file MUST emit warning and proceed | `eden-skills-core/src/lock.rs` (`read_lock_file`) | `lock_tests.rs` (corrupted_returns_none, unsupported_version), `lock_lifecycle_tests.rs` (TM-P27-007) | done |
-| LCK-007 | `SPEC_LOCK.md` 5.5 | `plan` MUST show `Remove` actions from lock diff | | | pending |
-| LCK-008 | `SPEC_LOCK.md` 5.4 | Unchanged skills MAY skip source sync | | | pending |
+| LCK-007 | `SPEC_LOCK.md` 5.5 | `plan` MUST show `Remove` actions from lock diff | `eden-skills-cli/src/commands.rs` (`plan` reads lock, `build_remove_plan_items`) | `lock_diff_tests.rs` (TM-P27-005) | done |
+| LCK-008 | `SPEC_LOCK.md` 5.4 | Unchanged skills MAY skip source sync | `eden-skills-cli/src/commands.rs` (`filter_config_for_sync`) | `lock_diff_tests.rs` (TM-P27-011) | done |
 | LCK-009 | `SPEC_LOCK.md` 3.3 | Lock entries MUST be sorted alphabetically by id | `eden-skills-core/src/lock.rs` (`write_lock_file` sort) | `lock_tests.rs` (sorted_by_id, sorted_by_agent), `lock_lifecycle_tests.rs` (TM-P27-009) | done |
-| LCK-010 | `SPEC_LOCK.md` 3.2 | `resolved_commit` SHOULD record full SHA-1 | | | pending |
+| LCK-010 | `SPEC_LOCK.md` 3.2 | `resolved_commit` SHOULD record full SHA-1 | `eden-skills-cli/src/commands.rs` (`collect_resolved_commits`, `write_lock_for_config_with_commits`) | `lock_diff_tests.rs` (TM-P27-010) | done |
 
 ## 2. Help System Requirements
 
@@ -63,18 +63,18 @@ Use this file to recover accurate context after compression.
 | TM-P27-001 | `SPEC_TEST_MATRIX.md` 2 | Lock file creation on first apply | `lock_lifecycle_tests::apply_creates_lock_on_first_run` | done |
 | TM-P27-002 | `SPEC_TEST_MATRIX.md` 2 | Lock file updated after install | `lock_lifecycle_tests::install_creates_lock_file` | done |
 | TM-P27-003 | `SPEC_TEST_MATRIX.md` 2 | Lock file updated after remove | `lock_lifecycle_tests::remove_updates_lock_file` | done |
-| TM-P27-004 | `SPEC_TEST_MATRIX.md` 2 | Orphan removal via apply | | pending |
-| TM-P27-005 | `SPEC_TEST_MATRIX.md` 2 | Plan shows remove actions | | pending |
+| TM-P27-004 | `SPEC_TEST_MATRIX.md` 2 | Orphan removal via apply | `lock_diff_tests::apply_removes_orphaned_skill_from_lock` | done |
+| TM-P27-005 | `SPEC_TEST_MATRIX.md` 2 | Plan shows remove actions | `lock_diff_tests::plan_shows_remove_actions_for_orphans`, `lock_diff_tests::plan_json_includes_remove_action` | done |
 | TM-P27-006 | `SPEC_TEST_MATRIX.md` 2 | Missing lock file fallback | `lock_lifecycle_tests::apply_succeeds_without_existing_lock_file` | done |
 | TM-P27-007 | `SPEC_TEST_MATRIX.md` 2 | Corrupted lock file recovery | `lock_lifecycle_tests::apply_recovers_from_corrupted_lock` | done |
 | TM-P27-008 | `SPEC_TEST_MATRIX.md` 2 | Lock co-location with custom config | `lock_lifecycle_tests::lock_co_located_with_custom_config_path` | done |
 | TM-P27-009 | `SPEC_TEST_MATRIX.md` 2 | Lock entries sorted alphabetically | `lock_lifecycle_tests::lock_entries_sorted_after_apply` | done |
-| TM-P27-010 | `SPEC_TEST_MATRIX.md` 2 | Lock preserves resolved commit | | pending |
-| TM-P27-011 | `SPEC_TEST_MATRIX.md` 2 | Apply noop optimization | | pending |
+| TM-P27-010 | `SPEC_TEST_MATRIX.md` 2 | Lock preserves resolved commit | `lock_diff_tests::lock_records_resolved_commit_after_apply` | done |
+| TM-P27-011 | `SPEC_TEST_MATRIX.md` 2 | Apply noop optimization | `lock_diff_tests::apply_noop_with_unchanged_config` | done |
 | TM-P27-012 | `SPEC_TEST_MATRIX.md` 2 | Lock init creates empty lock | `lock_lifecycle_tests::init_creates_empty_lock_file` | done |
 | TM-P27-013 | `SPEC_TEST_MATRIX.md` 2 | Repair updates lock | | pending |
 | TM-P27-014 | `SPEC_TEST_MATRIX.md` 2 | Apply remove with Docker target | | pending |
-| TM-P27-015 | `SPEC_TEST_MATRIX.md` 2 | Strict mode does not block removals | | pending |
+| TM-P27-015 | `SPEC_TEST_MATRIX.md` 2 | Strict mode does not block removals | `lock_diff_tests::strict_mode_does_not_block_removals` | done |
 | TM-P27-016 | `SPEC_TEST_MATRIX.md` 3 | Version flag | | pending |
 | TM-P27-017 | `SPEC_TEST_MATRIX.md` 3 | Root help contains version and groups | | pending |
 | TM-P27-018 | `SPEC_TEST_MATRIX.md` 3 | Subcommand help has description | | pending |

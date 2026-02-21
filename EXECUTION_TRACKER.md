@@ -60,7 +60,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 - [x] Phase 2 closeout matrix re-verified on all targets (`CI` run `22176017545`: `ubuntu-latest`, `macos-latest`, `windows-latest`).
 
-Current automated tests: `212` (workspace unit/integration-style tests).
+Current automated tests: `226` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -298,3 +298,10 @@ Key architectural decisions for Builder reference:
    - CLI integration: lock file written after init, apply, repair, install, and remove commands
    - Tests: 14 core + 9 CLI integration = 23 new tests
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (212 total tests)
+2. Batch 2 (WP-1 part 2 — Diff-Driven Reconciliation) is complete with quality gate pass:
+   - Requirements: `LCK-001`, `LCK-007`, `LCK-008`, `LCK-010`
+   - Scenarios: `TM-P27-004`, `TM-P27-005`, `TM-P27-010`, `TM-P27-011`, `TM-P27-015`
+   - Additions: `Action::Remove` variant, lock diff algorithm (`compute_lock_diff`), orphan removal (`uninstall_orphaned_lock_entries`), noop optimization (`filter_config_for_sync`), resolved_commit capture (`collect_resolved_commits`)
+   - Fixed pre-existing Windows bug: `looks_like_local_path` now handles Windows absolute paths via `Path::is_absolute()`
+   - Tests: 8 core diff + 6 CLI integration = 14 new tests
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (226 total tests)

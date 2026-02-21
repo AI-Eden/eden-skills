@@ -1,4 +1,4 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::future::Future;
 use std::path::{Path, PathBuf};
@@ -20,7 +20,8 @@ use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::discovery::{discover_skills, DiscoveredSkill};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::lock::{
-    build_lock_from_config, lock_path_for_config, write_lock_file, LockFile,
+    build_lock_from_config, compute_lock_diff, lock_path_for_config, read_lock_file,
+    write_lock_file, LockFile, LockSkillEntry, SkillDiffStatus,
 };
 use eden_skills_core::paths::{
     known_default_agent_paths, normalize_lexical, resolve_path_string, resolve_target_path,
@@ -154,7 +155,13 @@ pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     }
 
     let config_dir = config_dir_from_path(config_path);
-    let plan = build_plan(&loaded.config, &config_dir)?;
+    let lock_path = lock_path_for_config(config_path);
+    let lock = read_lock_file(&lock_path)?;
+    let diff = compute_lock_diff(&loaded.config, &lock, &config_dir)?;
+
+    let mut plan = build_plan(&loaded.config, &config_dir)?;
+    plan.extend(build_remove_plan_items(&diff.removed));
+
     if options.json {
         print_plan_json(&plan)?;
     } else {
@@ -1097,7 +1104,7 @@ fn execute_install_plan(
         match item.action {
             Action::Create | Action::Update => apply_plan_item(item)?,
             Action::Conflict => conflicts += 1,
-            Action::Noop => {}
+            Action::Noop | Action::Remove => {}
         }
     }
     if strict && conflicts > 0 {
@@ -1380,8 +1387,13 @@ pub async fn apply_async(
     let config_dir = config_dir_from_path(config_path);
     let execution_config =
         resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir)?;
-    let sync_summary =
-        sync_sources_async_with_reactor(&execution_config, &config_dir, reactor).await?;
+
+    let lock_path = lock_path_for_config(config_path);
+    let lock = read_lock_file(&lock_path)?;
+    let diff = compute_lock_diff(&execution_config, &lock, &config_dir)?;
+
+    let sync_config = filter_config_for_sync(&execution_config, &diff);
+    let sync_summary = sync_sources_async_with_reactor(&sync_config, &config_dir, reactor).await?;
     print_source_sync_summary(&sync_summary);
     let safety_reports = analyze_skills(&execution_config, &config_dir)?;
     persist_reports(&safety_reports)?;
@@ -1389,6 +1401,10 @@ pub async fn apply_async(
     if let Some(err) = source_sync_failure_error(&sync_summary) {
         return Err(err);
     }
+
+    let removed_count =
+        uninstall_orphaned_lock_entries(&diff.removed, &config_dir, &execution_config.storage_root)
+            .await?;
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
     let plan = build_plan(&execution_config, &config_dir)?;
@@ -1427,11 +1443,12 @@ pub async fn apply_async(
                 }
                 conflicts += 1;
             }
+            Action::Remove => {}
         }
     }
 
     println!(
-        "apply summary: create={created} update={updated} noop={noops} conflict={conflicts} skipped_no_exec={skipped_no_exec}"
+        "apply summary: create={created} update={updated} noop={noops} conflict={conflicts} skipped_no_exec={skipped_no_exec} removed={removed_count}"
     );
 
     if options.strict && conflicts > 0 {
@@ -1451,7 +1468,13 @@ pub async fn apply_async(
         )));
     }
 
-    write_lock_for_config(config_path, &execution_config, &config_dir)?;
+    let resolved_commits = collect_resolved_commits(&execution_config, &config_dir);
+    write_lock_for_config_with_commits(
+        config_path,
+        &execution_config,
+        &config_dir,
+        &resolved_commits,
+    )?;
 
     println!("apply verification: ok");
     Ok(())
@@ -1996,7 +2019,7 @@ pub async fn repair_async(
                 }
                 skipped_conflicts += 1;
             }
-            Action::Noop => {}
+            Action::Noop | Action::Remove => {}
         }
     }
 
@@ -2514,6 +2537,7 @@ fn action_label(action: Action) -> &'static str {
         Action::Update => "update",
         Action::Noop => "noop",
         Action::Conflict => "conflict",
+        Action::Remove => "remove",
     }
 }
 
@@ -3218,9 +3242,102 @@ fn write_lock_for_config(
     config: &Config,
     config_dir: &Path,
 ) -> Result<(), EdenError> {
+    write_lock_for_config_with_commits(config_path, config, config_dir, &HashMap::new())
+}
+
+fn write_lock_for_config_with_commits(
+    config_path: &Path,
+    config: &Config,
+    config_dir: &Path,
+    resolved_commits: &HashMap<String, String>,
+) -> Result<(), EdenError> {
     let lock_path = lock_path_for_config(config_path);
-    let lock = build_lock_from_config(config, config_dir, &std::collections::HashMap::new())?;
+    let lock = build_lock_from_config(config, config_dir, resolved_commits)?;
     write_lock_file(&lock_path, &lock)
+}
+
+/// Create a config subset containing only skills that need source sync
+/// (Added or Changed per lock diff). Unchanged skills are skipped unless
+/// their storage directory is missing (reclassified as needing sync).
+fn filter_config_for_sync(
+    config: &Config,
+    diff: &eden_skills_core::lock::LockDiffResult,
+) -> Config {
+    let mut sync_skills = Vec::new();
+    for skill in &config.skills {
+        let status = diff.statuses.get(&skill.id);
+        if !matches!(status, Some(SkillDiffStatus::Unchanged)) {
+            sync_skills.push(skill.clone());
+        }
+    }
+    Config {
+        version: config.version,
+        storage_root: config.storage_root.clone(),
+        reactor: config.reactor,
+        skills: sync_skills,
+    }
+}
+
+fn build_remove_plan_items(removed: &[LockSkillEntry]) -> Vec<PlanItem> {
+    let mut items = Vec::new();
+    for entry in removed {
+        for target in &entry.targets {
+            items.push(PlanItem {
+                skill_id: entry.id.clone(),
+                source_path: String::new(),
+                target_path: target.path.clone(),
+                install_mode: if entry.install_mode == "copy" {
+                    InstallMode::Copy
+                } else {
+                    InstallMode::Symlink
+                },
+                action: Action::Remove,
+                reasons: vec!["skill removed from configuration".to_string()],
+            });
+        }
+    }
+    items
+}
+
+fn collect_resolved_commits(config: &Config, config_dir: &Path) -> HashMap<String, String> {
+    let storage_root = match resolve_path_string(&config.storage_root, config_dir) {
+        Ok(p) => p,
+        Err(_) => return HashMap::new(),
+    };
+    let mut commits = HashMap::new();
+    for skill in &config.skills {
+        let repo_dir = storage_root.join(&skill.id);
+        if let Some(sha) = read_head_sha(&repo_dir) {
+            commits.insert(skill.id.clone(), sha);
+        }
+    }
+    commits
+}
+
+async fn uninstall_orphaned_lock_entries(
+    removed: &[LockSkillEntry],
+    config_dir: &Path,
+    storage_root: &str,
+) -> Result<usize, EdenError> {
+    let mut count = 0;
+    for entry in removed {
+        for target in &entry.targets {
+            let target_path = PathBuf::from(&target.path);
+            let adapter = create_adapter("local").map_err(EdenError::from)?;
+            adapter
+                .uninstall(&target_path)
+                .await
+                .map_err(EdenError::from)?;
+        }
+        remove_from_known_local_agent_targets(&entry.id, config_dir)?;
+        let resolved_storage = resolve_path_string(storage_root, config_dir)?;
+        let storage_dir = resolved_storage.join(&entry.id);
+        if storage_dir.exists() {
+            fs::remove_dir_all(&storage_dir)?;
+        }
+        count += 1;
+    }
+    Ok(count)
 }
 
 fn apply_plan_item(item: &PlanItem) -> Result<(), EdenError> {
