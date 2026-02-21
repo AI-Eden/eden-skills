@@ -111,6 +111,7 @@ fn looks_like_local_path(input: &str) -> bool {
         || input.starts_with("../")
         || input.starts_with('/')
         || input.starts_with('~')
+        || std::path::Path::new(input).is_absolute()
 }
 
 fn parse_github_tree_url(input: &str) -> Option<UrlInstallSource> {

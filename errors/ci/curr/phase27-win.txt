@@ -1,0 +1,22 @@
+     Running tests\lock_lifecycle_tests.rs (target\debug\deps\lock_lifecycle_tests-e9298ee3801ed851.exe)
+running 9 tests
+test init_creates_empty_lock_file ... ok
+test init_with_force_recreates_lock ... ok
+test install_creates_lock_file ... FAILED
+test lock_co_located_with_custom_config_path ... ok
+test apply_succeeds_without_existing_lock_file ... ok
+test apply_creates_lock_on_first_run ... ok
+test apply_recovers_from_corrupted_lock ... ok
+test lock_entries_sorted_after_apply ... ok
+test remove_updates_lock_file ... ok
+failures:
+---- install_creates_lock_file stdout ----
+init: wrote C:\Users\RUNNER~1\AppData\Local\Temp\.tmpWRFVeI\skills.toml
+thread 'install_creates_lock_file' (5996) panicked at crates\eden-skills-cli\tests\lock_lifecycle_tests.rs:217:5:
+install should succeed: Some(InvalidArguments("--id/--ref are only supported for URL-mode install sources"))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+failures:
+    install_creates_lock_file
+test result: FAILED. 8 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.01s
+error: test failed, to rerun pass `-p eden-skills --test lock_lifecycle_tests`
+Error: Process completed with exit code 1.
