@@ -9,12 +9,13 @@ This file is designed for fast recovery after context compression.
 2. `spec/phase1/SPEC_*.md` (Phase 1 CLI behavior contracts)
 3. `spec/phase2/SPEC_*.md` (Phase 2 architecture contracts)
 4. `spec/phase2.5/SPEC_*.md` (Phase 2.5 MVP launch contracts)
-5. `spec/phase1/SPEC_TRACEABILITY.md` or `spec/phase2/SPEC_TRACEABILITY.md` or `spec/phase2.5/SPEC_TRACEABILITY.md`
-6. `spec/phase1/PHASE1_BUILDER_REMAINING.md` or `spec/phase2/PHASE2_BUILDER_REMAINING.md`
-7. `STATUS.yaml`
-8. `EXECUTION_TRACKER.md`
-9. `ROADMAP.md`
-10. `README.md`
+5. `spec/phase2.7/SPEC_*.md` (Phase 2.7 UX polish & lock file contracts)
+6. `spec/phase1/SPEC_TRACEABILITY.md` or `spec/phase2/SPEC_TRACEABILITY.md` or `spec/phase2.5/SPEC_TRACEABILITY.md` or `spec/phase2.7/SPEC_TRACEABILITY.md`
+7. `spec/phase1/PHASE1_BUILDER_REMAINING.md` or `spec/phase2/PHASE2_BUILDER_REMAINING.md`
+8. `STATUS.yaml`
+9. `EXECUTION_TRACKER.md`
+10. `ROADMAP.md`
+11. `README.md`
 
 ## 2. Authority Order
 
@@ -36,8 +37,8 @@ When files disagree, follow:
 
 1. Update `spec/` first for behavior changes.
 2. Implement code to match spec.
-3. Update tests, especially `spec/phase1/SPEC_TEST_MATRIX.md`, `spec/phase2/SPEC_TEST_MATRIX.md`, or `spec/phase2.5/SPEC_TEST_MATRIX.md` scenarios.
-4. Update `spec/phase1/SPEC_TRACEABILITY.md`, `spec/phase2/SPEC_TRACEABILITY.md`, or `spec/phase2.5/SPEC_TRACEABILITY.md` links for changed requirements.
+3. Update tests, especially `spec/phase1/SPEC_TEST_MATRIX.md`, `spec/phase2/SPEC_TEST_MATRIX.md`, `spec/phase2.5/SPEC_TEST_MATRIX.md`, or `spec/phase2.7/SPEC_TEST_MATRIX.md` scenarios.
+4. Update `spec/phase1/SPEC_TRACEABILITY.md`, `spec/phase2/SPEC_TRACEABILITY.md`, `spec/phase2.5/SPEC_TRACEABILITY.md`, or `spec/phase2.7/SPEC_TRACEABILITY.md` links for changed requirements.
 5. Update `STATUS.yaml` and `EXECUTION_TRACKER.md`.
 
 ## 5. Quick Start Task Routing
@@ -64,6 +65,13 @@ When files disagree, follow:
 - If task is CLI output beautification: start from `spec/phase2.5/SPEC_CLI_UX.md`.
 - If task is binary distribution or release workflow: start from `spec/phase2.5/SPEC_DISTRIBUTION.md`.
 
+### Phase 2.7 (UX Polish & Lock File)
+
+- If task is lock file or orphan removal: start from `spec/phase2.7/SPEC_LOCK.md`.
+- If task is help text, version info, or command grouping: start from `spec/phase2.7/SPEC_HELP_SYSTEM.md`.
+- If task is color library, error messages, or `--color` flag: start from `spec/phase2.7/SPEC_OUTPUT_POLISH.md`.
+- If task is batch remove or interactive remove: start from `spec/phase2.7/SPEC_REMOVE_ENH.md`.
+
 ### General
 
 - If task is progress planning: use `STATUS.yaml` first, then `EXECUTION_TRACKER.md`.
@@ -73,7 +81,8 @@ When files disagree, follow:
 
 - Preserve `skills.toml` as source-of-truth config.
 - Keep command semantics deterministic and idempotent.
-- Do not introduce Phase 3 crawler/taxonomy implementation into Phase 1, Phase 2, or Phase 2.5 specs.
+- Do not introduce Phase 3 crawler/taxonomy implementation into Phase 1, Phase 2, Phase 2.5, or Phase 2.7 specs.
 - Phase 1 spec files (`spec/phase1/`) are frozen; changes require explicit user approval.
 - Phase 2 spec files (`spec/phase2/`) are frozen; changes require explicit user approval.
 - Phase 2.5 amends one Phase 1 validation rule (empty skills array) with user approval.
+- Phase 2.7 amends Phase 2.5 `SPEC_CLI_UX.md` technology stack (replaces `console` with `owo-colors`).

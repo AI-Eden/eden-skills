@@ -29,13 +29,21 @@ spec/
 │   ├── SPEC_TEST_MATRIX.md
 │   ├── SPEC_TRACEABILITY.md
 │   └── PHASE2_BUILDER_REMAINING.md
-└── phase2.5/              (Phase 2.5: MVP Launch)
+├── phase2.5/              (Phase 2.5: MVP Launch)
+│   ├── README.md
+│   ├── SPEC_INSTALL_URL.md
+│   ├── SPEC_SCHEMA_P25.md
+│   ├── SPEC_AGENT_DETECT.md
+│   ├── SPEC_CLI_UX.md
+│   ├── SPEC_DISTRIBUTION.md
+│   ├── SPEC_TEST_MATRIX.md
+│   └── SPEC_TRACEABILITY.md
+└── phase2.7/              (Phase 2.7: UX Polish & Lock File)
     ├── README.md
-    ├── SPEC_INSTALL_URL.md
-    ├── SPEC_SCHEMA_P25.md
-    ├── SPEC_AGENT_DETECT.md
-    ├── SPEC_CLI_UX.md
-    ├── SPEC_DISTRIBUTION.md
+    ├── SPEC_LOCK.md
+    ├── SPEC_HELP_SYSTEM.md
+    ├── SPEC_OUTPUT_POLISH.md
+    ├── SPEC_REMOVE_ENH.md
     ├── SPEC_TEST_MATRIX.md
     └── SPEC_TRACEABILITY.md
 ```
@@ -123,4 +131,17 @@ Phase 2.5 `_P25` spec files amend Phase 1 or extend Phase 2 contracts:
 When reading an extension file, always read the corresponding base file first.
 The base file defines the foundation; extension files define additive changes only.
 Extension files MUST NOT contradict base semantics except where explicitly noted
-as an amendment (Phase 2.5 `SPEC_SCHEMA_P25.md` Section 2 is the sole exception).
+as an amendment (Phase 2.5 `SPEC_SCHEMA_P25.md` Section 2 and Phase 2.7
+`SPEC_OUTPUT_POLISH.md` Section 2 are the documented exceptions).
+
+## Phase 2.7: UX Polish & Lock File
+
+Phase 2.7 polishes the CLI user experience and introduces a lock file for
+diff-driven reconciliation.
+
+- `phase2.7/SPEC_LOCK.md`: `skills.lock` format, lifecycle, and diff-driven apply with `Remove` action (LCK-001~010)
+- `phase2.7/SPEC_HELP_SYSTEM.md`: help text, version info, command grouping, short flags (HLP-001~007)
+- `phase2.7/SPEC_OUTPUT_POLISH.md`: `owo-colors` migration, error refinement, `--color` flag (OUT-001~008)
+- `phase2.7/SPEC_REMOVE_ENH.md`: batch remove, interactive selection, `-y`/`--yes` flag (RMV-001~005)
+- `phase2.7/SPEC_TEST_MATRIX.md`: Phase 2.7 acceptance test scenarios (TM-P27-001~040)
+- `phase2.7/SPEC_TRACEABILITY.md`: Phase 2.7 requirement-to-implementation mapping
