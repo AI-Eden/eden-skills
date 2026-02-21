@@ -1,0 +1,38 @@
+     Running tests\lock_diff_tests.rs (target\debug\deps\lock_diff_tests-0c9fd41f7b804f14.exe)
+
+running 8 tests
+test changed_repo_classified_as_changed ... ok
+test changed_install_mode_classified_as_changed ... ok
+test changed_ref_classified_as_changed ... ok
+test mixed_diff_scenario ... FAILED
+test new_skill_in_toml_is_added ... ok
+test no_lock_classifies_all_as_added ... ok
+test skill_removed_from_toml_is_in_removed_set ... ok
+test unchanged_skill_classified_correctly ... FAILED
+
+failures:
+
+---- mixed_diff_scenario stdout ----
+
+thread 'mixed_diff_scenario' (888) panicked at crates\eden-skills-core\tests\lock_diff_tests.rs:326:5:
+assertion `left == right` failed
+  left: Changed
+ right: Unchanged
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- unchanged_skill_classified_correctly stdout ----
+
+thread 'unchanged_skill_classified_correctly' (8788) panicked at crates\eden-skills-core\tests\lock_diff_tests.rs:185:5:
+assertion `left == right` failed
+  left: Changed
+ right: Unchanged
+
+
+failures:
+    mixed_diff_scenario
+    unchanged_skill_classified_correctly
+
+test result: FAILED. 6 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p eden-skills-core --test lock_diff_tests`
+Error: Process completed with exit code 1.

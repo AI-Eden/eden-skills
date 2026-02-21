@@ -4,6 +4,17 @@ use eden_skills_core::config::*;
 use eden_skills_core::lock::*;
 
 fn make_skill(id: &str, repo: &str, subpath: &str, ref_: &str, mode: InstallMode) -> SkillConfig {
+    make_skill_with_target(id, repo, subpath, ref_, mode, "/targets")
+}
+
+fn make_skill_with_target(
+    id: &str,
+    repo: &str,
+    subpath: &str,
+    ref_: &str,
+    mode: InstallMode,
+    target_path: &str,
+) -> SkillConfig {
     SkillConfig {
         id: id.to_string(),
         source: SourceConfig {
@@ -15,7 +26,7 @@ fn make_skill(id: &str, repo: &str, subpath: &str, ref_: &str, mode: InstallMode
         targets: vec![TargetConfig {
             agent: AgentKind::Custom,
             expected_path: None,
-            path: Some("/targets".to_string()),
+            path: Some(target_path.to_string()),
             environment: "local".to_string(),
         }],
         verify: VerifyConfig {
@@ -29,6 +40,17 @@ fn make_skill(id: &str, repo: &str, subpath: &str, ref_: &str, mode: InstallMode
 }
 
 fn make_lock_entry(id: &str, repo: &str, subpath: &str, ref_: &str, mode: &str) -> LockSkillEntry {
+    make_lock_entry_with_target(id, repo, subpath, ref_, mode, &format!("/targets/{id}"))
+}
+
+fn make_lock_entry_with_target(
+    id: &str,
+    repo: &str,
+    subpath: &str,
+    ref_: &str,
+    mode: &str,
+    resolved_target: &str,
+) -> LockSkillEntry {
     LockSkillEntry {
         id: id.to_string(),
         source_repo: repo.to_string(),
@@ -40,7 +62,7 @@ fn make_lock_entry(id: &str, repo: &str, subpath: &str, ref_: &str, mode: &str) 
         installed_at: "2026-02-21T10:00:00Z".to_string(),
         targets: vec![LockTarget {
             agent: "custom".to_string(),
-            path: format!("/targets/{id}"),
+            path: resolved_target.to_string(),
         }],
     }
 }
@@ -155,38 +177,45 @@ fn new_skill_in_toml_is_added() {
 }
 
 // ---------------------------------------------------------------------------
-// Unchanged skill (identical fields)
+// Unchanged skill — uses real temp paths for cross-platform correctness
 // ---------------------------------------------------------------------------
 
 #[test]
 fn unchanged_skill_classified_correctly() {
-    let config = make_config(vec![make_skill(
+    let dir = tempfile::tempdir().unwrap();
+    let target_dir = dir.path().join("targets");
+    let target_str = target_dir.display().to_string();
+    let resolved = target_dir.join("a").display().to_string();
+
+    let config = make_config(vec![make_skill_with_target(
         "a",
         "https://example.com/a.git",
         ".",
         "main",
         InstallMode::Symlink,
+        &target_str,
     )]);
 
     let lock = Some(LockFile {
         version: LOCK_VERSION,
-        skills: vec![make_lock_entry(
+        skills: vec![make_lock_entry_with_target(
             "a",
             "https://example.com/a.git",
             ".",
             "main",
             "symlink",
+            &resolved,
         )],
     });
 
-    let diff = compute_lock_diff(&config, &lock, Path::new("/")).unwrap();
+    let diff = compute_lock_diff(&config, &lock, dir.path()).unwrap();
 
     assert!(diff.removed.is_empty());
     assert_eq!(diff.statuses["a"], SkillDiffStatus::Unchanged);
 }
 
 // ---------------------------------------------------------------------------
-// Changed skill (repo changed)
+// Changed skill (repo changed) — targets don't matter, short-circuits early
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -265,44 +294,53 @@ fn changed_install_mode_classified_as_changed() {
 }
 
 // ---------------------------------------------------------------------------
-// Mixed scenario: added + removed + unchanged + changed
+// Mixed scenario — uses real temp paths for "keep" (Unchanged) comparison
 // ---------------------------------------------------------------------------
 
 #[test]
 fn mixed_diff_scenario() {
+    let dir = tempfile::tempdir().unwrap();
+    let target_dir = dir.path().join("targets");
+    let target_str = target_dir.display().to_string();
+    let keep_resolved = target_dir.join("keep").display().to_string();
+
     let config = make_config(vec![
-        make_skill(
+        make_skill_with_target(
             "keep",
             "https://example.com/keep.git",
             ".",
             "main",
             InstallMode::Symlink,
+            &target_str,
         ),
-        make_skill(
+        make_skill_with_target(
             "change",
             "https://example.com/change.git",
             "sub",
             "main",
             InstallMode::Symlink,
+            &target_str,
         ),
-        make_skill(
+        make_skill_with_target(
             "new",
             "https://example.com/new.git",
             ".",
             "main",
             InstallMode::Symlink,
+            &target_str,
         ),
     ]);
 
     let lock = Some(LockFile {
         version: LOCK_VERSION,
         skills: vec![
-            make_lock_entry(
+            make_lock_entry_with_target(
                 "keep",
                 "https://example.com/keep.git",
                 ".",
                 "main",
                 "symlink",
+                &keep_resolved,
             ),
             make_lock_entry(
                 "change",
@@ -321,7 +359,7 @@ fn mixed_diff_scenario() {
         ],
     });
 
-    let diff = compute_lock_diff(&config, &lock, Path::new("/")).unwrap();
+    let diff = compute_lock_diff(&config, &lock, dir.path()).unwrap();
 
     assert_eq!(diff.statuses["keep"], SkillDiffStatus::Unchanged);
     assert_eq!(diff.statuses["change"], SkillDiffStatus::Changed);
