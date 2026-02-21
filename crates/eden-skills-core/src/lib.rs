@@ -3,6 +3,7 @@ pub mod agents;
 pub mod config;
 pub mod discovery;
 pub mod error;
+pub mod lock;
 pub mod paths;
 pub mod plan;
 pub mod reactor;

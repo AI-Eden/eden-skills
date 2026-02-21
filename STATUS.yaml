@@ -2,7 +2,7 @@ schema_version: 1
 updated_at: "2026-02-20"
 project:
   name: eden-skills
-  phase: phase25_mvp_launch
+  phase: phase27_ux_polish_lock
   status: active_implementation
 
 authority_order:
@@ -415,6 +415,33 @@ phase25:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
+
+phase27:
+  status: active_implementation
+  started_at: "2026-02-21"
+  spec_files:
+    - spec/phase2.7/SPEC_LOCK.md
+    - spec/phase2.7/SPEC_HELP_SYSTEM.md
+    - spec/phase2.7/SPEC_OUTPUT_POLISH.md
+    - spec/phase2.7/SPEC_REMOVE_ENH.md
+    - spec/phase2.7/SPEC_TEST_MATRIX.md
+    - spec/phase2.7/SPEC_TRACEABILITY.md
+  builder_progress:
+    batch_1_wp1_part1_lock_file_core:
+      status: completed
+      completed_at: "2026-02-21"
+      requirements: LCK-002, LCK-003, LCK-004, LCK-005, LCK-006, LCK-009
+      scenarios: TM-P27-001, TM-P27-002, TM-P27-003, TM-P27-006, TM-P27-007, TM-P27-008, TM-P27-009, TM-P27-012
+      notes:
+        - added lock module (eden-skills-core/src/lock.rs) with LockFile/LockSkillEntry/LockTarget types
+        - implemented lock_path_for_config (.toml -> .lock derivation), read_lock_file (missing/corrupted fallback), write_lock_file (sorted serialization)
+        - integrated lock lifecycle into CLI init/apply/repair/install/remove commands
+        - 14 core tests + 9 CLI integration tests added
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+        total_tests: 212
 
 next_execution_targets: []
 

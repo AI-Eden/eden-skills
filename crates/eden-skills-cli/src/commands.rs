@@ -19,6 +19,9 @@ use eden_skills_core::config::{
 use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::discovery::{discover_skills, DiscoveredSkill};
 use eden_skills_core::error::EdenError;
+use eden_skills_core::lock::{
+    build_lock_from_config, lock_path_for_config, write_lock_file, LockFile,
+};
 use eden_skills_core::paths::{
     known_default_agent_paths, normalize_lexical, resolve_path_string, resolve_target_path,
 };
@@ -394,6 +397,10 @@ async fn install_registry_mode_async(
     }
 
     execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
+
+    let full_loaded = load_from_file(config_path, LoadOptions { strict: false })?;
+    write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
+
     print_install_success(req.options.json, skill_name, &requested_constraint, ui)?;
     Ok(())
 }
@@ -540,6 +547,9 @@ async fn install_remote_url_mode_async(
         execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
     }
 
+    let full_loaded = load_from_file(config_path, LoadOptions { strict: false })?;
+    write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
+
     if req.options.json {
         let payload = serde_json::json!({
             "skills": selected_ids,
@@ -675,6 +685,9 @@ async fn install_local_url_mode_async(
         let single = select_single_skill_config(&selected_config, skill_id)?;
         install_local_source_skill(&single, &config_dir, req.options.strict)?;
     }
+
+    let full_loaded = load_from_file(config_path, LoadOptions { strict: false })?;
+    write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
 
     if req.options.json {
         let payload = serde_json::json!({
@@ -1438,6 +1451,8 @@ pub async fn apply_async(
         )));
     }
 
+    write_lock_for_config(config_path, &execution_config, &config_dir)?;
+
     println!("apply verification: ok");
     Ok(())
 }
@@ -2006,6 +2021,8 @@ pub async fn repair_async(
         )));
     }
 
+    write_lock_for_config(config_path, &execution_config, &config_dir)?;
+
     println!("repair verification: ok");
     Ok(())
 }
@@ -2514,6 +2531,10 @@ pub fn init(config_path: &str, force: bool) -> Result<(), EdenError> {
     }
 
     fs::write(&config_path, default_config_template())?;
+
+    let lock_path = lock_path_for_config(&config_path);
+    write_lock_file(&lock_path, &LockFile::empty())?;
+
     println!("init: wrote {}", config_path.display());
     Ok(())
 }
@@ -2732,6 +2753,7 @@ pub async fn remove_async(
     config.skills.remove(idx);
     validate_config(&config, &config_dir)?;
     write_normalized_config(config_path, &config)?;
+    write_lock_for_config(config_path, &config, &config_dir)?;
 
     if options.json {
         let payload = serde_json::json!({
@@ -3189,6 +3211,16 @@ fn normalized_target_toml(target: &TargetConfig) -> String {
 
 fn toml_escape_str(value: &str) -> String {
     value.replace('\\', "\\\\").replace('\"', "\\\"")
+}
+
+fn write_lock_for_config(
+    config_path: &Path,
+    config: &Config,
+    config_dir: &Path,
+) -> Result<(), EdenError> {
+    let lock_path = lock_path_for_config(config_path);
+    let lock = build_lock_from_config(config, config_dir, &std::collections::HashMap::new())?;
+    write_lock_file(&lock_path, &lock)
 }
 
 fn apply_plan_item(item: &PlanItem) -> Result<(), EdenError> {

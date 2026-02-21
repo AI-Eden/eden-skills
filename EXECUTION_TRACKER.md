@@ -60,7 +60,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 - [x] Phase 2 closeout matrix re-verified on all targets (`CI` run `22176017545`: `ubuntu-latest`, `macos-latest`, `windows-latest`).
 
-Current automated tests: `172` (workspace unit/integration-style tests).
+Current automated tests: `212` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -286,3 +286,15 @@ Key architectural decisions for Builder reference:
 11. Phase 2.5 closeout readiness + tagged release dry-run is complete with quality gate pass. Added release-smoke contract regression for `eden-skills --help` success semantics (`distribution_tests`); validated local host-target archive packaging + checksum generation + smoke sequence (`--help`, `init`, `install ... --all`); gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`.
 
 12. Next recommended execution target: repository public-readiness checklist and first real tag release execution.
+
+## 9. Phase 2.7 Builder State
+
+### 9.1 Batch Progress
+
+1. Batch 1 (WP-1 part 1 — Lock File Core) is complete with quality gate pass:
+   - Requirements: `LCK-002`, `LCK-003`, `LCK-004`, `LCK-005`, `LCK-006`, `LCK-009`
+   - Scenarios: `TM-P27-001`, `TM-P27-002`, `TM-P27-003`, `TM-P27-006`, `TM-P27-007`, `TM-P27-008`, `TM-P27-009`, `TM-P27-012`
+   - New module: `eden-skills-core/src/lock.rs` (LockFile/LockSkillEntry/LockTarget types, lock path derivation, read/write with missing/corrupted fallback, sorted serialization)
+   - CLI integration: lock file written after init, apply, repair, install, and remove commands
+   - Tests: 14 core + 9 CLI integration = 23 new tests
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (212 total tests)
