@@ -58,7 +58,7 @@ Commands MUST be organized into logical groups using clap `help_heading`.
 The following groups and ordering are normative:
 
 ```text
-Install & Update:
+Quick Management:
   install   Install skills from a URL, path, or registry
   update    Refresh registry sources
   remove    Uninstall a skill and clean up its files
@@ -216,7 +216,7 @@ scope. The `-h` short flag is reserved for `--help` by clap.
 | **HLP-002** | Builder | **P0** | Root `--help` MUST show version, about text, grouped commands, and examples. | `eden-skills --help` contains all Section 3 elements. |
 | **HLP-003** | Builder | **P0** | Every subcommand MUST have an `about` description per Section 4 table. | Each `eden-skills <cmd> --help` shows the documented about text. |
 | **HLP-004** | Builder | **P0** | Every argument and option MUST have a `help` annotation per Section 5. | No `--help` output contains blank description fields. |
-| **HLP-005** | Builder | **P0** | Commands MUST be grouped with headings per Section 3.2. | `--help` output shows `Install & Update`, `State Reconciliation`, `Configuration` groups. |
+| **HLP-005** | Builder | **P0** | Commands MUST be grouped with headings per Section 3.2. | `--help` output shows `Quick Management`, `State Reconciliation`, `Configuration` groups. |
 | **HLP-006** | Builder | **P1** | Short flags `-s`, `-t`, `-y`, `-V` MUST be available per Section 6. | `eden-skills install -s browser-tool -t cursor -y ...` succeeds. |
 | **HLP-007** | Builder | **P1** | `install` MUST accept `--copy` flag to set install mode. | `eden-skills install owner/repo --copy` persists `install.mode = "copy"`. |
 

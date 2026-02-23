@@ -28,13 +28,12 @@ fn root_help_contains_version_about_groups_and_examples() {
         "root help should include version header, stdout={stdout}"
     );
     assert!(
-        stdout
-            .contains("Deterministic skill installation and reconciliation for agent environments"),
+        stdout.contains("Deterministic & Blazing-Fast Skills Manager for AI Agents"),
         "root help should include about text, stdout={stdout}"
     );
     assert!(
-        stdout.contains("Install & Update:"),
-        "root help should include Install & Update group, stdout={stdout}"
+        stdout.contains("Quick Management:"),
+        "root help should include Quick Management group, stdout={stdout}"
     );
     assert!(
         stdout.contains("State Reconciliation:"),

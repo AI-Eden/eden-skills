@@ -179,16 +179,18 @@ pub fn exit_code_for_error(err: &EdenError) -> u8 {
     }
 }
 
+const AFTER_HELP: &str = "Quick Management:\n  install   Install skills from a URL, path, or registry\n  update    Refresh registry sources\n  remove    Uninstall a skill and clean up its files\n\nState Reconciliation:\n  plan      Preview planned actions without making changes\n  apply     Reconcile installed state with configuration\n  doctor    Diagnose configuration and installation health\n  repair    Auto-repair drifted or broken installations\n\nConfiguration:\n  init      Create a new skills.toml configuration file\n  list      List configured skills and their targets\n  add       Add a skill entry to skills.toml\n  set       Modify properties of an existing skill entry\n  config    Export or import configuration\n\nExamples:\n  eden-skills install vercel-labs/agent-skills    Install skills from GitHub\n  eden-skills install ./my-local-skill            Install from local path\n  eden-skills list                                Show configured skills\n  eden-skills doctor                              Check installation health\n\nDocumentation: https://github.com/AI-Eden/eden-skills";
+
 #[derive(Debug, Parser)]
 #[command(name = "eden-skills")]
 #[command(version)]
-#[command(about = "Deterministic skill installation and reconciliation for agent environments")]
+#[command(about = "Deterministic & Blazing-Fast Skills Manager for AI Agents.")]
 #[command(before_help = concat!("eden-skills ", env!("CARGO_PKG_VERSION")))]
 #[command(
-    long_about = "Deterministic skill installation and reconciliation for agent environments. eden-skills manages the full lifecycle of agent skills through a configuration-driven workflow. Use plan, apply, doctor, and repair to preview, reconcile, and validate installed state across targets."
+    long_about = "Deterministic & Blazing-Fast Skills Manager for AI Agents (Claude Code, Cursor, Codex & More)."
 )]
 #[command(
-    after_help = "Install & Update:\n  install   Install skills from a URL, path, or registry\n  update    Refresh registry sources\n  remove    Uninstall a skill and clean up its files\n\nState Reconciliation:\n  plan      Preview planned actions without making changes\n  apply     Reconcile installed state with configuration\n  doctor    Diagnose configuration and installation health\n  repair    Auto-repair drifted or broken installations\n\nConfiguration:\n  init      Create a new skills.toml configuration file\n  list      List configured skills and their targets\n  add       Add a skill entry to skills.toml\n  set       Modify properties of an existing skill entry\n  config    Export or import configuration\n\nExamples:\n  eden-skills install vercel-labs/agent-skills    Install skills from GitHub\n  eden-skills install ./my-local-skill            Install from local path\n  eden-skills list                                Show configured skills\n  eden-skills doctor                              Check installation health\n\nDocumentation: https://github.com/AI-Eden/eden-skills"
+    after_help = AFTER_HELP
 )]
 #[command(disable_help_subcommand = true)]
 struct Cli {
@@ -200,17 +202,17 @@ struct Cli {
 enum Commands {
     #[command(
         about = "Install skills from a URL, path, or registry",
-        next_help_heading = "Install & Update"
+        next_help_heading = "Quick Management"
     )]
     Install(InstallArgs),
     #[command(
         about = "Refresh registry sources to latest versions",
-        next_help_heading = "Install & Update"
+        next_help_heading = "Quick Management"
     )]
     Update(UpdateArgs),
     #[command(
         about = "Uninstall a skill and clean up its files",
-        next_help_heading = "Install & Update"
+        next_help_heading = "Quick Management"
     )]
     Remove(RemoveArgs),
     #[command(

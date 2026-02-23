@@ -122,7 +122,7 @@ Docker is NOT required for Phase 2.7 tests.
 - `eden-skills --help` output contains:
   - Version string in header.
   - `Deterministic skill installation` in about text.
-  - Command group headings: `Install & Update`, `State Reconciliation`,
+  - Command group headings: `Quick Management`, `State Reconciliation`,
     `Configuration`.
   - After-help examples section.
 
