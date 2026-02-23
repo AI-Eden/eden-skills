@@ -71,11 +71,13 @@ pub struct InstallRequest {
     pub r#ref: Option<String>,
     pub skill: Vec<String>,
     pub all: bool,
+    pub yes: bool,
     pub list: bool,
     pub version: Option<String>,
     pub registry: Option<String>,
     pub target: Vec<String>,
     pub dry_run: bool,
+    pub copy: bool,
     pub options: CommandOptions,
 }
 
@@ -373,6 +375,7 @@ async fn install_registry_mode_async(
         &requested_constraint,
         req.registry.as_deref(),
         &req.target,
+        requested_install_mode(req.copy),
     )?;
     validate_config(&config, &config_dir)?;
 
@@ -489,6 +492,7 @@ async fn install_remote_url_mode_async(
         &discovered,
         req.all,
         &req.skill,
+        req.yes,
         ui.interactive_enabled(),
     )?;
     let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
@@ -520,6 +524,7 @@ async fn install_remote_url_mode_async(
             &effective_subpath,
             &source_ref,
             &resolved_targets,
+            requested_install_mode(req.copy),
         )?;
         selected_ids.push(skill_id);
     }
@@ -631,6 +636,7 @@ async fn install_local_url_mode_async(
         &discovered,
         req.all,
         &req.skill,
+        req.yes,
         ui.interactive_enabled(),
     )?;
     let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
@@ -666,6 +672,7 @@ async fn install_local_url_mode_async(
             &effective_subpath,
             &source_ref,
             &resolved_targets,
+            requested_install_mode(req.copy),
         )?;
         selected_ids.push(skill_id);
     }
@@ -839,9 +846,10 @@ fn resolve_local_install_selection(
     discovered: &[DiscoveredSkill],
     all: bool,
     named: &[String],
+    yes: bool,
     is_tty: bool,
 ) -> Result<Vec<DiscoveredSkill>, EdenError> {
-    if all {
+    if all || yes {
         return Ok(discovered.to_vec());
     }
 
@@ -2232,8 +2240,9 @@ fn upsert_mode_b_skill(
     version_constraint: &str,
     registry: Option<&str>,
     target_specs: &[String],
+    install_mode_override: Option<InstallMode>,
 ) -> Result<(), EdenError> {
-    let install_mode = default_install_mode();
+    let install_mode = install_mode_override.unwrap_or_else(default_install_mode);
     let target_override = match target_specs {
         [] => None,
         [spec] => Some(parse_install_target_spec(spec)?),
@@ -2252,6 +2261,9 @@ fn upsert_mode_b_skill(
             subpath: ".".to_string(),
             r#ref: version_constraint.to_string(),
         };
+        skill.install.mode = install_mode;
+        skill.verify.enabled = true;
+        skill.verify.checks = default_verify_checks_for_mode(install_mode);
         if let Some(target) = target_override {
             skill.targets = vec![target];
         }
@@ -2291,8 +2303,9 @@ fn upsert_mode_a_skill(
     subpath: &str,
     reference: &str,
     targets: &[TargetConfig],
+    install_mode_override: Option<InstallMode>,
 ) -> Result<(), EdenError> {
-    let install_mode = default_install_mode();
+    let install_mode = install_mode_override.unwrap_or_else(default_install_mode);
     let effective_targets = if targets.is_empty() {
         vec![default_install_target()]
     } else {
@@ -2304,6 +2317,9 @@ fn upsert_mode_a_skill(
             subpath: subpath.to_string(),
             r#ref: reference.to_string(),
         };
+        skill.install.mode = install_mode;
+        skill.verify.enabled = true;
+        skill.verify.checks = default_verify_checks_for_mode(install_mode);
         skill.targets = effective_targets;
         return Ok(());
     }
@@ -2339,6 +2355,14 @@ fn default_install_target() -> TargetConfig {
 
 fn default_install_mode() -> InstallMode {
     resolve_default_install_mode_decision().mode
+}
+
+fn requested_install_mode(copy: bool) -> Option<InstallMode> {
+    if copy {
+        Some(InstallMode::Copy)
+    } else {
+        None
+    }
 }
 
 fn resolve_default_install_mode_decision() -> DefaultInstallModeDecision {

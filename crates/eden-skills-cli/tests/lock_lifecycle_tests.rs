@@ -205,11 +205,13 @@ async fn install_creates_lock_file() {
             r#ref: None,
             skill: vec![],
             all: true,
+            yes: false,
             list: false,
             version: None,
             registry: None,
             target: vec!["custom:".to_string() + dir.path().join("tgt").to_str().unwrap()],
             dry_run: false,
+            copy: false,
             options: default_options(),
         })
         .await;

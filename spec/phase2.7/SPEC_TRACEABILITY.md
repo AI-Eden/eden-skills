@@ -25,13 +25,13 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| HLP-001 | `SPEC_HELP_SYSTEM.md` 2.1 | Root CLI MUST support `--version` / `-V` | | | pending |
-| HLP-002 | `SPEC_HELP_SYSTEM.md` 3 | Root `--help` MUST show version, about, groups, examples | | | pending |
-| HLP-003 | `SPEC_HELP_SYSTEM.md` 4 | Every subcommand MUST have an `about` description | | | pending |
-| HLP-004 | `SPEC_HELP_SYSTEM.md` 5 | Every argument MUST have a `help` annotation | | | pending |
-| HLP-005 | `SPEC_HELP_SYSTEM.md` 3.2 | Commands MUST be grouped with headings | | | pending |
-| HLP-006 | `SPEC_HELP_SYSTEM.md` 6 | Short flags `-s`, `-t`, `-y`, `-V` MUST be available | | | pending |
-| HLP-007 | `SPEC_HELP_SYSTEM.md` 5.2 | `install` MUST accept `--copy` flag | | | pending |
+| HLP-001 | `SPEC_HELP_SYSTEM.md` 2.1 | Root CLI MUST support `--version` / `-V` | `eden-skills-cli/src/lib.rs` (`#[command(version)]`) | `help_system_tests::version_flag_and_short_alias_print_package_version` | done |
+| HLP-002 | `SPEC_HELP_SYSTEM.md` 3 | Root `--help` MUST show version, about, groups, examples | `eden-skills-cli/src/lib.rs` (`about`, `long_about`, `after_help`, `before_help`) | `help_system_tests::root_help_contains_version_about_groups_and_examples` | done |
+| HLP-003 | `SPEC_HELP_SYSTEM.md` 4 | Every subcommand MUST have an `about` description | `eden-skills-cli/src/lib.rs` (`#[command(about = "...")]` on Commands and ConfigSubcommand) | `help_system_tests::subcommands_include_normative_about_descriptions` | done |
+| HLP-004 | `SPEC_HELP_SYSTEM.md` 5 | Every argument MUST have a `help` annotation | `eden-skills-cli/src/lib.rs` (`#[arg(help = "...")]` on all args) | `help_system_tests::install_help_shows_argument_descriptions` | done |
+| HLP-005 | `SPEC_HELP_SYSTEM.md` 3.2 | Commands MUST be grouped with headings | `eden-skills-cli/src/lib.rs` (`next_help_heading` on subcommands, grouped text in `after_help`) | `help_system_tests::root_help_contains_version_about_groups_and_examples` | done |
+| HLP-006 | `SPEC_HELP_SYSTEM.md` 6 | Short flags `-s`, `-t`, `-y`, `-V` MUST be available | `eden-skills-cli/src/lib.rs` (`short = 's'`, `short = 't'`, `short = 'y'`, `-V` via version) | `help_system_tests::short_flags_are_accepted_for_install_and_root_version` | done |
+| HLP-007 | `SPEC_HELP_SYSTEM.md` 5.2 | `install` MUST accept `--copy` flag | `eden-skills-cli/src/lib.rs` (InstallArgs.copy), `commands.rs` (InstallRequest.copy, requested_install_mode, upsert_mode_a/b) | `help_system_tests::install_copy_flag_persists_copy_mode_and_copy_verify_defaults` | done |
 
 ## 3. Output Polish Requirements
 
@@ -75,12 +75,12 @@ Use this file to recover accurate context after compression.
 | TM-P27-013 | `SPEC_TEST_MATRIX.md` 2 | Repair updates lock | | pending |
 | TM-P27-014 | `SPEC_TEST_MATRIX.md` 2 | Apply remove with Docker target | | pending |
 | TM-P27-015 | `SPEC_TEST_MATRIX.md` 2 | Strict mode does not block removals | `lock_diff_tests::strict_mode_does_not_block_removals` | done |
-| TM-P27-016 | `SPEC_TEST_MATRIX.md` 3 | Version flag | | pending |
-| TM-P27-017 | `SPEC_TEST_MATRIX.md` 3 | Root help contains version and groups | | pending |
-| TM-P27-018 | `SPEC_TEST_MATRIX.md` 3 | Subcommand help has description | | pending |
-| TM-P27-019 | `SPEC_TEST_MATRIX.md` 3 | Argument help has description | | pending |
-| TM-P27-020 | `SPEC_TEST_MATRIX.md` 3 | Short flags work | | pending |
-| TM-P27-021 | `SPEC_TEST_MATRIX.md` 3 | Install copy flag | | pending |
+| TM-P27-016 | `SPEC_TEST_MATRIX.md` 3 | Version flag | `help_system_tests::version_flag_and_short_alias_print_package_version` | done |
+| TM-P27-017 | `SPEC_TEST_MATRIX.md` 3 | Root help contains version and groups | `help_system_tests::root_help_contains_version_about_groups_and_examples` | done |
+| TM-P27-018 | `SPEC_TEST_MATRIX.md` 3 | Subcommand help has description | `help_system_tests::subcommands_include_normative_about_descriptions` | done |
+| TM-P27-019 | `SPEC_TEST_MATRIX.md` 3 | Argument help has description | `help_system_tests::install_help_shows_argument_descriptions` | done |
+| TM-P27-020 | `SPEC_TEST_MATRIX.md` 3 | Short flags work | `help_system_tests::short_flags_are_accepted_for_install_and_root_version` | done |
+| TM-P27-021 | `SPEC_TEST_MATRIX.md` 3 | Install copy flag | `help_system_tests::install_copy_flag_persists_copy_mode_and_copy_verify_defaults` | done |
 | TM-P27-022 | `SPEC_TEST_MATRIX.md` 4 | No hardcoded ANSI in source | | pending |
 | TM-P27-023 | `SPEC_TEST_MATRIX.md` 4 | Console crate removed | | pending |
 | TM-P27-024 | `SPEC_TEST_MATRIX.md` 4 | Color flag auto | | pending |
