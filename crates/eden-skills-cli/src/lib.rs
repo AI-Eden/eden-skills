@@ -179,7 +179,31 @@ pub fn exit_code_for_error(err: &EdenError) -> u8 {
     }
 }
 
-const AFTER_HELP: &str = "Quick Management:\n  install   Install skills from a URL, path, or registry\n  update    Refresh registry sources\n  remove    Uninstall a skill and clean up its files\n\nState Reconciliation:\n  plan      Preview planned actions without making changes\n  apply     Reconcile installed state with configuration\n  doctor    Diagnose configuration and installation health\n  repair    Auto-repair drifted or broken installations\n\nConfiguration:\n  init      Create a new skills.toml configuration file\n  list      List configured skills and their targets\n  add       Add a skill entry to skills.toml\n  set       Modify properties of an existing skill entry\n  config    Export or import configuration\n\nExamples:\n  eden-skills install vercel-labs/agent-skills    Install skills from GitHub\n  eden-skills install ./my-local-skill            Install from local path\n  eden-skills list                                Show configured skills\n  eden-skills doctor                              Check installation health\n\nDocumentation: https://github.com/AI-Eden/eden-skills";
+const READABLE_AFTER_HELP: &str = r#"Quick Management:
+  install   Install skills from a URL, path, or registry
+  update    Refresh registry sources
+  remove    Uninstall a skill and clean up its files
+
+State Reconciliation:
+  plan      Preview planned actions without making changes
+  apply     Reconcile installed state with configuration
+  doctor    Diagnose configuration and installation health
+  repair    Auto-repair drifted or broken installations
+
+Configuration:
+  init      Create a new skills.toml configuration file
+  list      List configured skills and their targets
+  add       Add a skill entry to skills.toml
+  set       Modify properties of an existing skill entry
+  config    Export or import configuration
+  
+Examples:
+  eden-skills install vercel-labs/agent-skills    Install skills from GitHub
+  eden-skills install ./my-local-skill            Install from local path
+  eden-skills list                                Show configured skills
+  eden-skills doctor                              Check installation health
+
+Documentation: https://github.com/AI-Eden/eden-skills"#;
 
 #[derive(Debug, Parser)]
 #[command(name = "eden-skills")]
@@ -190,7 +214,7 @@ const AFTER_HELP: &str = "Quick Management:\n  install   Install skills from a U
     long_about = "Deterministic & Blazing-Fast Skills Manager for AI Agents (Claude Code, Cursor, Codex & More)."
 )]
 #[command(
-    after_help = AFTER_HELP
+    after_help = READABLE_AFTER_HELP
 )]
 #[command(disable_help_subcommand = true)]
 struct Cli {
