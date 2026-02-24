@@ -174,6 +174,7 @@ root = "{}"
             targets: vec![LockTarget {
                 agent: "claude-code".to_string(),
                 path: target.join("orphan-skill").display().to_string(),
+                environment: "local".to_string(),
             }],
         }],
     };
@@ -214,6 +215,7 @@ root = "{}"
             targets: vec![LockTarget {
                 agent: "cursor".to_string(),
                 path: "/tmp/orphan".to_string(),
+                environment: "local".to_string(),
             }],
         }],
     };
@@ -393,5 +395,144 @@ root = "{}"
     assert!(
         lock.skills.is_empty(),
         "removed skill should be gone from lock"
+    );
+}
+
+// ---------------------------------------------------------------------------
+// TM-P27-014: Apply remove with Docker target in lock
+// ---------------------------------------------------------------------------
+
+#[cfg(unix)]
+#[tokio::test]
+async fn apply_removes_orphaned_docker_target_from_lock() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let dir = tempfile::tempdir().unwrap();
+    let storage = dir.path().join("storage");
+    let target = dir.path().join("target");
+    fs::create_dir_all(&target).unwrap();
+
+    let origin = common::init_origin_repo(dir.path());
+    let repo_url = common::as_file_url(&origin);
+
+    let config_content = format!(
+        r#"version = 1
+
+[storage]
+root = "{storage}"
+
+[[skills]]
+id = "skill-a"
+[skills.source]
+repo = "{repo}"
+subpath = "packages/browser"
+ref = "main"
+[skills.install]
+mode = "symlink"
+[[skills.targets]]
+agent = "custom"
+path = "{target}"
+[skills.verify]
+enabled = true
+checks = ["path-exists", "target-resolves", "is-symlink"]
+"#,
+        storage = toml_escape(&storage),
+        repo = toml_escape_str(&repo_url),
+        target = toml_escape(&target),
+    );
+
+    let config_path = dir.path().join("skills.toml");
+    fs::write(&config_path, config_content).unwrap();
+
+    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
+        .await
+        .unwrap();
+
+    let orphan_skill_id = "docker-orphan";
+    let orphan_storage_dir = storage.join(orphan_skill_id);
+    fs::create_dir_all(&orphan_storage_dir).unwrap();
+
+    let fake_bin_dir = dir.path().join("fake-bin");
+    fs::create_dir_all(&fake_bin_dir).unwrap();
+    let docker_calls = dir.path().join("docker-calls.log");
+    let docker_stub = fake_bin_dir.join("docker");
+    let script = format!(
+        r#"#!/bin/sh
+set -eu
+echo "$@" >> "{}"
+if [ "$1" = "--version" ]; then
+  echo "Docker version 27.0.0"
+  exit 0
+fi
+if [ "$1" = "inspect" ]; then
+  echo "true"
+  exit 0
+fi
+if [ "$1" = "exec" ]; then
+  exit 0
+fi
+echo "unsupported docker call: $@" >&2
+exit 1
+"#,
+        toml_escape(&docker_calls)
+    );
+    fs::write(&docker_stub, script).unwrap();
+    let mut perms = fs::metadata(&docker_stub).unwrap().permissions();
+    perms.set_mode(0o755);
+    fs::set_permissions(&docker_stub, perms).unwrap();
+
+    let lock_path = lock_path_for_config(&config_path);
+    let mut lock = read_lock_file(&lock_path).unwrap().unwrap();
+    lock.skills.push(LockSkillEntry {
+        id: orphan_skill_id.to_string(),
+        source_repo: "https://example.com/orphan.git".to_string(),
+        source_subpath: ".".to_string(),
+        source_ref: "main".to_string(),
+        resolved_commit: "".to_string(),
+        resolved_version: None,
+        install_mode: "copy".to_string(),
+        installed_at: "2026-02-21T10:00:00Z".to_string(),
+        targets: vec![LockTarget {
+            agent: "custom".to_string(),
+            path: "/tmp/docker-orphan".to_string(),
+            environment: "docker:test-container".to_string(),
+        }],
+    });
+    write_lock_file(&lock_path, &lock).unwrap();
+
+    let original_path = std::env::var_os("PATH").unwrap_or_default();
+    let mut merged_path = std::ffi::OsString::new();
+    merged_path.push(fake_bin_dir.as_os_str());
+    merged_path.push(":");
+    merged_path.push(original_path.clone());
+    std::env::set_var("PATH", merged_path);
+
+    let result = eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+    )
+    .await;
+
+    std::env::set_var("PATH", original_path);
+    assert!(
+        result.is_ok(),
+        "apply should remove docker orphan: {result:?}"
+    );
+
+    let lock_after = read_lock_file(&lock_path).unwrap().unwrap();
+    assert!(
+        lock_after.skills.iter().all(|s| s.id != orphan_skill_id),
+        "docker orphan should be removed from lock"
+    );
+    assert!(
+        !orphan_storage_dir.exists(),
+        "docker orphan storage should be removed"
+    );
+
+    let docker_trace = fs::read_to_string(&docker_calls).unwrap_or_default();
+    assert!(
+        docker_trace.contains("exec test-container sh -c rm -rf \"/tmp/docker-orphan\""),
+        "expected docker uninstall command in trace, got: {docker_trace}"
     );
 }

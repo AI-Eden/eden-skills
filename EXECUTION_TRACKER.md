@@ -5,7 +5,7 @@ This file quantifies implementation progress and enforces model responsibility b
 
 ## 1. Snapshot
 
-- Date: 2026-02-24
+- Date: 2026-02-25
 - Workspace: `eden-skills`
 - Primary implementation model this cycle: `GPT-5 Codex (Builder)`
 
@@ -60,7 +60,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 - [x] Phase 2 closeout matrix re-verified on all targets (`CI` run `22176017545`: `ubuntu-latest`, `macos-latest`, `windows-latest`).
 
-Current automated tests: `232` (workspace unit/integration-style tests).
+Current automated tests: `234` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -122,6 +122,7 @@ Current automated tests: `232` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.5 post-Batch 6 agent support expansion: aligned supported `--target` aliases with skills.sh Supported Agents set, adopted project-path-derived global path defaults for new agents, expanded auto-detection rule coverage, staged local-path installs into canonical storage root before fan-out, added remove-time cleanup scans across known local agent roots + canonical storage, migrated default `storage.root` to `~/.eden-skills/skills`, added Windows no-symlink hardcopy fallback warning behavior for `install`, and added regression tests for alias parsing/path resolution/detection/cleanup.
 - [x] Completed Phase 2.5 closeout readiness + tagged release dry-run: fixed `--help` non-zero exit regression that would break release smoke checks, added release-smoke contract test coverage, and validated local host-target release packaging + checksum + smoke sequence.
 - [x] Completed Phase 2.7 Batch 3 (WP-2 — Help System): `HLP-001`~`HLP-007`; `--version`/`-V`, root `about`/`long_about`/`after_help`, subcommand `about`, argument `help`, `next_help_heading` groupings, short flags `-s`/`-t`/`-y`/`-V`, `install --copy`; `help_system_tests.rs` (TM-P27-016~021).
+- [x] Completed Phase 2.7 WP-1 tail completion (`TM-P27-013`, `TM-P27-014`) with TDD: added repair lock refresh test and docker-target orphan remove test; extended lock target schema with `environment` (default `local`) and switched orphan uninstall to adapter selection by lock target environment.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -312,3 +313,9 @@ Key architectural decisions for Builder reference:
    - Additions: `#[command(version)]` and `-V` for root CLI; `about`/`long_about`/`after_help` for root; `next_help_heading` and `about` for all subcommands; `help` annotations for all arguments; short flags `-s`/`-t`/`-y`/`-V`; `install --copy` with `InstallRequest.copy` and `yes` wiring
    - Tests: `help_system_tests.rs` (6 new tests covering version, root help, subcommand about, argument help, short flags, install --copy)
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (232 total tests)
+4. WP-1 tail completion (`TM-P27-013`, `TM-P27-014`) is complete with quality gate pass:
+   - Scenarios: `TM-P27-013` (repair updates lock), `TM-P27-014` (apply remove with docker target in lock)
+   - Additions: `lock_lifecycle_tests::repair_updates_lock_file_after_fixing_broken_symlink`, `lock_diff_tests::apply_removes_orphaned_docker_target_from_lock`
+   - Implementation updates: `LockTarget.environment` added to lock schema (`local` default, omitted when local), lock diff target comparison now includes environment, and orphan remove path now uses lock target environment for adapter selection
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (234 total tests)
+   - Sandbox note: gate executed with writable HOME override (`HOME=/tmp/eden-skills-home`) to avoid sandbox default HOME permission failures in install-path tests.

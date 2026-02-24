@@ -62,10 +62,12 @@ fn lock_file_round_trip_serialization() {
                 LockTarget {
                     agent: "claude-code".to_string(),
                     path: "~/.claude/skills/browser-tool".to_string(),
+                    environment: "local".to_string(),
                 },
                 LockTarget {
                     agent: "cursor".to_string(),
                     path: "~/.cursor/skills/browser-tool".to_string(),
+                    environment: "local".to_string(),
                 },
             ],
         }],
@@ -103,6 +105,7 @@ fn lock_file_contains_all_required_fields() {
             targets: vec![LockTarget {
                 agent: "claude-code".to_string(),
                 path: "~/.claude/skills/test-skill".to_string(),
+                environment: "local".to_string(),
             }],
         }],
     };
@@ -141,6 +144,7 @@ fn lock_file_omits_resolved_version_when_none() {
             targets: vec![LockTarget {
                 agent: "cursor".to_string(),
                 path: "~/.cursor/skills/url-skill".to_string(),
+                environment: "local".to_string(),
             }],
         }],
     };
@@ -212,10 +216,12 @@ fn lock_targets_sorted_alphabetically_by_agent() {
                 LockTarget {
                     agent: "cursor".to_string(),
                     path: "/cursor/skill-a".to_string(),
+                    environment: "local".to_string(),
                 },
                 LockTarget {
                     agent: "claude-code".to_string(),
                     path: "/claude/skill-a".to_string(),
+                    environment: "local".to_string(),
                 },
             ],
         }],
@@ -300,6 +306,7 @@ fn make_entry(id: &str) -> LockSkillEntry {
         targets: vec![LockTarget {
             agent: "claude-code".to_string(),
             path: format!("/skills/{id}"),
+            environment: "local".to_string(),
         }],
     }
 }

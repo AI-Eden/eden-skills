@@ -4,7 +4,7 @@ use std::fs;
 use std::path::Path;
 
 use eden_skills_cli::commands::CommandOptions;
-use eden_skills_core::lock::{lock_path_for_config, read_lock_file, LOCK_VERSION};
+use eden_skills_core::lock::{lock_path_for_config, read_lock_file, write_lock_file, LOCK_VERSION};
 
 fn default_options() -> CommandOptions {
     CommandOptions {
@@ -270,6 +270,59 @@ async fn remove_updates_lock_file() {
         lock_after.skills.is_empty(),
         "lock should have no skills after remove"
     );
+}
+
+// ---------------------------------------------------------------------------
+// TM-P27-013: Repair updates lock
+// ---------------------------------------------------------------------------
+
+#[tokio::test]
+async fn repair_updates_lock_file_after_fixing_broken_symlink() {
+    let dir = tempfile::tempdir().unwrap();
+    let storage = dir.path().join("storage");
+    let target = dir.path().join("target");
+    fs::create_dir_all(&target).unwrap();
+
+    let origin = common::init_origin_repo(dir.path());
+    let repo_url = common::as_file_url(&origin);
+    let config_path = common::write_config(
+        dir.path(),
+        &repo_url,
+        "symlink",
+        &["path-exists", "target-resolves", "is-symlink"],
+        &storage,
+        &target,
+    );
+
+    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
+        .await
+        .unwrap();
+
+    let lock_path = lock_path_for_config(&config_path);
+    let mut lock_before = read_lock_file(&lock_path).unwrap().unwrap();
+    assert_eq!(lock_before.skills.len(), 1);
+    lock_before.skills[0].installed_at = "1970-01-01T00:00:00Z".to_string();
+    write_lock_file(&lock_path, &lock_before).unwrap();
+
+    let target_path = target.join(common::SKILL_ID);
+    common::remove_symlink(&target_path).unwrap();
+    let broken_target = dir.path().join("missing-source");
+    common::create_symlink(&broken_target, &target_path).unwrap();
+
+    eden_skills_cli::commands::repair_async(config_path.to_str().unwrap(), default_options(), None)
+        .await
+        .unwrap();
+
+    assert_eq!(
+        common::resolved_symlink(&target_path),
+        common::expected_source_path(&storage),
+        "repair should restore the expected source symlink"
+    );
+
+    let lock_after = read_lock_file(&lock_path).unwrap().unwrap();
+    assert_eq!(lock_after.skills.len(), 1);
+    assert_eq!(lock_after.skills[0].id, common::SKILL_ID);
+    assert_ne!(lock_after.skills[0].installed_at, "1970-01-01T00:00:00Z");
 }
 
 // ---------------------------------------------------------------------------

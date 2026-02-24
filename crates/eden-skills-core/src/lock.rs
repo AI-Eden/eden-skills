@@ -35,6 +35,11 @@ pub struct LockSkillEntry {
 pub struct LockTarget {
     pub agent: String,
     pub path: String,
+    #[serde(
+        default = "default_lock_environment",
+        skip_serializing_if = "is_local_environment"
+    )]
+    pub environment: String,
 }
 
 impl LockFile {
@@ -115,6 +120,7 @@ pub fn build_lock_from_config(
             targets.push(LockTarget {
                 agent: target.agent.as_str().to_string(),
                 path: target_path.display().to_string(),
+                environment: target.environment.clone(),
             });
         }
 
@@ -237,21 +243,22 @@ fn skill_config_differs_from_lock(
         return Ok(true);
     }
 
-    let mut config_targets: Vec<(String, String)> = Vec::with_capacity(skill.targets.len());
+    let mut config_targets: Vec<(String, String, String)> = Vec::with_capacity(skill.targets.len());
     for target in &skill.targets {
         let target_root = resolve_target_path(target, config_dir)?;
         let target_path = target_root.join(&skill.id);
         config_targets.push((
             target.agent.as_str().to_string(),
             target_path.display().to_string(),
+            target.environment.clone(),
         ));
     }
     config_targets.sort();
 
-    let mut lock_targets: Vec<(String, String)> = lock_entry
+    let mut lock_targets: Vec<(String, String, String)> = lock_entry
         .targets
         .iter()
-        .map(|t| (t.agent.clone(), t.path.clone()))
+        .map(|t| (t.agent.clone(), t.path.clone(), t.environment.clone()))
         .collect();
     lock_targets.sort();
 
@@ -308,4 +315,12 @@ fn days_to_ymd(mut days: u64) -> (i32, u32, u32) {
 
 fn is_leap_year(year: i32) -> bool {
     (year % 4 == 0 && year % 100 != 0) || (year % 400 == 0)
+}
+
+fn default_lock_environment() -> String {
+    "local".to_string()
+}
+
+fn is_local_environment(environment: &String) -> bool {
+    environment == "local"
 }

@@ -3347,7 +3347,7 @@ async fn uninstall_orphaned_lock_entries(
     for entry in removed {
         for target in &entry.targets {
             let target_path = PathBuf::from(&target.path);
-            let adapter = create_adapter("local").map_err(EdenError::from)?;
+            let adapter = create_adapter(&target.environment).map_err(EdenError::from)?;
             adapter
                 .uninstall(&target_path)
                 .await

@@ -63,6 +63,7 @@ fn make_lock_entry_with_target(
         targets: vec![LockTarget {
             agent: "custom".to_string(),
             path: resolved_target.to_string(),
+            environment: "local".to_string(),
         }],
     }
 }

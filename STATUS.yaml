@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: "2026-02-24"
+updated_at: "2026-02-25"
 project:
   name: eden-skills
   phase: phase27_ux_polish_lock
@@ -477,6 +477,22 @@ phase27:
         clippy_workspace_deny_warnings: passed
         test_workspace: passed
         total_tests: 232
+    wp1_tail_tm_p27_013_014:
+      status: completed
+      completed_at: "2026-02-25"
+      requirements: LCK-001, LCK-002
+      scenarios: TM-P27-013, TM-P27-014
+      notes:
+        - added TM-P27-013 coverage in lock_lifecycle_tests to verify repair refreshes lock installed_at after broken-symlink recovery
+        - added TM-P27-014 coverage in lock_diff_tests to verify apply remove executes docker-target uninstall from lock and removes orphan from lock/storage
+        - extended lock schema with LockTarget.environment (default local, skip-serialize when local) and included environment in lock diff comparison
+        - orphan removal now selects adapter by lock target environment instead of forcing local adapter
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+        home_override_for_sandbox: "/tmp/eden-skills-home"
+        total_tests: 234
 
 next_execution_targets:
   - batch_4_wp3_output_polish
