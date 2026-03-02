@@ -8,7 +8,7 @@ repository = "https://github.com/AI-Eden/eden-skills"
 homepage = "https://github.com/AI-Eden/eden-skills"
 readme = "README.md"
 keywords = ["agent", "cli", "skills", "developer-tools"]
-categories = ["command-line-utilities", "development-tools"]
+categories = ["command-line-utilities", "development-tools", "artificial-intelligence", "asynchronous"]
 
 [dependencies]
 clap = { version = "4.5", features = ["derive"] }

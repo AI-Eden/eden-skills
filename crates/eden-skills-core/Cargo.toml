@@ -5,7 +5,9 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 homepage.workspace = true
-description = "Core domain logic for eden-skills"
+description = "Core domain logic for eden-skills: config, plan, lock, reactor, adapter, registry, and safety"
+readme = "README.md"
+categories = ["development-tools", "asynchronous", "filesystem"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
