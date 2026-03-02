@@ -3,6 +3,9 @@ name = "eden-skills-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+description = "Core domain logic for eden-skills: config, plan, verify, safety, reactor, adapter, and registry"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
