@@ -3,8 +3,8 @@
 Requirement-to-implementation mapping for Phase 2.7.
 Use this file to recover accurate context after compression.
 
-**Status:** Skeleton — Builder fills `Implementation`, `Tests`, and
-`Status` columns during TDD.
+**Status:** Complete — all Phase 2.7 requirements and test-matrix scenarios
+are mapped to implementation and verification evidence.
 
 ## 1. Lock File Requirements
 
@@ -99,4 +99,4 @@ Use this file to recover accurate context after compression.
 | TM-P27-037 | `SPEC_TEST_MATRIX.md` 5 | Install yes flag skips prompt | `remove_enhanced_tests::install_yes_flag_skips_prompts_for_multi_skill_repo` | done |
 | TM-P27-038 | `SPEC_TEST_MATRIX.md` 5 | Remove empty config | `remove_enhanced_tests::remove_without_args_on_empty_config_reports_nothing_to_remove` | done |
 | TM-P27-039 | `SPEC_TEST_MATRIX.md` 5 | Batch remove JSON output | `remove_enhanced_tests::batch_remove_json_output_contains_removed_array` | done |
-| TM-P27-040 | `SPEC_TEST_MATRIX.md` 6 | Full regression | | pending |
+| TM-P27-040 | `SPEC_TEST_MATRIX.md` 6 | Full regression | Workspace quality gate run: `cargo fmt --all -- --check`; `cargo clippy --workspace -- -D warnings`; `cargo test --workspace` | done |

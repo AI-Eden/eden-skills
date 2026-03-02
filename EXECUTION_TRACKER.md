@@ -60,7 +60,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 - [x] Phase 2 closeout matrix re-verified on all targets (`CI` run `22176017545`: `ubuntu-latest`, `macos-latest`, `windows-latest`).
 
-Current automated tests: `245` (workspace unit/integration-style tests).
+Current automated tests: `253` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -126,6 +126,7 @@ Current automated tests: `245` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.7 Batch 4 (WP-3 — Output Polish): migrated CLI color rendering to `owo-colors`, removed direct `console` dependency, added global `--color auto|always|never`, standardized `error:` + `→` hint formatting, added contextual config/unknown-skill errors and git/docker preflight checks, and shipped `output_polish_tests.rs` covering TM-P27-022~031.
 - [x] Completed Phase 2.7 Batch 4 post-completion test-isolation hotfix: fixed integration-test pollution where `lock_lifecycle_tests::install_creates_lock_file` could write to real `~/.eden-skills/skills/installed-skill` by rewriting init-generated `storage.root` to test-local temp storage, and added `init_does_not_create_storage_root_directory` regression coverage.
 - [x] Completed Phase 2.7 Batch 5 (WP-4 — Remove Enhancements): implemented batch remove (`SKILL_ID...`) with atomic unknown-ID validation, interactive no-arg remove on TTY, non-TTY no-arg usage failure, remove/install `-y` confirmation skip semantics, and remove JSON `removed` array output; added `remove_enhanced_tests.rs` covering TM-P27-032~039.
+- [x] Completed Phase 2.7 Batch 6 (Regression + Closeout): completed `TM-P27-040` by running full workspace quality gate (`cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`) and synchronized `spec/phase2.7/SPEC_TRACEABILITY.md`, `STATUS.yaml`, and `EXECUTION_TRACKER.md`.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -336,3 +337,8 @@ Key architectural decisions for Builder reference:
    - Output contract: remove JSON payload now includes `removed` array for batch output
    - Tests: `remove_enhanced_tests.rs` (8 integration tests; TM-P27-032~039)
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (253 total tests)
+7. Batch 6 (Regression + Closeout) is complete with quality gate pass:
+   - Scenario: `TM-P27-040` (full Phase 1/2/2.5/2.7 regression gate)
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (all passed)
+   - Environment note: executed with `HOME=/tmp`, `CARGO_HOME=/home/eden/.cargo`, and `RUSTUP_HOME=/home/eden/.rustup` for deterministic sandbox compatibility
+   - Closeout sync: updated `spec/phase2.7/SPEC_TRACEABILITY.md` (`TM-P27-040` marked done), `STATUS.yaml` (Phase 2.7 closeout completed), and this tracker

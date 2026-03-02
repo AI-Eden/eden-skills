@@ -417,8 +417,9 @@ phase25:
         test_workspace: passed
 
 phase27:
-  status: active_implementation
+  status: closeout_completed
   started_at: "2026-02-21"
+  completed_at: "2026-03-02"
   spec_files:
     - spec/phase2.7/SPEC_LOCK.md
     - spec/phase2.7/SPEC_HELP_SYSTEM.md
@@ -534,9 +535,24 @@ phase27:
         test_workspace: passed
         total_tests: 253
         current_test_inventory: 253
+    batch_6_regression_and_closeout:
+      status: completed
+      completed_at: "2026-03-02"
+      scenarios: TM-P27-040
+      notes:
+        - executed Phase 2.7 full regression quality gate (`cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`)
+        - synchronized closeout tracking in SPEC_TRACEABILITY, STATUS, and EXECUTION_TRACKER
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+        home_override_for_sandbox: "/tmp"
+        cargo_home_override_for_sandbox: "/home/eden/.cargo"
+        rustup_home_override_for_sandbox: "/home/eden/.rustup"
+        current_test_inventory: 253
 
 next_execution_targets:
-  - batch_6_regression_and_closeout
+  - repository_public_readiness_checklist_and_first_tag_release_execution
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md
