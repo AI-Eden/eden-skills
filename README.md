@@ -1,8 +1,8 @@
 # eden-skills
 
-Deterministic skill manager for AI agent environments.  
-Auto-detects Claude Code, Cursor, Codex, and Windsurf. Supports Docker containers.  
-Cross-platform: Linux, macOS, and Windows.
+`Deterministic` + `Fast` + `Cross-platform` skill manager for AI agent environments. Auto-detects installed agents (Claude Code, Cursor, Codex and more). Supports Docker containers.  
+
+100% usable on: Linux, macOS, and Windows.
 
 ## Install
 
@@ -13,6 +13,8 @@ git clone https://github.com/AI-Eden/eden-skills.git
 cd eden-skills
 cargo install --path crates/eden-skills-cli --locked --force
 ```
+
+> If you don't know how to install `Rust` toolchain, please check out on its [official website](https://www.rust-lang.org/tools/install).
 
 Verify:
 
