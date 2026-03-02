@@ -18,11 +18,11 @@ For `targets[].environment` in `skills.toml`:
 
 ```toml
 [[skills]]
-id = "browser-tool"
+id = "web-design-guidelines"
 
 [skills.source]
-repo = "https://github.com/vercel-labs/skills.git"
-subpath = "packages/browser"
+repo = "https://github.com/vercel-labs/agent-skills.git"
+subpath = "skills/web-design-guidelines"
 ref = "main"
 
 [skills.install]
