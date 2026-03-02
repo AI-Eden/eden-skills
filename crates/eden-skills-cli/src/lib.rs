@@ -5,6 +5,7 @@ use clap::{Args, Parser, Subcommand};
 use commands::CommandOptions;
 use eden_skills_core::config::InstallMode;
 use eden_skills_core::error::EdenError;
+use ui::{configure_color_output, ColorWhen};
 
 pub const DEFAULT_CONFIG_PATH: &str = "~/.eden-skills/skills.toml";
 
@@ -27,6 +28,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
             _ => return Err(EdenError::InvalidArguments(err.to_string())),
         },
     };
+    configure_color_output(cli.color, cli.command.json_mode());
 
     match cli.command {
         Commands::Install(args) => {
@@ -218,6 +220,14 @@ Documentation: https://github.com/AI-Eden/eden-skills"#;
 )]
 #[command(disable_help_subcommand = true)]
 struct Cli {
+    #[arg(
+        long,
+        global = true,
+        value_enum,
+        default_value_t = ColorWhen::Auto,
+        help = "Control color output: auto, always, never [default: auto]"
+    )]
+    color: ColorWhen,
     #[command(subcommand)]
     command: Commands,
 }
@@ -284,6 +294,28 @@ enum Commands {
         next_help_heading = "Configuration"
     )]
     Config(ConfigArgs),
+}
+
+impl Commands {
+    fn json_mode(&self) -> bool {
+        match self {
+            Self::Install(args) => args.json,
+            Self::Update(args) => args.json,
+            Self::Remove(args) => args.json,
+            Self::Plan(args) => args.json,
+            Self::Apply(args) => args.json,
+            Self::Doctor(args) => args.json,
+            Self::Repair(args) => args.json,
+            Self::Init(_) => false,
+            Self::List(args) => args.json,
+            Self::Add(args) => args.json,
+            Self::Set(args) => args.json,
+            Self::Config(args) => match &args.command {
+                ConfigSubcommand::Export(export) => export.json,
+                ConfigSubcommand::Import(_) => false,
+            },
+        }
+    }
 }
 
 #[derive(Debug, Clone, Args)]

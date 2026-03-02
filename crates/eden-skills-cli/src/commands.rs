@@ -14,7 +14,7 @@ use eden_skills_core::config::InstallMode;
 use eden_skills_core::config::{
     config_dir_from_path, decode_registry_mode_repo, default_verify_checks_for_mode,
     encode_registry_mode_repo, is_registry_mode_repo, load_from_file, validate_config, LoadOptions,
-    SourceConfig,
+    LoadedConfig, SourceConfig,
 };
 use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::discovery::{discover_skills, DiscoveredSkill};
@@ -129,6 +129,98 @@ fn resolve_config_path(config_path: &str) -> Result<PathBuf, EdenError> {
     resolve_path_string(config_path, &cwd)
 }
 
+fn with_hint(message: impl Into<String>, hint: impl Into<String>) -> String {
+    format!("{}\nhint: {}", message.into(), hint.into())
+}
+
+fn load_config_with_context(config_path: &Path, strict: bool) -> Result<LoadedConfig, EdenError> {
+    match load_from_file(config_path, LoadOptions { strict }) {
+        Ok(loaded) => Ok(loaded),
+        Err(EdenError::Io(err)) if err.kind() == std::io::ErrorKind::NotFound => {
+            Err(EdenError::Runtime(with_hint(
+                format!("config file not found: {}", config_path.display()),
+                "Run `eden-skills init` to create a new config.",
+            )))
+        }
+        Err(EdenError::Io(err)) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+            Err(EdenError::Runtime(with_hint(
+                format!(
+                    "permission denied reading config file: {}",
+                    config_path.display()
+                ),
+                "Check file permissions or run with appropriate privileges.",
+            )))
+        }
+        Err(err) => Err(err),
+    }
+}
+
+fn git_bin() -> String {
+    std::env::var("EDEN_SKILLS_GIT_BIN")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "git".to_string())
+}
+
+fn ensure_git_available() -> Result<(), EdenError> {
+    let git = git_bin();
+    match Command::new(&git).arg("--version").output() {
+        Ok(output) if output.status.success() => Ok(()),
+        Ok(output) => Err(EdenError::Runtime(with_hint(
+            format!(
+                "git executable not found (command `{git}` exited with status {})",
+                output.status
+            ),
+            "Install Git: https://git-scm.com/downloads",
+        ))),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            Err(EdenError::Runtime(with_hint(
+                "git executable not found",
+                "Install Git: https://git-scm.com/downloads",
+            )))
+        }
+        Err(err) => Err(EdenError::Runtime(with_hint(
+            format!("failed to invoke git executable `{git}`: {err}"),
+            "Ensure Git is installed and available on PATH.",
+        ))),
+    }
+}
+
+fn ensure_docker_available_for_targets<'a, I>(targets: I) -> Result<(), EdenError>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    if !targets.into_iter().any(|environment| {
+        environment
+            .strip_prefix("docker:")
+            .is_some_and(|container| !container.is_empty())
+    }) {
+        return Ok(());
+    }
+
+    let docker_bin = doctor_docker_bin();
+    match Command::new(&docker_bin).arg("--version").output() {
+        Ok(output) if output.status.success() => Ok(()),
+        Ok(output) => Err(EdenError::Runtime(with_hint(
+            format!(
+                "docker executable not found (command `{docker_bin}` exited with status {})",
+                output.status
+            ),
+            "Install Docker: https://docs.docker.com/get-docker/",
+        ))),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            Err(EdenError::Runtime(with_hint(
+                "docker executable not found",
+                "Install Docker: https://docs.docker.com/get-docker/",
+            )))
+        }
+        Err(err) => Err(EdenError::Runtime(with_hint(
+            format!("failed to invoke docker executable `{docker_bin}`: {err}"),
+            "Install Docker or ensure `docker` is available on PATH.",
+        ))),
+    }
+}
+
 fn resolve_effective_reactor_concurrency(
     cli_override: Option<usize>,
     config_concurrency: usize,
@@ -146,12 +238,7 @@ fn resolve_effective_reactor_concurrency(
 pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -175,12 +262,7 @@ pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
 pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: req.options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -193,6 +275,7 @@ pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
         eprintln!("warning: no registries configured; skipping update");
         return Ok(());
     }
+    ensure_git_available()?;
 
     let concurrency = resolve_effective_reactor_concurrency(
         req.concurrency,
@@ -356,12 +439,7 @@ async fn install_registry_mode_async(
         ));
     }
 
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: req.options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -398,6 +476,7 @@ async fn install_registry_mode_async(
 
     write_normalized_config(config_path, &config)?;
 
+    ensure_git_available()?;
     let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
     if !req.options.json {
         print_source_sync_summary(&sync_summary);
@@ -408,7 +487,7 @@ async fn install_registry_mode_async(
 
     execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
 
-    let full_loaded = load_from_file(config_path, LoadOptions { strict: false })?;
+    let full_loaded = load_config_with_context(config_path, false)?;
     write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
 
     print_install_success(req.options.json, skill_name, &requested_constraint, ui)?;
@@ -434,6 +513,7 @@ async fn install_remote_url_mode_async(
     url_source: &UrlInstallSource,
     ui: &UiContext,
 ) -> Result<(), EdenError> {
+    ensure_git_available()?;
     let source_ref = req
         .r#ref
         .clone()
@@ -497,12 +577,7 @@ async fn install_remote_url_mode_async(
     )?;
     let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
 
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: req.options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -559,7 +634,7 @@ async fn install_remote_url_mode_async(
         execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
     }
 
-    let full_loaded = load_from_file(config_path, LoadOptions { strict: false })?;
+    let full_loaded = load_config_with_context(config_path, false)?;
     write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
 
     if req.options.json {
@@ -641,12 +716,7 @@ async fn install_local_url_mode_async(
     )?;
     let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
 
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: req.options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -700,7 +770,7 @@ async fn install_local_url_mode_async(
         install_local_source_skill(&single, &config_dir, req.options.strict)?;
     }
 
-    let full_loaded = load_from_file(config_path, LoadOptions { strict: false })?;
+    let full_loaded = load_config_with_context(config_path, false)?;
     write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
 
     if req.options.json {
@@ -1380,12 +1450,7 @@ pub async fn apply_async(
 ) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, options.strict)?;
     let concurrency = resolve_effective_reactor_concurrency(
         concurrency_override,
         loaded.config.reactor.concurrency,
@@ -1395,10 +1460,19 @@ pub async fn apply_async(
     let config_dir = config_dir_from_path(config_path);
     let execution_config =
         resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir)?;
+    if !execution_config.skills.is_empty() {
+        ensure_git_available()?;
+    }
 
     let lock_path = lock_path_for_config(config_path);
     let lock = read_lock_file(&lock_path)?;
     let diff = compute_lock_diff(&execution_config, &lock, &config_dir)?;
+    ensure_docker_available_for_targets(diff.removed.iter().flat_map(|entry| {
+        entry
+            .targets
+            .iter()
+            .map(|target| target.environment.as_str())
+    }))?;
 
     let sync_config = filter_config_for_sync(&execution_config, &diff);
     let sync_summary = sync_sources_async_with_reactor(&sync_config, &config_dir, reactor).await?;
@@ -1491,12 +1565,7 @@ pub async fn apply_async(
 pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, options.strict)?;
     let config_dir = config_dir_from_path(config_path);
     let plan = build_plan(&loaded.config, &config_dir)?;
     let verify_issues = verify_config_state(&loaded.config, &config_dir)?;
@@ -1978,12 +2047,7 @@ pub async fn repair_async(
 ) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, options.strict)?;
     let concurrency = resolve_effective_reactor_concurrency(
         concurrency_override,
         loaded.config.reactor.concurrency,
@@ -1993,6 +2057,9 @@ pub async fn repair_async(
     let config_dir = config_dir_from_path(config_path);
     let execution_config =
         resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir)?;
+    if !execution_config.skills.is_empty() {
+        ensure_git_available()?;
+    }
     let sync_summary =
         sync_sources_async_with_reactor(&execution_config, &config_dir, reactor).await?;
     print_source_sync_summary(&sync_summary);
@@ -2602,12 +2669,7 @@ fn default_config_template() -> String {
 pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -2703,12 +2765,7 @@ pub struct AddRequest {
 pub fn add(req: AddRequest) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: req.options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -2777,12 +2834,7 @@ pub async fn remove_async(
 ) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -2791,12 +2843,29 @@ pub async fn remove_async(
     let mut config = loaded.config;
 
     let Some(idx) = config.skills.iter().position(|s| s.id == skill_id) else {
-        return Err(EdenError::InvalidArguments(format!(
-            "unknown skill id: `{skill_id}`"
+        let available = config
+            .skills
+            .iter()
+            .map(|skill| skill.id.as_str())
+            .collect::<Vec<_>>();
+        let available = if available.is_empty() {
+            "(none configured)".to_string()
+        } else {
+            available.join(", ")
+        };
+        return Err(EdenError::InvalidArguments(with_hint(
+            format!("skill '{skill_id}' not found in config"),
+            format!("Available skills: {available}"),
         )));
     };
 
     let removed_skill = config.skills[idx].clone();
+    ensure_docker_available_for_targets(
+        removed_skill
+            .targets
+            .iter()
+            .map(|target| target.environment.as_str()),
+    )?;
     uninstall_skill_targets(&removed_skill, &config_dir, &config.storage_root).await?;
     config.skills.remove(idx);
     validate_config(&config, &config_dir)?;
@@ -2901,12 +2970,7 @@ pub fn set(req: SetRequest) -> Result<(), EdenError> {
 
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: req.options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -3017,12 +3081,7 @@ fn write_normalized_config(path: &Path, config: &Config) -> Result<(), EdenError
 pub fn config_export(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
-    let loaded = load_from_file(
-        config_path,
-        LoadOptions {
-            strict: options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(config_path, options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }
@@ -3054,12 +3113,7 @@ pub fn config_import(
 ) -> Result<(), EdenError> {
     let cwd = std::env::current_dir().map_err(EdenError::Io)?;
     let from_path = resolve_path_string(from_path, &cwd)?;
-    let loaded = load_from_file(
-        &from_path,
-        LoadOptions {
-            strict: options.strict,
-        },
-    )?;
+    let loaded = load_config_with_context(&from_path, options.strict)?;
     for warning in loaded.warnings {
         eprintln!("warning: {warning}");
     }

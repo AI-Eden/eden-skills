@@ -78,7 +78,7 @@ fn make_config(skills: Vec<SkillConfig>) -> Config {
 }
 
 // ---------------------------------------------------------------------------
-// No lock file → all skills are Added, no removals
+// No lock file -> all skills are Added, no removals
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -109,7 +109,7 @@ fn no_lock_classifies_all_as_added() {
 }
 
 // ---------------------------------------------------------------------------
-// Skill in lock but not in TOML → REMOVED
+// Skill in lock but not in TOML -> REMOVED
 // ---------------------------------------------------------------------------
 
 #[test]
@@ -138,7 +138,7 @@ fn skill_removed_from_toml_is_in_removed_set() {
 }
 
 // ---------------------------------------------------------------------------
-// Skill in TOML but not in lock → ADDED
+// Skill in TOML but not in lock -> ADDED
 // ---------------------------------------------------------------------------
 
 #[test]

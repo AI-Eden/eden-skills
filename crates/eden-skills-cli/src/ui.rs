@@ -1,7 +1,54 @@
 use std::io::IsTerminal;
+use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::time::Duration;
 
+use clap::ValueEnum;
 use indicatif::{ProgressBar, ProgressStyle};
+use owo_colors::OwoColorize;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
+pub enum ColorWhen {
+    Auto,
+    Always,
+    Never,
+}
+
+impl ColorWhen {
+    const fn as_u8(self) -> u8 {
+        match self {
+            Self::Auto => 0,
+            Self::Always => 1,
+            Self::Never => 2,
+        }
+    }
+
+    const fn from_u8(value: u8) -> Self {
+        match value {
+            1 => Self::Always,
+            2 => Self::Never,
+            _ => Self::Auto,
+        }
+    }
+}
+
+static COLOR_WHEN_OVERRIDE: AtomicU8 = AtomicU8::new(ColorWhen::Auto.as_u8());
+static COLOR_ENABLED_OVERRIDE: AtomicBool = AtomicBool::new(false);
+
+pub fn configure_color_output(color_when: ColorWhen, json_mode: bool) {
+    #[cfg(windows)]
+    {
+        enable_ansi_support::enable_ansi_support().ok();
+    }
+
+    COLOR_WHEN_OVERRIDE.store(color_when.as_u8(), Ordering::Relaxed);
+    let enabled = resolve_colors_enabled(color_when, json_mode, stdout_is_tty());
+    COLOR_ENABLED_OVERRIDE.store(enabled, Ordering::Relaxed);
+    owo_colors::set_override(enabled);
+}
+
+pub fn color_output_enabled() -> bool {
+    COLOR_ENABLED_OVERRIDE.load(Ordering::Relaxed)
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StatusSymbol {
@@ -18,31 +65,19 @@ pub struct UiContext {
     no_color: bool,
     force_color: bool,
     ci: bool,
+    color_when: ColorWhen,
 }
 
 impl UiContext {
     pub fn from_env(json_mode: bool) -> Self {
-        let stdout_is_tty = forced_tty_for_tests() || std::io::stdout().is_terminal();
-        let no_color = env_var_present("NO_COLOR");
-        let force_color = env_var_present("FORCE_COLOR");
-        let ci = env_var_present("CI");
-        let colors_enabled = if json_mode || no_color {
-            false
-        } else if force_color {
-            true
-        } else if ci {
-            false
-        } else {
-            stdout_is_tty
-        };
-        console::set_colors_enabled(colors_enabled);
-        console::set_colors_enabled_stderr(colors_enabled);
+        let stdout_is_tty = stdout_is_tty();
         Self {
             json_mode,
             stdout_is_tty,
-            no_color,
-            force_color,
-            ci,
+            no_color: env_var_present("NO_COLOR"),
+            force_color: env_var_present("FORCE_COLOR"),
+            ci: env_var_present("CI"),
+            color_when: configured_color_when(),
         }
     }
 
@@ -51,20 +86,30 @@ impl UiContext {
     }
 
     pub fn colors_enabled(&self) -> bool {
-        if self.json_mode || self.no_color {
+        if self.json_mode {
             return false;
         }
-        if self.force_color {
-            return true;
+        match self.color_when {
+            ColorWhen::Never => false,
+            ColorWhen::Always => true,
+            ColorWhen::Auto => {
+                if self.no_color {
+                    return false;
+                }
+                if self.force_color {
+                    return true;
+                }
+                if self.ci {
+                    return false;
+                }
+                self.stdout_is_tty
+            }
         }
-        if self.ci {
-            return false;
-        }
-        self.stdout_is_tty
     }
 
     pub fn symbols_enabled(&self) -> bool {
-        !self.json_mode && (self.stdout_is_tty || self.force_color) && !self.ci
+        let force_symbols = matches!(self.color_when, ColorWhen::Always) || self.force_color;
+        !self.json_mode && (self.stdout_is_tty || force_symbols) && !self.ci
     }
 
     pub fn spinner_enabled(&self) -> bool {
@@ -86,17 +131,17 @@ impl UiContext {
             return raw.to_string();
         }
         match symbol {
-            StatusSymbol::Success => format!("\u{1b}[32m{raw}\u{1b}[0m"),
-            StatusSymbol::Failure => format!("\u{1b}[31m{raw}\u{1b}[0m"),
-            StatusSymbol::Skipped => format!("\u{1b}[2m{raw}\u{1b}[0m"),
-            StatusSymbol::Warning => format!("\u{1b}[33m{raw}\u{1b}[0m"),
+            StatusSymbol::Success => raw.green().to_string(),
+            StatusSymbol::Failure => raw.red().to_string(),
+            StatusSymbol::Skipped => raw.dimmed().to_string(),
+            StatusSymbol::Warning => raw.yellow().to_string(),
         }
     }
 
     pub fn action_prefix(&self, action: &str) -> String {
         let padded = format!("{action:>8}");
         if self.colors_enabled() {
-            format!("\u{1b}[1;36m{padded}\u{1b}[0m")
+            padded.cyan().bold().to_string()
         } else {
             padded
         }
@@ -166,6 +211,39 @@ fn env_var_present(name: &str) -> bool {
     std::env::var(name)
         .ok()
         .is_some_and(|value| !value.is_empty())
+}
+
+fn configured_color_when() -> ColorWhen {
+    ColorWhen::from_u8(COLOR_WHEN_OVERRIDE.load(Ordering::Relaxed))
+}
+
+fn resolve_colors_enabled(color_when: ColorWhen, json_mode: bool, stdout_is_tty: bool) -> bool {
+    if json_mode {
+        return false;
+    }
+    match color_when {
+        ColorWhen::Never => false,
+        ColorWhen::Always => true,
+        ColorWhen::Auto => {
+            let no_color = env_var_present("NO_COLOR");
+            if no_color {
+                return false;
+            }
+            let force_color = env_var_present("FORCE_COLOR");
+            if force_color {
+                return true;
+            }
+            let ci = env_var_present("CI");
+            if ci {
+                return false;
+            }
+            stdout_is_tty
+        }
+    }
+}
+
+fn stdout_is_tty() -> bool {
+    forced_tty_for_tests() || std::io::stdout().is_terminal()
 }
 
 fn forced_tty_for_tests() -> bool {

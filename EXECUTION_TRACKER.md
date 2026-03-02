@@ -5,7 +5,7 @@ This file quantifies implementation progress and enforces model responsibility b
 
 ## 1. Snapshot
 
-- Date: 2026-02-25
+- Date: 2026-03-02
 - Workspace: `eden-skills`
 - Primary implementation model this cycle: `GPT-5 Codex (Builder)`
 
@@ -60,7 +60,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 - [x] Phase 2 closeout matrix re-verified on all targets (`CI` run `22176017545`: `ubuntu-latest`, `macos-latest`, `windows-latest`).
 
-Current automated tests: `234` (workspace unit/integration-style tests).
+Current automated tests: `244` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -123,6 +123,7 @@ Current automated tests: `234` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.5 closeout readiness + tagged release dry-run: fixed `--help` non-zero exit regression that would break release smoke checks, added release-smoke contract test coverage, and validated local host-target release packaging + checksum + smoke sequence.
 - [x] Completed Phase 2.7 Batch 3 (WP-2 — Help System): `HLP-001`~`HLP-007`; `--version`/`-V`, root `about`/`long_about`/`after_help`, subcommand `about`, argument `help`, `next_help_heading` groupings, short flags `-s`/`-t`/`-y`/`-V`, `install --copy`; `help_system_tests.rs` (TM-P27-016~021).
 - [x] Completed Phase 2.7 WP-1 tail completion (`TM-P27-013`, `TM-P27-014`) with TDD: added repair lock refresh test and docker-target orphan remove test; extended lock target schema with `environment` (default `local`) and switched orphan uninstall to adapter selection by lock target environment.
+- [x] Completed Phase 2.7 Batch 4 (WP-3 — Output Polish): migrated CLI color rendering to `owo-colors`, removed direct `console` dependency, added global `--color auto|always|never`, standardized `error:` + `→` hint formatting, added contextual config/unknown-skill errors and git/docker preflight checks, and shipped `output_polish_tests.rs` covering TM-P27-022~031.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -319,3 +320,9 @@ Key architectural decisions for Builder reference:
    - Implementation updates: `LockTarget.environment` added to lock schema (`local` default, omitted when local), lock diff target comparison now includes environment, and orphan remove path now uses lock target environment for adapter selection
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (234 total tests)
    - Sandbox note: gate executed with writable HOME override (`HOME=/tmp/eden-skills-home`) to avoid sandbox default HOME permission failures in install-path tests.
+5. Batch 4 (WP-3 — Output Polish) is complete with quality gate pass:
+   - Requirements: `OUT-001`, `OUT-002`, `OUT-003`, `OUT-004`, `OUT-005`, `OUT-006`, `OUT-007`, `OUT-008`
+   - Scenarios: `TM-P27-022` through `TM-P27-031`
+   - Additions: `output_polish_tests.rs` (10 integration tests + 1 Windows-gated test), `--color` root flag (`auto|always|never`), `owo-colors` migration, `console` direct dependency removal, contextual `config file not found` and `skill not found` hints, preflight checks for missing `git`/`docker` executables
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (244 total tests)
+   - Sandbox note: gate executed with writable HOME override (`HOME=/tmp/eden-skills-home`) and explicit `CARGO_HOME`/`RUSTUP_HOME` overrides to avoid sandbox HOME write restrictions while reusing installed toolchain/cache.

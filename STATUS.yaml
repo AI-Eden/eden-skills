@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: "2026-02-25"
+updated_at: "2026-03-02"
 project:
   name: eden-skills
   phase: phase27_ux_polish_lock
@@ -493,9 +493,28 @@ phase27:
         test_workspace: passed
         home_override_for_sandbox: "/tmp/eden-skills-home"
         total_tests: 234
+    batch_4_wp3_output_polish:
+      status: completed
+      completed_at: "2026-03-02"
+      requirements: OUT-001, OUT-002, OUT-003, OUT-004, OUT-005, OUT-006, OUT-007, OUT-008
+      scenarios: TM-P27-022, TM-P27-023, TM-P27-024, TM-P27-025, TM-P27-026, TM-P27-027, TM-P27-028, TM-P27-029, TM-P27-030, TM-P27-031
+      notes:
+        - replaced hardcoded ANSI in ui rendering with `owo-colors` and removed direct `console` dependency
+        - added root global `--color <auto|always|never>` and centralized color policy initialization (`configure_color_output`)
+        - added formatted runtime error output (`error:` + `->` hint) with contextual config-not-found and unknown-skill guidance
+        - added preflight checks for missing git/docker executables before command paths that require external tooling
+        - added output polish integration suite `output_polish_tests.rs` covering TM-P27-022 through TM-P27-031
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+        home_override_for_sandbox: "/tmp/eden-skills-home"
+        cargo_home_override_for_sandbox: "/home/eden/.cargo"
+        rustup_home_override_for_sandbox: "/home/eden/.rustup"
+        total_tests: 244
 
 next_execution_targets:
-  - batch_4_wp3_output_polish
+  - batch_5_wp4_remove_enhancements
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md

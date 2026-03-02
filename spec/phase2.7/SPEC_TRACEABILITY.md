@@ -37,14 +37,14 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| OUT-001 | `SPEC_OUTPUT_POLISH.md` 4.1 | All hardcoded ANSI MUST be replaced with `owo-colors` | | | pending |
-| OUT-002 | `SPEC_OUTPUT_POLISH.md` 4.3 | `console` crate MUST be removed as direct dependency | | | pending |
-| OUT-003 | `SPEC_OUTPUT_POLISH.md` 3 | Root CLI MUST accept `--color auto\|always\|never` | | | pending |
-| OUT-004 | `SPEC_OUTPUT_POLISH.md` 5.1 | Error output MUST use formatted `error:` prefix with hint | | | pending |
-| OUT-005 | `SPEC_OUTPUT_POLISH.md` 5.2 | IO errors MUST include contextual path and hint | | | pending |
-| OUT-006 | `SPEC_OUTPUT_POLISH.md` 3.4 | Windows MUST call `enable_ansi_support` | | | pending |
-| OUT-007 | `SPEC_OUTPUT_POLISH.md` 2.3 | Color palette MUST be limited to 12 standard ANSI colors | | | pending |
-| OUT-008 | `SPEC_OUTPUT_POLISH.md` 5.4 | Pre-flight checks SHOULD detect missing git/docker | | | pending |
+| OUT-001 | `SPEC_OUTPUT_POLISH.md` 4.1 | All hardcoded ANSI MUST be replaced with `owo-colors` | `eden-skills-cli/src/ui.rs` (`status_symbol`, `action_prefix` use `OwoColorize`), `eden-skills-cli/src/main.rs` (formatted colored error prefix) | `output_polish_tests::no_hardcoded_ansi_literals_in_ui_and_commands_sources` (TM-P27-022) | done |
+| OUT-002 | `SPEC_OUTPUT_POLISH.md` 4.3 | `console` crate MUST be removed as direct dependency | `eden-skills-cli/Cargo.toml` (removed `console`, added `owo-colors` + `enable-ansi-support`) | `output_polish_tests::console_crate_is_not_a_direct_cli_dependency` (TM-P27-023) | done |
+| OUT-003 | `SPEC_OUTPUT_POLISH.md` 3 | Root CLI MUST accept `--color auto\|always\|never` | `eden-skills-cli/src/lib.rs` (`Cli.color` global value-enum flag), `eden-skills-cli/src/ui.rs` (`ColorWhen`, `configure_color_output`) | `output_polish_tests::color_flag_auto_enables_on_tty_and_disables_on_non_tty` (TM-P27-024), `output_polish_tests::color_flag_never_disables_ansi_even_when_tty_forced` (TM-P27-025), `output_polish_tests::color_flag_always_enables_ansi_on_non_tty` (TM-P27-026) | done |
+| OUT-004 | `SPEC_OUTPUT_POLISH.md` 5.1 | Error output MUST use formatted `error:` prefix with hint | `eden-skills-cli/src/main.rs` (`print_error`, `split_hint`) | `output_polish_tests::error_output_uses_error_prefix_and_hint_for_missing_config` (TM-P27-027) | done |
+| OUT-005 | `SPEC_OUTPUT_POLISH.md` 5.2 | IO errors MUST include contextual path and hint | `eden-skills-cli/src/commands.rs` (`load_config_with_context`, remove unknown-skill hint formatting) | `output_polish_tests::error_output_uses_error_prefix_and_hint_for_missing_config` (TM-P27-028), `output_polish_tests::remove_unknown_skill_includes_available_skills_hint` (TM-P27-029) | done |
+| OUT-006 | `SPEC_OUTPUT_POLISH.md` 3.4 | Windows MUST call `enable_ansi_support` | `eden-skills-cli/src/ui.rs` (`configure_color_output` with `#[cfg(windows)] enable_ansi_support::enable_ansi_support().ok()`) | `output_polish_tests::windows_color_always_enables_ansi_sequences` (TM-P27-030, `#[cfg(windows)]`) | done |
+| OUT-007 | `SPEC_OUTPUT_POLISH.md` 2.3 | Color palette MUST be limited to 12 standard ANSI colors | `eden-skills-cli/src/ui.rs` (`green/red/yellow/cyan/dimmed` standard ANSI styles only; no truecolor/256-color APIs) | `output_polish_tests::palette_avoids_truecolor_and_256color_sequences` | done |
+| OUT-008 | `SPEC_OUTPUT_POLISH.md` 5.4 | Pre-flight checks SHOULD detect missing git/docker | `eden-skills-cli/src/commands.rs` (`ensure_git_available`, `ensure_docker_available_for_targets`, preflight hooks in update/install/apply/remove paths) | `output_polish_tests::preflight_reports_missing_git_before_clone_attempt` (additional preflight coverage) | done |
 
 ## 4. Remove Enhancement Requirements
 
@@ -81,16 +81,16 @@ Use this file to recover accurate context after compression.
 | TM-P27-019 | `SPEC_TEST_MATRIX.md` 3 | Argument help has description | `help_system_tests::install_help_shows_argument_descriptions` | done |
 | TM-P27-020 | `SPEC_TEST_MATRIX.md` 3 | Short flags work | `help_system_tests::short_flags_are_accepted_for_install_and_root_version` | done |
 | TM-P27-021 | `SPEC_TEST_MATRIX.md` 3 | Install copy flag | `help_system_tests::install_copy_flag_persists_copy_mode_and_copy_verify_defaults` | done |
-| TM-P27-022 | `SPEC_TEST_MATRIX.md` 4 | No hardcoded ANSI in source | | pending |
-| TM-P27-023 | `SPEC_TEST_MATRIX.md` 4 | Console crate removed | | pending |
-| TM-P27-024 | `SPEC_TEST_MATRIX.md` 4 | Color flag auto | | pending |
-| TM-P27-025 | `SPEC_TEST_MATRIX.md` 4 | Color flag never | | pending |
-| TM-P27-026 | `SPEC_TEST_MATRIX.md` 4 | Color flag always | | pending |
-| TM-P27-027 | `SPEC_TEST_MATRIX.md` 4 | Error format with hint | | pending |
-| TM-P27-028 | `SPEC_TEST_MATRIX.md` 4 | Error context for missing config | | pending |
-| TM-P27-029 | `SPEC_TEST_MATRIX.md` 4 | Error context for unknown skill | | pending |
-| TM-P27-030 | `SPEC_TEST_MATRIX.md` 4 | Windows ANSI support | | pending |
-| TM-P27-031 | `SPEC_TEST_MATRIX.md` 4 | JSON mode unaffected | | pending |
+| TM-P27-022 | `SPEC_TEST_MATRIX.md` 4 | No hardcoded ANSI in source | `output_polish_tests::no_hardcoded_ansi_literals_in_ui_and_commands_sources` | done |
+| TM-P27-023 | `SPEC_TEST_MATRIX.md` 4 | Console crate removed | `output_polish_tests::console_crate_is_not_a_direct_cli_dependency` | done |
+| TM-P27-024 | `SPEC_TEST_MATRIX.md` 4 | Color flag auto | `output_polish_tests::color_flag_auto_enables_on_tty_and_disables_on_non_tty` | done |
+| TM-P27-025 | `SPEC_TEST_MATRIX.md` 4 | Color flag never | `output_polish_tests::color_flag_never_disables_ansi_even_when_tty_forced` | done |
+| TM-P27-026 | `SPEC_TEST_MATRIX.md` 4 | Color flag always | `output_polish_tests::color_flag_always_enables_ansi_on_non_tty` | done |
+| TM-P27-027 | `SPEC_TEST_MATRIX.md` 4 | Error format with hint | `output_polish_tests::error_output_uses_error_prefix_and_hint_for_missing_config` | done |
+| TM-P27-028 | `SPEC_TEST_MATRIX.md` 4 | Error context for missing config | `output_polish_tests::error_output_uses_error_prefix_and_hint_for_missing_config` | done |
+| TM-P27-029 | `SPEC_TEST_MATRIX.md` 4 | Error context for unknown skill | `output_polish_tests::remove_unknown_skill_includes_available_skills_hint` | done |
+| TM-P27-030 | `SPEC_TEST_MATRIX.md` 4 | Windows ANSI support | `output_polish_tests::windows_color_always_enables_ansi_sequences` (`#[cfg(windows)]`) | done |
+| TM-P27-031 | `SPEC_TEST_MATRIX.md` 4 | JSON mode unaffected | `output_polish_tests::json_mode_ignores_color_always_and_emits_clean_json` | done |
 | TM-P27-032 | `SPEC_TEST_MATRIX.md` 5 | Batch remove multiple skills | | pending |
 | TM-P27-033 | `SPEC_TEST_MATRIX.md` 5 | Batch remove atomic validation | | pending |
 | TM-P27-034 | `SPEC_TEST_MATRIX.md` 5 | Interactive remove on TTY | | pending |
