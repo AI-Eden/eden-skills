@@ -6,15 +6,11 @@
 
 ## Install
 
-**Prerequisites:** Rust toolchain (`cargo`) and Git.
+**Prerequisites:** Rust toolchain (`cargo`) and Git. If you don't have `cargo`, see the [official install guide](https://www.rust-lang.org/tools/install).
 
 ```bash
-git clone https://github.com/AI-Eden/eden-skills.git
-cd eden-skills
-cargo install --path crates/eden-skills-cli --locked --force
+cargo install eden-skills --locked
 ```
-
-> If you don't know how to install `Rust` toolchain, please check out on its [official website](https://www.rust-lang.org/tools/install).
 
 Verify:
 
@@ -28,7 +24,16 @@ If `eden-skills` is not found, add Cargo bin to your `PATH`:
 export PATH="$HOME/.cargo/bin:$PATH"
 ```
 
-> `cargo install eden-skills` via crates.io is coming soon.
+<details>
+<summary>Install from source (development)</summary>
+
+```bash
+git clone https://github.com/AI-Eden/eden-skills.git
+cd eden-skills
+cargo install --path crates/eden-skills-cli --locked --force
+```
+
+</details>
 
 ## Install a Skill
 
