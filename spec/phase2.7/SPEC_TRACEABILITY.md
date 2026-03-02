@@ -50,11 +50,11 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| RMV-001 | `SPEC_REMOVE_ENH.md` 2.1 | `remove` MUST accept multiple positional skill IDs | | | pending |
-| RMV-002 | `SPEC_REMOVE_ENH.md` 2.1 | Unknown IDs in batch remove MUST fail atomically | | | pending |
-| RMV-003 | `SPEC_REMOVE_ENH.md` 3.1 | `remove` with no args on TTY MUST enter interactive mode | | | pending |
-| RMV-004 | `SPEC_REMOVE_ENH.md` 3.2 | `remove` with no args on non-TTY MUST fail | | | pending |
-| RMV-005 | `SPEC_REMOVE_ENH.md` 4 | `-y`/`--yes` MUST skip confirmation on `remove` and `install` | | | pending |
+| RMV-001 | `SPEC_REMOVE_ENH.md` 2.1 | `remove` MUST accept multiple positional skill IDs | `eden-skills-cli/src/lib.rs` (`RemoveArgs.skill_ids`, `run_with_args` remove dispatch), `eden-skills-cli/src/commands.rs` (`remove_many_async`) | `remove_enhanced_tests::batch_remove_multiple_skills_updates_config_and_lock` (TM-P27-032), `remove_enhanced_tests::batch_remove_json_output_contains_removed_array` (TM-P27-039) | done |
+| RMV-002 | `SPEC_REMOVE_ENH.md` 2.1 | Unknown IDs in batch remove MUST fail atomically | `eden-skills-cli/src/commands.rs` (`validate_remove_ids`, `format_quoted_ids`) | `remove_enhanced_tests::batch_remove_unknown_id_fails_atomically_without_partial_removal` (TM-P27-033) | done |
+| RMV-003 | `SPEC_REMOVE_ENH.md` 3.1 | `remove` with no args on TTY MUST enter interactive mode | `eden-skills-cli/src/commands.rs` (`resolve_remove_ids`, `print_remove_candidates`, `prompt_remove_selection`, `parse_remove_selection`) | `remove_enhanced_tests::remove_without_args_on_tty_enters_interactive_selection_mode` (TM-P27-034), `remove_enhanced_tests::remove_without_args_on_empty_config_reports_nothing_to_remove` (TM-P27-038) | done |
+| RMV-004 | `SPEC_REMOVE_ENH.md` 3.2 | `remove` with no args on non-TTY MUST fail | `eden-skills-cli/src/commands.rs` (`resolve_remove_ids` non-interactive guard + usage hint) | `remove_enhanced_tests::remove_without_args_on_non_tty_fails_with_usage_hint` (TM-P27-035) | done |
+| RMV-005 | `SPEC_REMOVE_ENH.md` 4 | `-y`/`--yes` MUST skip confirmation on `remove` and `install` | `eden-skills-cli/src/lib.rs` (`RemoveArgs.yes` wired into remove command), `eden-skills-cli/src/commands.rs` (`confirm_remove_execution`, `resolve_local_install_selection`) | `remove_enhanced_tests::remove_yes_flag_skips_confirmation_prompt` (TM-P27-036), `remove_enhanced_tests::install_yes_flag_skips_prompts_for_multi_skill_repo` (TM-P27-037) | done |
 
 ## 5. Test Matrix Coverage
 
@@ -91,12 +91,12 @@ Use this file to recover accurate context after compression.
 | TM-P27-029 | `SPEC_TEST_MATRIX.md` 4 | Error context for unknown skill | `output_polish_tests::remove_unknown_skill_includes_available_skills_hint` | done |
 | TM-P27-030 | `SPEC_TEST_MATRIX.md` 4 | Windows ANSI support | `output_polish_tests::windows_color_always_enables_ansi_sequences` (`#[cfg(windows)]`) | done |
 | TM-P27-031 | `SPEC_TEST_MATRIX.md` 4 | JSON mode unaffected | `output_polish_tests::json_mode_ignores_color_always_and_emits_clean_json` | done |
-| TM-P27-032 | `SPEC_TEST_MATRIX.md` 5 | Batch remove multiple skills | | pending |
-| TM-P27-033 | `SPEC_TEST_MATRIX.md` 5 | Batch remove atomic validation | | pending |
-| TM-P27-034 | `SPEC_TEST_MATRIX.md` 5 | Interactive remove on TTY | | pending |
-| TM-P27-035 | `SPEC_TEST_MATRIX.md` 5 | Non-TTY remove without args fails | | pending |
-| TM-P27-036 | `SPEC_TEST_MATRIX.md` 5 | Remove yes flag skips prompt | | pending |
-| TM-P27-037 | `SPEC_TEST_MATRIX.md` 5 | Install yes flag skips prompt | | pending |
-| TM-P27-038 | `SPEC_TEST_MATRIX.md` 5 | Remove empty config | | pending |
-| TM-P27-039 | `SPEC_TEST_MATRIX.md` 5 | Batch remove JSON output | | pending |
+| TM-P27-032 | `SPEC_TEST_MATRIX.md` 5 | Batch remove multiple skills | `remove_enhanced_tests::batch_remove_multiple_skills_updates_config_and_lock` | done |
+| TM-P27-033 | `SPEC_TEST_MATRIX.md` 5 | Batch remove atomic validation | `remove_enhanced_tests::batch_remove_unknown_id_fails_atomically_without_partial_removal` | done |
+| TM-P27-034 | `SPEC_TEST_MATRIX.md` 5 | Interactive remove on TTY | `remove_enhanced_tests::remove_without_args_on_tty_enters_interactive_selection_mode` | done |
+| TM-P27-035 | `SPEC_TEST_MATRIX.md` 5 | Non-TTY remove without args fails | `remove_enhanced_tests::remove_without_args_on_non_tty_fails_with_usage_hint` | done |
+| TM-P27-036 | `SPEC_TEST_MATRIX.md` 5 | Remove yes flag skips prompt | `remove_enhanced_tests::remove_yes_flag_skips_confirmation_prompt` | done |
+| TM-P27-037 | `SPEC_TEST_MATRIX.md` 5 | Install yes flag skips prompt | `remove_enhanced_tests::install_yes_flag_skips_prompts_for_multi_skill_repo` | done |
+| TM-P27-038 | `SPEC_TEST_MATRIX.md` 5 | Remove empty config | `remove_enhanced_tests::remove_without_args_on_empty_config_reports_nothing_to_remove` | done |
+| TM-P27-039 | `SPEC_TEST_MATRIX.md` 5 | Batch remove JSON output | `remove_enhanced_tests::batch_remove_json_output_contains_removed_array` | done |
 | TM-P27-040 | `SPEC_TEST_MATRIX.md` 6 | Full regression | | pending |

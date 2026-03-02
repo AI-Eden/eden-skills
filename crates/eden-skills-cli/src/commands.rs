@@ -2824,12 +2824,23 @@ pub fn add(req: AddRequest) -> Result<(), EdenError> {
 }
 
 pub fn remove(config_path: &str, skill_id: &str, options: CommandOptions) -> Result<(), EdenError> {
-    block_on_command_future(remove_async(config_path, skill_id, options))
+    let skill_ids = vec![skill_id.to_string()];
+    block_on_command_future(remove_many_async(config_path, &skill_ids, true, options))
 }
 
 pub async fn remove_async(
     config_path: &str,
     skill_id: &str,
+    options: CommandOptions,
+) -> Result<(), EdenError> {
+    let skill_ids = vec![skill_id.to_string()];
+    remove_many_async(config_path, &skill_ids, true, options).await
+}
+
+pub async fn remove_many_async(
+    config_path: &str,
+    skill_ids: &[String],
+    skip_confirmation: bool,
     options: CommandOptions,
 ) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
@@ -2839,35 +2850,45 @@ pub async fn remove_async(
         eprintln!("warning: {warning}");
     }
 
+    let ui = UiContext::from_env(options.json);
     let config_dir = config_dir_from_path(config_path);
     let mut config = loaded.config;
+    let removal_ids = resolve_remove_ids(&config, skill_ids, &ui)?;
+    if removal_ids.is_empty() {
+        return Ok(());
+    }
+    validate_remove_ids(&config, &removal_ids, skill_ids.len() == 1)?;
 
-    let Some(idx) = config.skills.iter().position(|s| s.id == skill_id) else {
-        let available = config
+    if !confirm_remove_execution(&removal_ids, skip_confirmation, &ui)? {
+        if !options.json {
+            println!("remove cancelled.");
+        }
+        return Ok(());
+    }
+
+    let mut removed = Vec::with_capacity(removal_ids.len());
+    for skill_id in &removal_ids {
+        let idx = config
             .skills
             .iter()
-            .map(|skill| skill.id.as_str())
-            .collect::<Vec<_>>();
-        let available = if available.is_empty() {
-            "(none configured)".to_string()
-        } else {
-            available.join(", ")
-        };
-        return Err(EdenError::InvalidArguments(with_hint(
-            format!("skill '{skill_id}' not found in config"),
-            format!("Available skills: {available}"),
-        )));
-    };
+            .position(|s| s.id == *skill_id)
+            .ok_or_else(|| {
+                EdenError::Runtime(format!(
+                    "validated skill id disappeared during removal: {skill_id}"
+                ))
+            })?;
+        let removed_skill = config.skills[idx].clone();
+        ensure_docker_available_for_targets(
+            removed_skill
+                .targets
+                .iter()
+                .map(|target| target.environment.as_str()),
+        )?;
+        uninstall_skill_targets(&removed_skill, &config_dir, &config.storage_root).await?;
+        config.skills.remove(idx);
+        removed.push(skill_id.clone());
+    }
 
-    let removed_skill = config.skills[idx].clone();
-    ensure_docker_available_for_targets(
-        removed_skill
-            .targets
-            .iter()
-            .map(|target| target.environment.as_str()),
-    )?;
-    uninstall_skill_targets(&removed_skill, &config_dir, &config.storage_root).await?;
-    config.skills.remove(idx);
     validate_config(&config, &config_dir)?;
     write_normalized_config(config_path, &config)?;
     write_lock_for_config(config_path, &config, &config_dir)?;
@@ -2876,7 +2897,7 @@ pub async fn remove_async(
         let payload = serde_json::json!({
             "action": "remove",
             "config_path": config_path.display().to_string(),
-            "skill_id": skill_id,
+            "removed": removed,
         });
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to serialize remove json: {err}")))?;
@@ -2884,8 +2905,204 @@ pub async fn remove_async(
         return Ok(());
     }
 
-    println!("remove: wrote {}", config_path.display());
+    print_remove_summary(&ui, &removed);
     Ok(())
+}
+
+fn resolve_remove_ids(
+    config: &Config,
+    skill_ids: &[String],
+    ui: &UiContext,
+) -> Result<Vec<String>, EdenError> {
+    if !skill_ids.is_empty() {
+        return Ok(unique_ids(skill_ids));
+    }
+
+    if config.skills.is_empty() {
+        println!("  Skills   0 configured");
+        println!();
+        println!("  Nothing to remove.");
+        return Ok(Vec::new());
+    }
+
+    if !ui.interactive_enabled() {
+        return Err(EdenError::InvalidArguments(with_hint(
+            "no skill IDs specified",
+            "Usage: eden-skills remove <SKILL_ID>...",
+        )));
+    }
+
+    print_remove_candidates(config);
+    let selection = prompt_remove_selection()?;
+    let selected = parse_remove_selection(config, &selection)?;
+    if selected.is_empty() {
+        return Err(EdenError::InvalidArguments(with_hint(
+            "no skill IDs specified",
+            "Usage: eden-skills remove <SKILL_ID>...",
+        )));
+    }
+    Ok(selected)
+}
+
+fn validate_remove_ids(
+    config: &Config,
+    removal_ids: &[String],
+    keep_single_unknown_message: bool,
+) -> Result<(), EdenError> {
+    let known = config
+        .skills
+        .iter()
+        .map(|skill| skill.id.as_str())
+        .collect::<HashSet<_>>();
+    let mut unknown = Vec::new();
+    for id in removal_ids {
+        if !known.contains(id.as_str()) {
+            unknown.push(id.clone());
+        }
+    }
+    if unknown.is_empty() {
+        return Ok(());
+    }
+
+    let available = config
+        .skills
+        .iter()
+        .map(|skill| skill.id.clone())
+        .collect::<Vec<_>>();
+    let hint = if available.is_empty() {
+        "Available skills: (none configured)".to_string()
+    } else {
+        format!("Available skills: {}", available.join(", "))
+    };
+
+    let message = if keep_single_unknown_message && unknown.len() == 1 {
+        format!("skill '{}' not found in config", unknown[0])
+    } else {
+        format!("unknown skill(s): {}", format_quoted_ids(&unknown))
+    };
+    Err(EdenError::InvalidArguments(with_hint(message, hint)))
+}
+
+fn confirm_remove_execution(
+    removal_ids: &[String],
+    skip_confirmation: bool,
+    ui: &UiContext,
+) -> Result<bool, EdenError> {
+    if skip_confirmation || !ui.interactive_enabled() {
+        return Ok(true);
+    }
+
+    if let Ok(response) = std::env::var("EDEN_SKILLS_TEST_CONFIRM") {
+        let normalized = response.trim().to_ascii_lowercase();
+        return Ok(matches!(normalized.as_str(), "y" | "yes" | "true"));
+    }
+
+    Confirm::new()
+        .with_prompt(format!("Remove {}?", removal_ids.join(", ")))
+        .default(false)
+        .interact()
+        .map_err(|err| EdenError::Runtime(format!("interactive prompt failed: {err}")))
+}
+
+fn print_remove_summary(ui: &UiContext, removed: &[String]) {
+    if removed.is_empty() {
+        return;
+    }
+
+    let success = ui.status_symbol(StatusSymbol::Success);
+    println!("{}  {} {}", ui.action_prefix("Remove"), success, removed[0]);
+    for skill_id in removed.iter().skip(1) {
+        println!("          {} {}", success, skill_id);
+    }
+    println!();
+    let noun = if removed.len() == 1 {
+        "skill"
+    } else {
+        "skills"
+    };
+    println!("  {} {} {} removed", success, removed.len(), noun);
+}
+
+fn print_remove_candidates(config: &Config) {
+    println!("  Skills   {} configured:", config.skills.len());
+    println!();
+    for (index, skill) in config.skills.iter().enumerate() {
+        println!(
+            "    {}. {:<16} ({})",
+            index + 1,
+            skill.id,
+            skill.source.repo
+        );
+    }
+    println!();
+    println!("  Enter skill numbers or names to remove (space-separated):");
+}
+
+fn prompt_remove_selection() -> Result<String, EdenError> {
+    if let Ok(raw) = std::env::var("EDEN_SKILLS_TEST_REMOVE_INPUT") {
+        return Ok(raw);
+    }
+
+    Input::new()
+        .with_prompt(">")
+        .allow_empty(false)
+        .interact_text()
+        .map_err(|err| EdenError::Runtime(format!("interactive prompt failed: {err}")))
+}
+
+fn parse_remove_selection(config: &Config, input: &str) -> Result<Vec<String>, EdenError> {
+    let tokens = input
+        .split_whitespace()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    if tokens.is_empty() {
+        return Ok(Vec::new());
+    }
+
+    let mut selected = Vec::new();
+    let mut unknown = Vec::new();
+    for token in tokens {
+        if let Ok(index) = token.parse::<usize>() {
+            if (1..=config.skills.len()).contains(&index) {
+                selected.push(config.skills[index - 1].id.clone());
+            } else {
+                unknown.push(token);
+            }
+            continue;
+        }
+
+        if config.skills.iter().any(|skill| skill.id == token) {
+            selected.push(token);
+        } else {
+            unknown.push(token);
+        }
+    }
+
+    let selected = unique_ids(&selected);
+    if unknown.is_empty() {
+        return Ok(selected);
+    }
+
+    validate_remove_ids(config, &unknown, false)?;
+    Ok(selected)
+}
+
+fn format_quoted_ids(ids: &[String]) -> String {
+    ids.iter()
+        .map(|id| format!("'{id}'"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+fn unique_ids(ids: &[String]) -> Vec<String> {
+    let mut seen = HashSet::new();
+    let mut unique = Vec::new();
+    for id in ids {
+        if seen.insert(id.as_str()) {
+            unique.push(id.clone());
+        }
+    }
+    unique
 }
 
 async fn uninstall_skill_targets(

@@ -516,9 +516,27 @@ phase27:
         total_tests: 244
         followup_targeted_tests: passed
         current_test_inventory: 245
+    batch_5_wp4_remove_enhancements:
+      status: completed
+      completed_at: "2026-03-02"
+      requirements: RMV-001, RMV-002, RMV-003, RMV-004, RMV-005
+      scenarios: TM-P27-032, TM-P27-033, TM-P27-034, TM-P27-035, TM-P27-036, TM-P27-037, TM-P27-038, TM-P27-039
+      notes:
+        - extended `remove` CLI parsing to accept `SKILL_ID...` and wired `-y/--yes` into a batch-capable remove execution path
+        - added atomic batch validation (`unknown skill(s): ...` + available skills hint) before mutation to prevent partial removals
+        - added interactive no-arg remove flow on TTY (number/name selection + confirmation prompt with default `No`)
+        - added non-TTY guard for no-arg remove (`no skill IDs specified` + usage hint) and empty-config no-op messaging
+        - extended remove JSON payload with `removed` array and preserved install `-y` all-skill selection behavior for multi-skill repos
+        - added `remove_enhanced_tests.rs` with TM-P27-032 through TM-P27-039 coverage
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+        total_tests: 253
+        current_test_inventory: 253
 
 next_execution_targets:
-  - batch_5_wp4_remove_enhancements
+  - batch_6_regression_and_closeout
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md

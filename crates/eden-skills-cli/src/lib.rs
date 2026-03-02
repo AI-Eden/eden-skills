@@ -65,10 +65,10 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
             .await
         }
         Commands::Remove(args) => {
-            let _skip_confirmation = args.yes;
-            commands::remove_async(
+            commands::remove_many_async(
                 &args.config,
-                &args.skill_id,
+                &args.skill_ids,
+                args.yes,
                 CommandOptions {
                     strict: args.strict,
                     json: args.json,
@@ -557,8 +557,11 @@ struct RemoveArgs {
     #[arg(short = 'y', long, help = "Skip confirmation prompt")]
     yes: bool,
 
-    #[arg(help = "One or more skill identifiers to remove")]
-    skill_id: String,
+    #[arg(
+        value_name = "SKILL_ID",
+        help = "One or more skill identifiers to remove"
+    )]
+    skill_ids: Vec<String>,
 }
 
 #[derive(Debug, Clone, Args)]

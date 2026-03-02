@@ -125,6 +125,7 @@ Current automated tests: `245` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.7 WP-1 tail completion (`TM-P27-013`, `TM-P27-014`) with TDD: added repair lock refresh test and docker-target orphan remove test; extended lock target schema with `environment` (default `local`) and switched orphan uninstall to adapter selection by lock target environment.
 - [x] Completed Phase 2.7 Batch 4 (WP-3 — Output Polish): migrated CLI color rendering to `owo-colors`, removed direct `console` dependency, added global `--color auto|always|never`, standardized `error:` + `→` hint formatting, added contextual config/unknown-skill errors and git/docker preflight checks, and shipped `output_polish_tests.rs` covering TM-P27-022~031.
 - [x] Completed Phase 2.7 Batch 4 post-completion test-isolation hotfix: fixed integration-test pollution where `lock_lifecycle_tests::install_creates_lock_file` could write to real `~/.eden-skills/skills/installed-skill` by rewriting init-generated `storage.root` to test-local temp storage, and added `init_does_not_create_storage_root_directory` regression coverage.
+- [x] Completed Phase 2.7 Batch 5 (WP-4 — Remove Enhancements): implemented batch remove (`SKILL_ID...`) with atomic unknown-ID validation, interactive no-arg remove on TTY, non-TTY no-arg usage failure, remove/install `-y` confirmation skip semantics, and remove JSON `removed` array output; added `remove_enhanced_tests.rs` covering TM-P27-032~039.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -328,3 +329,10 @@ Key architectural decisions for Builder reference:
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (244 total tests)
    - Sandbox note: gate executed with writable HOME override (`HOME=/tmp/eden-skills-home`) and explicit `CARGO_HOME`/`RUSTUP_HOME` overrides to avoid sandbox HOME write restrictions while reusing installed toolchain/cache.
    - Post-completion hotfix: isolated `lock_lifecycle_tests::install_creates_lock_file` from user HOME writes and added `init_command::init_does_not_create_storage_root_directory`; targeted regression suites passed, current workspace test inventory is `245`.
+6. Batch 5 (WP-4 — Remove Enhancements) is complete with quality gate pass:
+   - Requirements: `RMV-001`, `RMV-002`, `RMV-003`, `RMV-004`, `RMV-005`
+   - Scenarios: `TM-P27-032` through `TM-P27-039`
+   - Additions: remove command now accepts multiple positional IDs, validates unknown IDs atomically before mutation, supports no-arg interactive selection on TTY, fails no-arg non-TTY with usage hint, and supports confirmation skipping via `-y` for remove/install paths
+   - Output contract: remove JSON payload now includes `removed` array for batch output
+   - Tests: `remove_enhanced_tests.rs` (8 integration tests; TM-P27-032~039)
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (253 total tests)
