@@ -1,64 +1,23 @@
 # eden-skills
 
-Deterministic skill installation and reconciliation for agent environments.
+Deterministic skill manager for AI agent environments.  
+Auto-detects Claude Code, Cursor, Codex, and Windsurf. Supports Docker containers.  
+Cross-platform: Linux, macOS, and Windows.
 
-`eden-skills` is a local Rust CLI that keeps skill state predictable across tools like Claude Code and Cursor.  
-It manages the full lifecycle from planning and apply to diagnostics, repair, registry resolution, and Docker-aware target health checks.
+## Install
 
-## Current Status
-
-- Phase 1 (CLI foundation): complete
-- Phase 2 (Hyper-Loop core): complete
-- Phase 2.5 (MVP launch): complete
-- Phase 2.7 (UX polish and lock file): complete
-- Cross-platform CI (Linux/macOS/Windows): passing
-- Phase 3 (crawler/taxonomy/curation engine): not implemented yet
-
-### Development Notice
-
-`eden-skills` is still under active development.
-
-- Please avoid using it in production environments for now unless you can tolerate breaking changes and evolving behavior.
-- Community contributions are very welcome (issues, bug reports, docs, tests, and pull requests).
-- If you want to contribute, please align changes with the spec-first workflow in [`spec/`](spec/) and track updates in [`STATUS.yaml`](STATUS.yaml) / [`EXECUTION_TRACKER.md`](EXECUTION_TRACKER.md).
-
-Authoritative status files:
-
-- [Status Snapshot](STATUS.yaml) (machine-readable status)
-- [Execution Tracker](EXECUTION_TRACKER.md) (execution and ownership log)
-- [Roadmap](ROADMAP.md) (strategic milestones)
-
-## What You Can Do Today
-
-- Reconcile local skill state with deterministic `plan` / `apply` / `doctor` / `repair`
-- Keep `skills.lock` in sync with config mutations and diff-driven reconciliation
-- Manage config from CLI (`init`, `list`, `add`, `remove`, `set`, `config export/import`)
-- Use enhanced remove flows (batch IDs, interactive selection on TTY, `-y` confirmation skip)
-- Resolve and install registry skills (`update`, `install`)
-- Configure Docker targets (`environment = "docker:<container>"`) with adapter-backed health diagnostics and uninstall flows
-- Use bounded async concurrency for `apply` / `repair` / `update`
-- Use polished CLI output controls (`--version`/`-V`, `--color auto|always|never`, contextual error hints)
-- Enforce safety metadata and risk signals (`.eden-safety.toml`, license/risk findings, metadata-only mode)
-
-## Quick Start
-
-Prerequisites:
-
-- Rust toolchain (`cargo`)
-- Git
-- Docker (optional, only for Docker targets)
-
-Install from source (recommended):
+**Prerequisites:** Rust toolchain (`cargo`) and Git.
 
 ```bash
 git clone https://github.com/AI-Eden/eden-skills.git
 cd eden-skills
-
-# Install to ~/.cargo/bin/eden-skills
 cargo install --path crates/eden-skills-cli --locked --force
+```
 
-# Verify install
-eden-skills install --help
+Verify:
+
+```bash
+eden-skills --version
 ```
 
 If `eden-skills` is not found, add Cargo bin to your `PATH`:
@@ -67,83 +26,183 @@ If `eden-skills` is not found, add Cargo bin to your `PATH`:
 export PATH="$HOME/.cargo/bin:$PATH"
 ```
 
-Run without installing (development mode):
+> `cargo install eden-skills` via crates.io is coming soon.
+
+## Install a Skill
 
 ```bash
-# From repository root: /path/to/eden-skills
-
-# Initialize a demo config in current directory
-cargo run -p eden-skills -- init --config ./skills.demo.toml
-
-# Dry-run the action graph
-cargo run -p eden-skills -- plan --config ./skills.demo.toml
-
-# Apply changes
-cargo run -p eden-skills -- apply --config ./skills.demo.toml
-
-# Diagnose drift or risk findings
-cargo run -p eden-skills -- doctor --config ./skills.demo.toml
+eden-skills install vercel-labs/agent-skills
 ```
 
-For a complete, production-style walkthrough, start with:
+Auto-detects which agents you have installed and links the skill to each.
 
-- [Quickstart Tutorial](docs/01-quickstart.md)
+### Source Formats
+
+```bash
+# GitHub shorthand (owner/repo)
+eden-skills install vercel-labs/agent-skills
+
+# Full GitHub URL
+eden-skills install https://github.com/vercel-labs/agent-skills
+
+# Direct path to a specific skill in a repo
+eden-skills install https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines
+
+# Local path
+eden-skills install ./my-local-skill
+```
+
+### Options
+
+| Option | Description |
+| --- | --- |
+| `-s, --skill <name>` | Install a specific skill by name |
+| `--all` | Install all discovered skills without prompts |
+| `-t, --target <agent>` | Override target agent (`local`, `docker:<container>`) |
+| `--copy` | Copy files instead of symlinking |
+| `-y, --yes` | Skip confirmation prompts |
+| `--list` | List available skills without installing |
+| `--dry-run` | Preview changes without writing anything |
+
+### Examples
+
+```bash
+# List available skills in a repository
+eden-skills install vercel-labs/agent-skills --list
+
+# Install a specific skill
+eden-skills install vercel-labs/agent-skills --skill web-design-guidelines
+
+# Install all skills without prompts
+eden-skills install vercel-labs/agent-skills --all -y
+
+# Install into a running Docker container
+eden-skills install vercel-labs/agent-skills --target docker:my-agent
+
+# Preview what would happen
+eden-skills install vercel-labs/agent-skills --dry-run
+```
+
+## Other Commands
+
+| Command | Description |
+| --- | --- |
+| `eden-skills list` | List installed skills |
+| `eden-skills remove [skills...]` | Remove skills (batch or interactive) |
+| `eden-skills update` | Sync registry indexes to latest |
+| `eden-skills apply` | Reconcile all skills to desired config state |
+| `eden-skills doctor` | Detect broken links, drift, and risk findings |
+| `eden-skills repair` | Self-heal broken symlinks and drifted state |
+| `eden-skills plan` | Preview planned changes (read-only) |
+| `eden-skills init` | Initialize a new `skills.toml` config |
+| `eden-skills add` | Add a skill entry to config |
+| `eden-skills set` | Update a skill field in config |
+| `eden-skills config export` | Export normalized config |
+| `eden-skills config import` | Import and validate a config |
+
+## Why eden-skills
+
+**Installs are deterministic.** `skills.lock` tracks every installed skill, commit SHA, and target path. Run `apply` again on any machine and you get exactly the same state.
+
+**Broken installs self-heal.** `doctor` detects broken symlinks, missing sources, and drift. `repair` fixes them automatically — no manual relinking.
+
+**Config is code.** `skills.toml` is your single source of truth. Version it, share it with your team, and `apply` it anywhere.
+
+**Docker-aware.** Install skills directly into running containers with `--target docker:<container>`. Adapter health checks and cleanup are built in.
+
+## Config as Code
+
+`~/.eden-skills/skills.toml` is auto-created on first `install`. Example of a manually managed config:
+
+```toml
+version = 1
+
+[storage]
+root = "~/.eden-skills/skills"
+
+[[skills]]
+id = "web-design-guidelines"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/agent-skills.git"
+subpath = "skills/web-design-guidelines"
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "claude-code"
+```
+
+Run `eden-skills apply` to converge the system to this config.
+
+## Supported Agents
+
+Agent directories are auto-detected on `install`. Override with `--target`:
+
+| Agent | `--target` alias | Global Path |
+| --- | --- | --- |
+| Claude Code | `claude-code` | `~/.claude/skills/` |
+| Cursor | `cursor` | `~/.cursor/skills/` |
+| Codex | `codex` | `~/.codex/skills/` |
+| Windsurf | `windsurf` | `~/.codeium/windsurf/skills/` |
+| Docker container | `docker:<name>` | (inside container) |
+| Custom path | `custom:<path>` | any writable path |
 
 ## Documentation
 
-Read the [Tutorial Index](docs/README.md) for the full learning path.
+- [Quickstart: First Successful Run](docs/01-quickstart.md)
+- [Config Lifecycle Management](docs/02-config-lifecycle.md)
+- [Registry and Install Workflow](docs/03-registry-and-install.md)
+- [Docker Targets Guide](docs/04-docker-targets.md)
+- [Safety, Strict Mode, and Exit Codes](docs/05-safety-strict-and-exit-codes.md)
+- [Troubleshooting Playbook](docs/06-troubleshooting.md)
 
-- [Quickstart: First Successful Run](docs/01-quickstart.md) - first run (`init` to `doctor`)
-- [Config Lifecycle Management](docs/02-config-lifecycle.md) - manage skills via CLI (`add/remove/set/list/config`) including batch and interactive remove
-- [Registry and Install Workflow](docs/03-registry-and-install.md) - Phase 2 registry workflow (`update` + `install`) with Phase 2.7 install UX flags
-- [Docker Targets Guide](docs/04-docker-targets.md) - Docker target configuration and lock-diff remove behavior
-- [Safety, Strict Mode, and Exit Codes](docs/05-safety-strict-and-exit-codes.md) - safety model, strict mode, and exit semantics
-- [Troubleshooting Playbook](docs/06-troubleshooting.md) - common failures and recovery playbook including lock and remove edge cases
+## Global Options
 
-## Command Surface
-
-Primary commands:
-
-- Core reconciliation: `plan`, `apply`, `doctor`, `repair`
-- Registry workflow: `update`, `install`
-- Lifecycle/config: `init`, `list`, `add`, `remove`, `set`, `config export`, `config import`
-
-Global patterns:
-
-- `--config <path>`: custom config path (default: `~/.eden-skills/skills.toml`)
-- `--strict`: convert drift/warnings into strict failure semantics
-- `--json`: machine-readable output for automation
-- `--color <auto|always|never>`: control ANSI color policy
-- `--concurrency <n>`: override reactor concurrency on `apply`, `repair`, `update`
-- `--version` / `-V`: print CLI version
+| Option | Description |
+| --- | --- |
+| `--config <path>` | Config file path (default: `~/.eden-skills/skills.toml`) |
+| `--strict` | Treat drift and warnings as hard failures |
+| `--json` | Machine-readable output |
+| `--color <auto\|always\|never>` | ANSI color policy |
+| `--concurrency <n>` | Parallel task limit for `apply`, `repair`, `update` |
+| `--version` / `-V` | Print CLI version |
 
 ## Exit Codes
 
-- `0`: success
-- `1`: runtime failure
-- `2`: config/schema/argument validation failure
-- `3`: strict-mode conflict/drift failure
+| Code | Meaning |
+| --- | --- |
+| `0` | Success |
+| `1` | Runtime failure |
+| `2` | Config / validation failure |
+| `3` | Strict-mode conflict or drift |
+
+## Current Status
+
+- Phase 1 (CLI foundation): complete
+- Phase 2 (async reactor, Docker adapter, registry): complete
+- Phase 2.5 (URL install, agent auto-detection, binary distribution): complete
+- Phase 2.7 (lock file, UX polish, batch remove): complete
+- Phase 3 (crawler / taxonomy / curation): not yet implemented
+
+`eden-skills` is under active development. Avoid production use where breaking changes are not tolerable.
 
 ## Repository Layout
 
 - [`crates/eden-skills-core`](crates/eden-skills-core): domain logic (config, plan, verify, safety, reactor, adapter, registry)
 - [`crates/eden-skills-cli`](crates/eden-skills-cli): user-facing CLI binary (`eden-skills`)
-- [`crates/eden-skills-indexer`](crates/eden-skills-indexer): indexer entrypoint placeholder for future phase
-- [`spec/`](spec/): normative behavior contracts (Phase 1 frozen + Phase 2 extensions)
-- [`docs/`](docs/): user tutorials and operational guides
+- [`crates/eden-skills-indexer`](crates/eden-skills-indexer): Phase 3 placeholder
+- [`spec/`](spec/): normative behavior contracts
+- [`docs/`](docs/): user tutorials and guides
 
 ## Spec-First Contract
 
-Behavior is defined in [`spec/`](spec/) first, then implemented in code.
+Behavior is defined in [`spec/`](spec/) before code. See [Spec Index](spec/README.md) for the full contract hierarchy.
 
-- [Spec Index](spec/README.md)
-- [Phase 1 Contracts](spec/phase1/)
-- [Phase 2 Contracts](spec/phase2/)
-- [Phase 2.5 Contracts](spec/phase2.5/)
-- [Phase 2.7 Contracts](spec/phase2.7/)
-- Requirement traceability: [Phase 1](spec/phase1/SPEC_TRACEABILITY.md), [Phase 2](spec/phase2/SPEC_TRACEABILITY.md), [Phase 2.5](spec/phase2.5/SPEC_TRACEABILITY.md), [Phase 2.7](spec/phase2.7/SPEC_TRACEABILITY.md)
+## Contributing
 
-## Future Scope
-
-Phase 3 platform capabilities (crawler, taxonomy, curation rubric) are tracked but not yet implemented.  
-See [Roadmap](ROADMAP.md) for strategic milestones and [Execution Tracker](EXECUTION_TRACKER.md) for ownership boundaries.
+Contributions welcome — issues, bug reports, docs, tests, and pull requests.  
+Align changes with the [spec-first workflow](spec/) and track updates in [`STATUS.yaml`](STATUS.yaml) / [`EXECUTION_TRACKER.md`](EXECUTION_TRACKER.md).  
+See [Roadmap](ROADMAP.md) for strategic milestones.

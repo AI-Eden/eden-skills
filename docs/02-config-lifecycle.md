@@ -17,8 +17,7 @@ This tutorial covers all config mutation commands:
 ## Setup
 
 ```bash
-ES="cargo run -p eden-skills-cli --"
-$ES init --config ./skills.lifecycle.toml
+eden-skills init --config ./skills.lifecycle.toml
 ```
 
 ## 1) Add a Skill
@@ -26,7 +25,7 @@ $ES init --config ./skills.lifecycle.toml
 Example: add a copy-mode skill for Cursor.
 
 ```bash
-$ES add \
+eden-skills add \
   --config ./skills.lifecycle.toml \
   --id search-tool \
   --repo https://github.com/vercel-labs/skills.git \
@@ -52,13 +51,13 @@ Target spec rules for `add`/`set`:
 Text:
 
 ```bash
-$ES list --config ./skills.lifecycle.toml
+eden-skills list --config ./skills.lifecycle.toml
 ```
 
 JSON:
 
 ```bash
-$ES list --config ./skills.lifecycle.toml --json
+eden-skills list --config ./skills.lifecycle.toml --json
 ```
 
 The JSON payload includes `count` and per-skill fields (`id`, `source`, `install`, `verify`, `targets`).
@@ -68,7 +67,7 @@ The JSON payload includes `count` and per-skill fields (`id`, `source`, `install
 Example: switch mode, checks, and target list.
 
 ```bash
-$ES set \
+eden-skills set \
   --config ./skills.lifecycle.toml \
   search-tool \
   --mode symlink \
@@ -84,7 +83,7 @@ Notes:
 ## 4) Remove a Skill
 
 ```bash
-$ES remove --config ./skills.lifecycle.toml search-tool
+eden-skills remove --config ./skills.lifecycle.toml search-tool
 ```
 
 Behavior:
@@ -96,7 +95,7 @@ Behavior:
 Batch remove (multiple IDs):
 
 ```bash
-$ES remove --config ./skills.lifecycle.toml skill-a skill-b
+eden-skills remove --config ./skills.lifecycle.toml skill-a skill-b
 ```
 
 Atomic validation applies to batch mode: if any ID is unknown, no removal is performed.
@@ -104,19 +103,19 @@ Atomic validation applies to batch mode: if any ID is unknown, no removal is per
 Interactive remove (TTY only, no args):
 
 ```bash
-$ES remove --config ./skills.lifecycle.toml
+eden-skills remove --config ./skills.lifecycle.toml
 ```
 
 Non-interactive confirmation skip:
 
 ```bash
-$ES remove --config ./skills.lifecycle.toml skill-a -y
+eden-skills remove --config ./skills.lifecycle.toml skill-a -y
 ```
 
 JSON output for automation:
 
 ```bash
-$ES remove --config ./skills.lifecycle.toml skill-a skill-b --json
+eden-skills remove --config ./skills.lifecycle.toml skill-a skill-b --json
 ```
 
 The JSON payload includes a `removed` array.
@@ -126,13 +125,13 @@ The JSON payload includes a `removed` array.
 Plain TOML:
 
 ```bash
-$ES config export --config ./skills.lifecycle.toml
+eden-skills config export --config ./skills.lifecycle.toml
 ```
 
 JSON wrapper:
 
 ```bash
-$ES config export --config ./skills.lifecycle.toml --json
+eden-skills config export --config ./skills.lifecycle.toml --json
 ```
 
 ## 6) Import a Config
@@ -140,7 +139,7 @@ $ES config export --config ./skills.lifecycle.toml --json
 Preview (no write):
 
 ```bash
-$ES config import \
+eden-skills config import \
   --from ./skills.lifecycle.toml \
   --config ./skills.imported.toml \
   --dry-run
@@ -149,7 +148,7 @@ $ES config import \
 Write to destination:
 
 ```bash
-$ES config import \
+eden-skills config import \
   --from ./skills.lifecycle.toml \
   --config ./skills.imported.toml
 ```
@@ -159,12 +158,12 @@ $ES config import \
 After any mutation:
 
 ```bash
-$ES plan --config ./skills.lifecycle.toml
-$ES doctor --config ./skills.lifecycle.toml
+eden-skills plan --config ./skills.lifecycle.toml
+eden-skills doctor --config ./skills.lifecycle.toml
 ```
 
 If drift is reported:
 
 ```bash
-$ES repair --config ./skills.lifecycle.toml
+eden-skills repair --config ./skills.lifecycle.toml
 ```

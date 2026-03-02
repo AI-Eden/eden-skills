@@ -23,9 +23,8 @@ This tutorial explains the Phase 2 registry workflow and the `install` command.
 Recommended setup (if config does not exist yet):
 
 ```bash
-ES="cargo run -p eden-skills-cli --"
 CONFIG="${HOME}/.eden-skills/skills.toml"
-$ES init --config "$CONFIG"
+eden-skills init --config "$CONFIG"
 ```
 
 ## 1) Configure Registries
@@ -45,7 +44,7 @@ Priority rule:
 ## 2) Sync Registry Indexes
 
 ```bash
-$ES update --config "$CONFIG"
+eden-skills update --config "$CONFIG"
 ```
 
 Useful options:
@@ -63,25 +62,25 @@ Important behavior:
 Default target (local):
 
 ```bash
-$ES install browser-tool --config "$CONFIG"
+eden-skills install browser-tool --config "$CONFIG"
 ```
 
 Pin version or range:
 
 ```bash
-$ES install browser-tool --config "$CONFIG" --version "^2.0"
+eden-skills install browser-tool --config "$CONFIG" --version "^2.0"
 ```
 
 Restrict to one registry:
 
 ```bash
-$ES install browser-tool --config "$CONFIG" --registry official
+eden-skills install browser-tool --config "$CONFIG" --registry official
 ```
 
 Override target for this install:
 
 ```bash
-$ES install browser-tool --config "$CONFIG" --target docker:my-agent
+eden-skills install browser-tool --config "$CONFIG" --target docker:my-agent
 ```
 
 Target format for `install --target`:
@@ -95,7 +94,7 @@ For Docker-target operational checks and caveats, continue with `04-docker-targe
 Install mode override for this request:
 
 ```bash
-$ES install browser-tool --config "$CONFIG" --copy
+eden-skills install browser-tool --config "$CONFIG" --copy
 ```
 
 This persists `install.mode = "copy"` for the installed skill entry.
@@ -103,13 +102,13 @@ This persists `install.mode = "copy"` for the installed skill entry.
 Skip confirmation prompts in interactive install paths:
 
 ```bash
-$ES install browser-tool --config "$CONFIG" -y
+eden-skills install browser-tool --config "$CONFIG" -y
 ```
 
 ## 4) Dry-Run Before Writing
 
 ```bash
-$ES install browser-tool --config "$CONFIG" --version "~2.3" --dry-run
+eden-skills install browser-tool --config "$CONFIG" --version "~2.3" --dry-run
 ```
 
 Dry-run behavior:
@@ -123,7 +122,7 @@ Dry-run behavior:
 Even after `install`, running a full reconciliation is recommended:
 
 ```bash
-$ES apply --config "$CONFIG"
+eden-skills apply --config "$CONFIG"
 ```
 
 This ensures all skills (Mode A + Mode B) converge to desired state.

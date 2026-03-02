@@ -67,9 +67,8 @@ This contract is stable and intended for CI/CD automation.
 Tip:
 
 ```bash
-ES="cargo run -p eden-skills-cli --"
 CONFIG="${HOME}/.eden-skills/skills.toml"
-$ES doctor --config "$CONFIG" --json
+eden-skills doctor --config "$CONFIG" --json
 ```
 
 Use JSON mode for machine parsing and policy gates.
@@ -80,14 +79,14 @@ For CI quality checks:
 
 ```bash
 set -e
-$ES plan --config "$CONFIG" --json > plan.json
-$ES doctor --config "$CONFIG" --json > doctor.json
+eden-skills plan --config "$CONFIG" --json > plan.json
+eden-skills doctor --config "$CONFIG" --json > doctor.json
 ```
 
 For strict policy enforcement:
 
 ```bash
-$ES doctor --config "$CONFIG" --strict
+eden-skills doctor --config "$CONFIG" --strict
 ```
 
 Non-zero exits can be directly consumed by pipeline gates.
@@ -102,8 +101,8 @@ Phase 2.7 adds explicit output controls and error formatting that are useful in 
 Examples:
 
 ```bash
-$ES doctor --config "$CONFIG" --color never
-$ES list --config "$CONFIG" --json --color always
+eden-skills doctor --config "$CONFIG" --color never
+eden-skills list --config "$CONFIG" --json --color always
 ```
 
 JSON mode remains clean JSON without ANSI control sequences.

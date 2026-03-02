@@ -53,9 +53,8 @@ At CLI level, Docker target coverage is currently strongest in:
 Example diagnostics:
 
 ```bash
-ES="cargo run -p eden-skills-cli --"
 CONFIG="${HOME}/.eden-skills/skills.toml"
-$ES doctor --config "$CONFIG"
+eden-skills doctor --config "$CONFIG"
 ```
 
 ## Adapter Contract: Symlink Fallback
@@ -89,7 +88,7 @@ Relevant finding codes:
 When using:
 
 ```bash
-$ES remove --config "$CONFIG" <skill-id>
+eden-skills remove --config "$CONFIG" <skill-id>
 ```
 
 the CLI uses adapter uninstall semantics for each target.  
@@ -102,7 +101,7 @@ The same Docker uninstall path is also used when `apply` detects lock-only orpha
 For deterministic CI/test scenarios:
 
 ```bash
-EDEN_SKILLS_DOCKER_BIN=/path/to/docker $ES doctor --config "$CONFIG"
+EDEN_SKILLS_DOCKER_BIN=/path/to/docker eden-skills doctor --config "$CONFIG"
 ```
 
 If the binary path is invalid, `doctor` will report `DOCKER_NOT_FOUND`.

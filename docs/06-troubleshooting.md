@@ -7,15 +7,14 @@ This page maps common failures to concrete recovery steps.
 1. Run diagnostics:
 
 ```bash
-ES="cargo run -p eden-skills-cli --"
 CONFIG="${HOME}/.eden-skills/skills.toml"
-$ES doctor --config "$CONFIG"
+eden-skills doctor --config "$CONFIG"
 ```
 
 1. If drift exists, try:
 
 ```bash
-$ES repair --config "$CONFIG"
+eden-skills repair --config "$CONFIG"
 ```
 
 1. If source sync failed, inspect the `source sync failed ...` detail line (includes `skill`, `stage`, `repo_dir`, `detail`).
@@ -43,13 +42,13 @@ Meaning:
 Fixes:
 
 ```bash
-$ES repair --config "$CONFIG"
+eden-skills repair --config "$CONFIG"
 ```
 
 If conflicts persist, inspect:
 
 ```bash
-$ES plan --config "$CONFIG"
+eden-skills plan --config "$CONFIG"
 ```
 
 ### C) `TARGET_NOT_SYMLINK` or copy/symlink mode mismatch
@@ -98,7 +97,7 @@ Meaning:
 Fix:
 
 ```bash
-$ES update --config "$CONFIG"
+eden-skills update --config "$CONFIG"
 ```
 
 ### G) `INVALID_SEMVER` / `UNKNOWN_REGISTRY` / `MISSING_REGISTRIES`
@@ -148,7 +147,7 @@ Fixes:
 - Provide explicit skill IDs in non-TTY mode:
 
 ```bash
-$ES remove --config "$CONFIG" skill-a skill-b
+eden-skills remove --config "$CONFIG" skill-a skill-b
 ```
 
 - Or run in an interactive terminal when using no-argument selection.
@@ -158,7 +157,7 @@ $ES remove --config "$CONFIG" skill-a skill-b
 Use JSON output in automation:
 
 ```bash
-$ES doctor --config "$CONFIG" --json > doctor.json
+eden-skills doctor --config "$CONFIG" --json > doctor.json
 ```
 
 `doctor.json` includes stable keys:
@@ -176,7 +175,7 @@ $ES doctor --config "$CONFIG" --json > doctor.json
 Use strict mode when drift must fail fast:
 
 ```bash
-$ES doctor --config "$CONFIG" --strict
+eden-skills doctor --config "$CONFIG" --strict
 ```
 
 Strict mode is ideal for CI policy gates where unresolved issues should block promotion.

@@ -1,122 +1,162 @@
 # Quickstart: First Successful Run
 
-This tutorial gets you from zero to a clean `doctor` run.
-
-## Audience
-
-- First-time users
-- Local workstation setup (no Docker required)
+This guide gets you from a fresh install to working skills in under two minutes.
 
 ## Prerequisites
 
-- Rust toolchain (`cargo`)
+- `eden-skills` binary installed — see [README](../README.md#install)
 - Git
-- A writable workspace directory
 
-## Step 0: Enter Repository
+---
 
-```bash
-git clone <your-repo-url>
-cd eden-skills
-```
+## Path 1: Install from a URL (fastest)
 
-For convenience in this tutorial:
+The simplest way to get started. No config file needed.
 
 ```bash
-ES="cargo run -p eden-skills-cli --"
+# Install all skills from a GitHub repo
+eden-skills install vercel-labs/agent-skills --all
+
+# Or pick skills interactively
+eden-skills install vercel-labs/agent-skills
 ```
 
-You can replace `$ES` with `eden-skills` if you already installed the binary.
+`eden-skills` auto-detects which agents you have installed (Claude Code, Cursor, Codex, Windsurf) and links each skill to the correct directory.
 
-## Step 1: Initialize a Config
+Verify:
 
 ```bash
-$ES init --config ./skills.quickstart.toml
+eden-skills list
+eden-skills doctor
 ```
 
-Expected result:
+Expected `doctor` output when everything is healthy:
 
-- A new file `skills.quickstart.toml` is created.
-- It contains a minimal valid config (`version = 1` and `[storage]`) with no preset skills.
-- A co-located lock file `skills.quickstart.lock` is also created.
+```
+doctor: no issues detected
+```
 
-## Step 2: Preview Planned Actions
+If `doctor` reports a broken link, run:
 
 ```bash
-$ES plan --config ./skills.quickstart.toml
+eden-skills repair
 ```
 
-`plan` is read-only.  
-Typical actions:
+That is it. Skills are installed and ready.
 
-- `create` for missing targets
-- `noop` if state already matches
-- `conflict` when local state disagrees with config
-- `remove` when lock-only orphan skills are detected
+---
 
-JSON mode:
+## Path 2: Config-Driven Setup (recommended for teams)
+
+Use `skills.toml` for repeatable, version-controlled skill state. Every `apply` on any machine produces the same result.
+
+### Step 1: Initialize a config
 
 ```bash
-$ES plan --config ./skills.quickstart.toml --json
+eden-skills init
 ```
 
-## Step 3: Apply Changes
+Creates `~/.eden-skills/skills.toml` and a co-located `skills.lock`.
+
+To use a project-local config instead:
 
 ```bash
-$ES apply --config ./skills.quickstart.toml
+eden-skills init --config ./skills.toml
 ```
 
-You should see summaries similar to:
+### Step 2: Add a skill
 
-- `source sync: cloned=... updated=... skipped=... failed=...`
-- `safety summary: permissive=... non_permissive=...`
-- `apply summary: create=... update=... noop=... conflict=... skipped_no_exec=...`
-- `apply verification: ok`
-
-`apply` also refreshes `skills.quickstart.lock` to match current config and installed state.
-
-## Step 4: Diagnose Current State
+Install from URL — eden-skills writes the config entry automatically:
 
 ```bash
-$ES doctor --config ./skills.quickstart.toml
+eden-skills install vercel-labs/agent-skills --skill frontend-design
 ```
 
-If everything is healthy, output is:
+Or add an entry manually:
 
-- `doctor: no issues detected`
+```bash
+eden-skills add \
+  --id frontend-design \
+  --repo https://github.com/vercel-labs/agent-skills.git \
+  --subpath skills/frontend-design \
+  --ref main \
+  --target claude-code
+```
+
+### Step 3: Preview planned changes
+
+```bash
+eden-skills plan
+```
+
+`plan` is read-only. Typical action types:
+
+- `create` — target does not exist yet
+- `noop` — already in sync
+- `conflict` — local state disagrees with config
+- `remove` — lock-only orphan to be cleaned up
+
+Machine-readable:
+
+```bash
+eden-skills plan --json
+```
+
+### Step 4: Apply
+
+```bash
+eden-skills apply
+```
+
+Expected output:
+
+```
+source sync: cloned=1 updated=0 skipped=0 failed=0
+apply summary: create=1 update=0 noop=0 conflict=0
+apply verification: ok
+```
+
+`apply` also writes `skills.lock` to track installed commit SHAs and target paths.
+
+### Step 5: Diagnose
+
+```bash
+eden-skills doctor
+```
 
 Machine-readable diagnostics:
 
 ```bash
-$ES doctor --config ./skills.quickstart.toml --json
+eden-skills doctor --json
 ```
 
-## Optional Phase 2.7 CLI Checks
+### Step 6: Repair drift (when needed)
 
-Version and help:
+If you manually delete a symlink or move source files:
 
 ```bash
-$ES --version
-$ES --help
+eden-skills repair
 ```
 
-Color policy:
+`repair` reuses the same planning and verification contracts as `apply` and self-heals without manual relinking.
+
+---
+
+## Useful Flags
 
 ```bash
-$ES plan --config ./skills.quickstart.toml --color never
+eden-skills --version                        # Check version
+eden-skills --help                           # Global help
+eden-skills install --help                   # Command-specific help
+eden-skills apply --json                     # Machine-readable output
+eden-skills apply --color never              # Disable color output
+eden-skills apply --concurrency 4            # Limit parallel tasks
 ```
 
-## Step 5: Repair Drift (When Needed)
-
-If you manually break a symlink or delete a target, use:
-
-```bash
-$ES repair --config ./skills.quickstart.toml
-```
-
-`repair` reuses the same planning and verification contracts as `apply`, but focuses on reconciling drift.
+---
 
 ## What to Learn Next
 
-- Manage multi-skill configs: `02-config-lifecycle.md`
-- Use registry install flow: `03-registry-and-install.md`
+- Manage multi-skill configs (add / remove / set / list): [02-config-lifecycle.md](02-config-lifecycle.md)
+- Install from registries by name and version: [03-registry-and-install.md](03-registry-and-install.md)
+- Docker targets: [04-docker-targets.md](04-docker-targets.md)

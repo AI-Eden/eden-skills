@@ -1,38 +1,30 @@
 # eden-skills Tutorials
 
-This directory contains task-oriented guides for features implemented in Phase 1, Phase 2, and Phase 2.7 closeout scope.
-
-If you are new, read in order.
+Task-oriented guides for all implemented features. If you are new, read in order.
 
 ## Learning Path
 
 1. [Quickstart: First Successful Run](01-quickstart.md)  
-   First run with `init`, `plan`, `apply`, `doctor`, `repair`.
+   Install skills from a URL or set up a config-driven workflow (`init` → `apply` → `doctor`).
 
 2. [Config Lifecycle Management](02-config-lifecycle.md)  
-   Manage `skills.toml` from CLI (`add`, `remove`, `set`, `list`, `config export/import`).
+   Manage `skills.toml` from CLI (`add`, `remove`, `set`, `list`, `config export/import`), including batch and interactive remove.
 
 3. [Registry and Install Workflow](03-registry-and-install.md)  
-   Use Phase 2 registry workflow (`update`, `install`) and Mode A/Mode B config.
+   Use the registry workflow (`update` + `install by name`) with Mode A / Mode B config and version constraints.
 
 4. [Docker Targets Guide](04-docker-targets.md)  
-   Configure Docker targets and understand Docker adapter behavior.
+   Configure Docker targets and understand adapter behavior and lock-diff cleanup.
 
 5. [Safety, Strict Mode, and Exit Codes](05-safety-strict-and-exit-codes.md)  
    Safety metadata, strict mode semantics, and automation-friendly exit codes.
 
 6. [Troubleshooting Playbook](06-troubleshooting.md)  
-   Diagnose common failures using finding codes and command output patterns.
-
-## Phase 2.7 Coverage Map
-
-- `skills.lock` lifecycle and reconciliation behavior: `01-quickstart.md`, `02-config-lifecycle.md`, `06-troubleshooting.md`
-- Help and output polish (`--version`, `-V`, `--color`, improved errors): `01-quickstart.md`, `05-safety-strict-and-exit-codes.md`
-- Remove enhancements (batch remove, interactive remove, `-y`): `02-config-lifecycle.md`, `06-troubleshooting.md`
+   Diagnose common failures using finding codes and recovery steps.
 
 ## Command Contract References
 
-For normative behavior, refer to specs:
+For normative behavior, refer to the spec files:
 
 - [Phase 1 Command Contract](../spec/phase1/SPEC_COMMANDS.md)
 - [Phase 1 Schema Contract](../spec/phase1/SPEC_SCHEMA.md)
