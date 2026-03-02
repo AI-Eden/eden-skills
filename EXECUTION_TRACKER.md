@@ -60,7 +60,7 @@ Runtime note: in restricted sandboxes, default `storage.root` (`~/.local/share/.
 - [x] Windows runner enabled in CI matrix (`windows-latest`) for Track A Batch 2, hosted run verified (`CI` run `22139248260`, job `cargo test (windows-latest)`).
 - [x] Phase 2 closeout matrix re-verified on all targets (`CI` run `22176017545`: `ubuntu-latest`, `macos-latest`, `windows-latest`).
 
-Current automated tests: `244` (workspace unit/integration-style tests).
+Current automated tests: `245` (workspace unit/integration-style tests).
 
 ## 4. Completed by GPT-5 Codex (Builder)
 
@@ -124,6 +124,7 @@ Current automated tests: `244` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.7 Batch 3 (WP-2 — Help System): `HLP-001`~`HLP-007`; `--version`/`-V`, root `about`/`long_about`/`after_help`, subcommand `about`, argument `help`, `next_help_heading` groupings, short flags `-s`/`-t`/`-y`/`-V`, `install --copy`; `help_system_tests.rs` (TM-P27-016~021).
 - [x] Completed Phase 2.7 WP-1 tail completion (`TM-P27-013`, `TM-P27-014`) with TDD: added repair lock refresh test and docker-target orphan remove test; extended lock target schema with `environment` (default `local`) and switched orphan uninstall to adapter selection by lock target environment.
 - [x] Completed Phase 2.7 Batch 4 (WP-3 — Output Polish): migrated CLI color rendering to `owo-colors`, removed direct `console` dependency, added global `--color auto|always|never`, standardized `error:` + `→` hint formatting, added contextual config/unknown-skill errors and git/docker preflight checks, and shipped `output_polish_tests.rs` covering TM-P27-022~031.
+- [x] Completed Phase 2.7 Batch 4 post-completion test-isolation hotfix: fixed integration-test pollution where `lock_lifecycle_tests::install_creates_lock_file` could write to real `~/.eden-skills/skills/installed-skill` by rewriting init-generated `storage.root` to test-local temp storage, and added `init_does_not_create_storage_root_directory` regression coverage.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -326,3 +327,4 @@ Key architectural decisions for Builder reference:
    - Additions: `output_polish_tests.rs` (10 integration tests + 1 Windows-gated test), `--color` root flag (`auto|always|never`), `owo-colors` migration, `console` direct dependency removal, contextual `config file not found` and `skill not found` hints, preflight checks for missing `git`/`docker` executables
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (244 total tests)
    - Sandbox note: gate executed with writable HOME override (`HOME=/tmp/eden-skills-home`) and explicit `CARGO_HOME`/`RUSTUP_HOME` overrides to avoid sandbox HOME write restrictions while reusing installed toolchain/cache.
+   - Post-completion hotfix: isolated `lock_lifecycle_tests::install_creates_lock_file` from user HOME writes and added `init_command::init_does_not_create_storage_root_directory`; targeted regression suites passed, current workspace test inventory is `245`.

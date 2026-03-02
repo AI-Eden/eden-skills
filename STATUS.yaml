@@ -504,6 +504,8 @@ phase27:
         - added formatted runtime error output (`error:` + `->` hint) with contextual config-not-found and unknown-skill guidance
         - added preflight checks for missing git/docker executables before command paths that require external tooling
         - added output polish integration suite `output_polish_tests.rs` covering TM-P27-022 through TM-P27-031
+        - follow-up hardening fixed test pollution where `lock_lifecycle_tests::install_creates_lock_file` could write `installed-skill` to real `~/.eden-skills/skills` by rewriting init-generated `storage.root` to test-local temp storage
+        - added regression test `init_does_not_create_storage_root_directory` to lock `init` side-effect contract (no eager creation under `~/.eden-skills/skills`)
       quality_gate:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed
@@ -512,6 +514,8 @@ phase27:
         cargo_home_override_for_sandbox: "/home/eden/.cargo"
         rustup_home_override_for_sandbox: "/home/eden/.rustup"
         total_tests: 244
+        followup_targeted_tests: passed
+        current_test_inventory: 245
 
 next_execution_targets:
   - batch_5_wp4_remove_enhancements

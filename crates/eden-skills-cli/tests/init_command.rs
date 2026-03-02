@@ -41,6 +41,34 @@ fn init_creates_config_when_missing() {
 }
 
 #[test]
+fn init_does_not_create_storage_root_directory() {
+    let temp = tempdir().expect("tempdir");
+    let home = temp.path().join("home");
+    fs::create_dir_all(&home).expect("create home");
+    let config_path = temp.path().join("skills.toml");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .env("HOME", &home)
+        .args(["init", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run init");
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "init should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let storage_root = home.join(".eden-skills").join("skills");
+    assert!(
+        !storage_root.exists(),
+        "init should not create storage root directory eagerly"
+    );
+}
+
+#[test]
 fn init_fails_when_config_exists_without_force() {
     let temp = tempdir().expect("tempdir");
     let config_path = temp.path().join("skills.toml");

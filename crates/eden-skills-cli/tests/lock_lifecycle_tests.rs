@@ -13,6 +13,20 @@ fn default_options() -> CommandOptions {
     }
 }
 
+fn rewrite_storage_root_for_test(config_path: &Path, storage_root: &Path) {
+    let config = fs::read_to_string(config_path).expect("read init config");
+    let replacement = format!(
+        "root = \"{}\"",
+        storage_root.display().to_string().replace('\\', "\\\\")
+    );
+    let updated = config.replace("root = \"~/.eden-skills/skills\"", &replacement);
+    assert_ne!(
+        config, updated,
+        "expected init template to include default storage root"
+    );
+    fs::write(config_path, updated).expect("rewrite storage root");
+}
+
 // ---------------------------------------------------------------------------
 // TM-P27-012: Lock init creates empty lock
 // ---------------------------------------------------------------------------
@@ -193,6 +207,8 @@ async fn install_creates_lock_file() {
     let dir = tempfile::tempdir().unwrap();
     let config_path = dir.path().join("skills.toml");
     eden_skills_cli::commands::init(config_path.to_str().unwrap(), false).unwrap();
+    let storage_root = dir.path().join("storage");
+    rewrite_storage_root_for_test(&config_path, &storage_root);
 
     let origin = common::init_origin_repo(dir.path());
     let local_path = origin.display().to_string();
@@ -224,6 +240,10 @@ async fn install_creates_lock_file() {
     assert!(
         lock.skills.iter().any(|s| s.id == "installed-skill"),
         "lock should contain installed skill"
+    );
+    assert!(
+        storage_root.join("installed-skill").exists(),
+        "install should stage skill under test-local storage root"
     );
 }
 
