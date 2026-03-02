@@ -9,6 +9,8 @@ It manages the full lifecycle from planning and apply to diagnostics, repair, re
 
 - Phase 1 (CLI foundation): complete
 - Phase 2 (Hyper-Loop core): complete
+- Phase 2.5 (MVP launch): complete
+- Phase 2.7 (UX polish and lock file): complete
 - Cross-platform CI (Linux/macOS/Windows): passing
 - Phase 3 (crawler/taxonomy/curation engine): not implemented yet
 
@@ -29,10 +31,13 @@ Authoritative status files:
 ## What You Can Do Today
 
 - Reconcile local skill state with deterministic `plan` / `apply` / `doctor` / `repair`
+- Keep `skills.lock` in sync with config mutations and diff-driven reconciliation
 - Manage config from CLI (`init`, `list`, `add`, `remove`, `set`, `config export/import`)
+- Use enhanced remove flows (batch IDs, interactive selection on TTY, `-y` confirmation skip)
 - Resolve and install registry skills (`update`, `install`)
 - Configure Docker targets (`environment = "docker:<container>"`) with adapter-backed health diagnostics and uninstall flows
 - Use bounded async concurrency for `apply` / `repair` / `update`
+- Use polished CLI output controls (`--version`/`-V`, `--color auto|always|never`, contextual error hints)
 - Enforce safety metadata and risk signals (`.eden-safety.toml`, license/risk findings, metadata-only mode)
 
 ## Quick Start
@@ -89,11 +94,11 @@ For a complete, production-style walkthrough, start with:
 Read the [Tutorial Index](docs/README.md) for the full learning path.
 
 - [Quickstart: First Successful Run](docs/01-quickstart.md) - first run (`init` to `doctor`)
-- [Config Lifecycle Management](docs/02-config-lifecycle.md) - manage skills via CLI (`add/remove/set/list/config`)
-- [Registry and Install Workflow](docs/03-registry-and-install.md) - Phase 2 registry workflow (`update` + `install`)
-- [Docker Targets Guide](docs/04-docker-targets.md) - Docker target configuration and behavior
+- [Config Lifecycle Management](docs/02-config-lifecycle.md) - manage skills via CLI (`add/remove/set/list/config`) including batch and interactive remove
+- [Registry and Install Workflow](docs/03-registry-and-install.md) - Phase 2 registry workflow (`update` + `install`) with Phase 2.7 install UX flags
+- [Docker Targets Guide](docs/04-docker-targets.md) - Docker target configuration and lock-diff remove behavior
 - [Safety, Strict Mode, and Exit Codes](docs/05-safety-strict-and-exit-codes.md) - safety model, strict mode, and exit semantics
-- [Troubleshooting Playbook](docs/06-troubleshooting.md) - common failures and recovery playbook
+- [Troubleshooting Playbook](docs/06-troubleshooting.md) - common failures and recovery playbook including lock and remove edge cases
 
 ## Command Surface
 
@@ -108,7 +113,9 @@ Global patterns:
 - `--config <path>`: custom config path (default: `~/.eden-skills/skills.toml`)
 - `--strict`: convert drift/warnings into strict failure semantics
 - `--json`: machine-readable output for automation
+- `--color <auto|always|never>`: control ANSI color policy
 - `--concurrency <n>`: override reactor concurrency on `apply`, `repair`, `update`
+- `--version` / `-V`: print CLI version
 
 ## Exit Codes
 
@@ -132,7 +139,9 @@ Behavior is defined in [`spec/`](spec/) first, then implemented in code.
 - [Spec Index](spec/README.md)
 - [Phase 1 Contracts](spec/phase1/)
 - [Phase 2 Contracts](spec/phase2/)
-- Requirement traceability: [Phase 1](spec/phase1/SPEC_TRACEABILITY.md), [Phase 2](spec/phase2/SPEC_TRACEABILITY.md)
+- [Phase 2.5 Contracts](spec/phase2.5/)
+- [Phase 2.7 Contracts](spec/phase2.7/)
+- Requirement traceability: [Phase 1](spec/phase1/SPEC_TRACEABILITY.md), [Phase 2](spec/phase2/SPEC_TRACEABILITY.md), [Phase 2.5](spec/phase2.5/SPEC_TRACEABILITY.md), [Phase 2.7](spec/phase2.7/SPEC_TRACEABILITY.md)
 
 ## Future Scope
 

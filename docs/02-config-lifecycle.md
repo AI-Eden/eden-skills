@@ -91,6 +91,35 @@ Behavior:
 
 - Removes only the matching skill entry.
 - Also runs uninstall cleanup on installed target paths via adapter logic.
+- Updates co-located lock state to keep `skills.lifecycle.lock` aligned.
+
+Batch remove (multiple IDs):
+
+```bash
+$ES remove --config ./skills.lifecycle.toml skill-a skill-b
+```
+
+Atomic validation applies to batch mode: if any ID is unknown, no removal is performed.
+
+Interactive remove (TTY only, no args):
+
+```bash
+$ES remove --config ./skills.lifecycle.toml
+```
+
+Non-interactive confirmation skip:
+
+```bash
+$ES remove --config ./skills.lifecycle.toml skill-a -y
+```
+
+JSON output for automation:
+
+```bash
+$ES remove --config ./skills.lifecycle.toml skill-a skill-b --json
+```
+
+The JSON payload includes a `removed` array.
 
 ## 5) Export a Normalized Config
 

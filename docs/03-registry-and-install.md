@@ -92,6 +92,20 @@ Target format for `install --target`:
 `install --target` updates the skill target definition in config and runs the standard install pipeline.  
 For Docker-target operational checks and caveats, continue with `04-docker-targets.md`.
 
+Install mode override for this request:
+
+```bash
+$ES install browser-tool --config "$CONFIG" --copy
+```
+
+This persists `install.mode = "copy"` for the installed skill entry.
+
+Skip confirmation prompts in interactive install paths:
+
+```bash
+$ES install browser-tool --config "$CONFIG" -y
+```
+
 ## 4) Dry-Run Before Writing
 
 ```bash
@@ -113,6 +127,7 @@ $ES apply --config "$CONFIG"
 ```
 
 This ensures all skills (Mode A + Mode B) converge to desired state.
+Mutating install paths also refresh lock state (`skills.lock`) for reconciliation.
 
 ## Common Errors
 

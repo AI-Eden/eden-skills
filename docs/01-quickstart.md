@@ -38,6 +38,7 @@ Expected result:
 
 - A new file `skills.quickstart.toml` is created.
 - It contains a minimal valid config (`version = 1` and `[storage]`) with no preset skills.
+- A co-located lock file `skills.quickstart.lock` is also created.
 
 ## Step 2: Preview Planned Actions
 
@@ -51,6 +52,7 @@ Typical actions:
 - `create` for missing targets
 - `noop` if state already matches
 - `conflict` when local state disagrees with config
+- `remove` when lock-only orphan skills are detected
 
 JSON mode:
 
@@ -71,6 +73,8 @@ You should see summaries similar to:
 - `apply summary: create=... update=... noop=... conflict=... skipped_no_exec=...`
 - `apply verification: ok`
 
+`apply` also refreshes `skills.quickstart.lock` to match current config and installed state.
+
 ## Step 4: Diagnose Current State
 
 ```bash
@@ -85,6 +89,21 @@ Machine-readable diagnostics:
 
 ```bash
 $ES doctor --config ./skills.quickstart.toml --json
+```
+
+## Optional Phase 2.7 CLI Checks
+
+Version and help:
+
+```bash
+$ES --version
+$ES --help
+```
+
+Color policy:
+
+```bash
+$ES plan --config ./skills.quickstart.toml --color never
 ```
 
 ## Step 5: Repair Drift (When Needed)

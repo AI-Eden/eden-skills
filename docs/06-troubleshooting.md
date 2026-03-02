@@ -126,6 +126,33 @@ Fixes:
 
 The runtime error includes this remediation hint.
 
+### I) Corrupted `skills.lock` Warning During `apply`
+
+Meaning:
+
+- Lock file content is invalid or unsupported, so lock-aware reconciliation falls back to full reconciliation.
+
+Fix:
+
+- Re-run `apply`; the lock file is regenerated automatically on success.
+- If needed, inspect or remove the corrupted `skills.lock` manually before retry.
+
+### J) `remove` with No IDs Fails in Non-TTY Context
+
+Meaning:
+
+- Interactive no-argument remove is only available on TTY sessions.
+
+Fixes:
+
+- Provide explicit skill IDs in non-TTY mode:
+
+```bash
+$ES remove --config "$CONFIG" skill-a skill-b
+```
+
+- Or run in an interactive terminal when using no-argument selection.
+
 ## JSON Diagnostics for Tooling
 
 Use JSON output in automation:

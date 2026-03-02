@@ -47,6 +47,7 @@ At CLI level, Docker target coverage is currently strongest in:
 
 - `doctor` Docker health diagnostics
 - adapter-backed uninstall path used by `remove`
+- lock-diff orphan uninstall path used by `apply`
 - config validation for `environment = "docker:<container>"`
 
 Example diagnostics:
@@ -93,6 +94,8 @@ $ES remove --config "$CONFIG" <skill-id>
 
 the CLI uses adapter uninstall semantics for each target.  
 For Docker targets, uninstall is performed through container commands.
+
+The same Docker uninstall path is also used when `apply` detects lock-only orphan skills and generates `remove` actions from lock diff.
 
 ## Optional: Force a Custom Docker Binary (Testing)
 
