@@ -32,7 +32,7 @@ impl ColorWhen {
 }
 
 static COLOR_WHEN_OVERRIDE: AtomicU8 = AtomicU8::new(ColorWhen::Auto.as_u8());
-static COLOR_ENABLED_OVERRIDE: AtomicBool = AtomicBool::new(false);
+static COLOR_ENABLED_OVERRIDE: AtomicBool = AtomicBool::new(true);
 
 pub fn configure_color_output(color_when: ColorWhen, json_mode: bool) {
     #[cfg(windows)]

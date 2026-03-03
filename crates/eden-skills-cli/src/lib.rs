@@ -181,25 +181,7 @@ pub fn exit_code_for_error(err: &EdenError) -> u8 {
     }
 }
 
-const READABLE_AFTER_HELP: &str = r#"Quick Management:
-  install   Install skills from a URL, path, or registry
-  update    Refresh registry sources
-  remove    Uninstall a skill and clean up its files
-
-State Reconciliation:
-  plan      Preview planned actions without making changes
-  apply     Reconcile installed state with configuration
-  doctor    Diagnose configuration and installation health
-  repair    Auto-repair drifted or broken installations
-
-Configuration:
-  init      Create a new skills.toml configuration file
-  list      List configured skills and their targets
-  add       Add a skill entry to skills.toml
-  set       Modify properties of an existing skill entry
-  config    Export or import configuration
-  
-Examples:
+const EXAMPLE_AND_DOC: &str = r#"Examples:
   eden-skills install vercel-labs/agent-skills    Install skills from GitHub
   eden-skills install ./my-local-skill            Install from local path
   eden-skills list                                Show configured skills
@@ -216,7 +198,7 @@ Documentation: https://github.com/AI-Eden/eden-skills"#;
     long_about = "Deterministic & Blazing-Fast Skills Manager for AI Agents (Claude Code, Cursor, Codex & More)."
 )]
 #[command(
-    after_help = READABLE_AFTER_HELP
+    after_help = /* CATEGORIZED_GUIDE.to_string() +  */EXAMPLE_AND_DOC   
 )]
 #[command(disable_help_subcommand = true)]
 struct Cli {
@@ -225,7 +207,7 @@ struct Cli {
         global = true,
         value_enum,
         default_value_t = ColorWhen::Auto,
-        help = "Control color output: auto, always, never [default: auto]"
+        help = "Control color output"
     )]
     color: ColorWhen,
     #[command(subcommand)]

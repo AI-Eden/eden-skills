@@ -32,18 +32,6 @@ fn root_help_contains_version_about_groups_and_examples() {
         "root help should include about text, stdout={stdout}"
     );
     assert!(
-        stdout.contains("Quick Management:"),
-        "root help should include Quick Management group, stdout={stdout}"
-    );
-    assert!(
-        stdout.contains("State Reconciliation:"),
-        "root help should include State Reconciliation group, stdout={stdout}"
-    );
-    assert!(
-        stdout.contains("Configuration:"),
-        "root help should include Configuration group, stdout={stdout}"
-    );
-    assert!(
         stdout.contains("Examples:"),
         "root help should include quickstart examples, stdout={stdout}"
     );
