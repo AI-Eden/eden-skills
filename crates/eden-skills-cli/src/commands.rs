@@ -24,7 +24,8 @@ use eden_skills_core::lock::{
     write_lock_file, LockFile, LockSkillEntry, SkillDiffStatus,
 };
 use eden_skills_core::paths::{
-    known_default_agent_paths, normalize_lexical, resolve_path_string, resolve_target_path,
+    colocated_agent_display_label, known_default_agent_paths, normalize_lexical,
+    resolve_path_string, resolve_target_path,
 };
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::reactor::{SkillReactor, MAX_CONCURRENCY_LIMIT, MIN_CONCURRENCY_LIMIT};
@@ -1120,22 +1121,22 @@ fn print_install_dry_run(
         .skills
         .first()
         .ok_or_else(|| EdenError::Runtime("resolved install skill is missing".to_string()))?;
-    let resolved_targets = resolved_skill
-        .targets
-        .iter()
-        .map(|target| {
-            let resolved_path = resolve_target_path(target, config_dir)
-                .map(|path| path.display().to_string())
-                .unwrap_or_else(|err| format!("ERROR: {err}"));
-            serde_json::json!({
-                "agent": agent_kind_label(&target.agent),
-                "environment": target.environment,
-                "path": resolved_path,
-            })
-        })
-        .collect::<Vec<_>>();
 
     if json_mode {
+        let targets = resolved_skill
+            .targets
+            .iter()
+            .map(|target| {
+                let resolved_path = resolve_target_path(target, config_dir)
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|err| format!("ERROR: {err}"));
+                serde_json::json!({
+                    "agent": agent_kind_label(&target.agent),
+                    "environment": target.environment,
+                    "path": resolved_path,
+                })
+            })
+            .collect::<Vec<_>>();
         let payload = serde_json::json!({
             "skill": skill_id,
             "version": version_or_ref,
@@ -1145,7 +1146,7 @@ fn print_install_dry_run(
                 "ref": resolved_skill.source.r#ref.clone(),
                 "subpath": resolved_skill.source.subpath.clone(),
             },
-            "targets": resolved_targets,
+            "targets": targets,
         });
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
@@ -1159,12 +1160,15 @@ fn print_install_dry_run(
             resolved_skill.source.r#ref,
             resolved_skill.source.subpath
         );
-        for target in &resolved_targets {
+        for target in &resolved_skill.targets {
+            let resolved_path = resolve_target_path(target, config_dir)
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|err| format!("ERROR: {err}"));
             println!(
                 "  target agent={} environment={} path={}",
-                target["agent"].as_str().unwrap_or("unknown"),
-                target["environment"].as_str().unwrap_or("unknown"),
-                target["path"].as_str().unwrap_or("unknown")
+                colocated_agent_display_label(&target.agent),
+                target.environment,
+                resolved_path
             );
         }
     }
@@ -2738,7 +2742,7 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
                 .unwrap_or_else(|err| format!("ERROR: {err}"));
             println!(
                 "  target agent={} path={}",
-                agent_kind_label(&target.agent),
+                colocated_agent_display_label(&target.agent),
                 resolved
             );
         }

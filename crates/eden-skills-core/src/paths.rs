@@ -90,6 +90,41 @@ pub fn known_default_agent_paths() -> &'static [&'static str] {
     KNOWN_DEFAULT_AGENT_PATHS
 }
 
+/// Returns all `AgentKind` values that share the same default install path as
+/// `primary`, with `primary` listed first. Derived entirely from
+/// `default_agent_path` — no extra data source.
+pub fn colocated_agents(primary: &AgentKind) -> Vec<AgentKind> {
+    use AgentKind::*;
+    // All non-Custom variants, kept in sync with the AgentKind enum.
+    const ALL: &[AgentKind] = &[
+        Adal, Amp, Antigravity, Augment, ClaudeCode, Cline, Codebuddy, Codex,
+        CommandCode, Continue, Cortex, Crush, Cursor, Droid, GeminiCli,
+        GithubCopilot, Goose, IflowCli, Junie, Kilo, KimiCli, KiroCli, Kode,
+        Mcpjam, MistralVibe, Mux, Neovate, Openclaw, Opencode, Openhands, Pi,
+        Pochi, Qoder, QwenCode, Replit, Roo, Trae, TraeCn, Universal, Windsurf,
+        Zencoder,
+    ];
+    let Some(target_path) = default_agent_path(primary) else {
+        return vec![primary.clone()];
+    };
+    let mut result = vec![primary.clone()];
+    for agent in ALL {
+        if agent != primary && default_agent_path(agent) == Some(target_path) {
+            result.push(agent.clone());
+        }
+    }
+    result
+}
+
+/// Returns a slash-separated display label that includes all agents sharing
+/// the same default install path as `primary`. E.g. for `cursor`:
+/// `"cursor/amp/codex/gemini-cli/github-copilot/kimi-cli/opencode/replit/universal"`.
+/// Falls back to the plain agent name when the path is unique.
+pub fn colocated_agent_display_label(primary: &AgentKind) -> String {
+    let agents = colocated_agents(primary);
+    agents.iter().map(AgentKind::as_str).collect::<Vec<_>>().join("/")
+}
+
 pub fn resolve_target_path(target: &TargetConfig, config_dir: &Path) -> Result<PathBuf, EdenError> {
     if let Some(path) = &target.path {
         return resolve_path_string(path, config_dir);
