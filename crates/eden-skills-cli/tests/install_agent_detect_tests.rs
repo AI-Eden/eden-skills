@@ -113,6 +113,78 @@ fn install_without_target_detects_parent_only_global_agent_root() {
 }
 
 #[test]
+fn repeated_install_backfills_newly_detected_agent_target_for_existing_skill() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    fs::create_dir_all(home_dir.join(".claude/skills")).expect("create .claude/skills");
+    let repo_dir = temp.path().join("reinstall-backfill-repo");
+    write_root_skill_repo(&repo_dir, "backfill-skill");
+
+    let config_path = temp.path().join("skills.toml");
+    let first = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args(["install", "./reinstall-backfill-repo", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run first install");
+    assert_eq!(
+        first.status.code(),
+        Some(0),
+        "first install should succeed, stderr={}",
+        String::from_utf8_lossy(&first.stderr)
+    );
+    assert!(
+        home_dir.join(".claude/skills/backfill-skill").exists(),
+        "first install should install to initial detected claude target"
+    );
+    assert_eq!(
+        read_first_skill_target_agents(&config_path),
+        vec!["claude-code".to_string()],
+        "first install should persist only initial detected agent"
+    );
+
+    fs::create_dir_all(home_dir.join(".config/opencode")).expect("create .config/opencode");
+
+    let second = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args(["install", "./reinstall-backfill-repo", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run second install");
+    assert_eq!(
+        second.status.code(),
+        Some(0),
+        "second install should succeed, stderr={}",
+        String::from_utf8_lossy(&second.stderr)
+    );
+    assert!(
+        home_dir.join(".claude/skills/backfill-skill").exists(),
+        "second install should keep existing claude target installed"
+    );
+    assert!(
+        home_dir
+            .join(".config/opencode/skills/backfill-skill")
+            .exists(),
+        "second install should backfill newly detected opencode target"
+    );
+
+    let agents = read_first_skill_target_agents(&config_path);
+    assert_eq!(
+        agents.len(),
+        2,
+        "targets should be replaced by detected set"
+    );
+    assert!(
+        agents.iter().any(|agent| agent == "claude-code"),
+        "targets should include existing agent"
+    );
+    assert!(
+        agents.iter().any(|agent| agent == "opencode"),
+        "targets should include newly detected agent"
+    );
+}
+
+#[test]
 fn explicit_target_override_skips_auto_detection() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");

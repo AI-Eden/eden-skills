@@ -347,5 +347,6 @@ Key architectural decisions for Builder reference:
 8. Post-closeout agent-detection hardening is complete:
    - Scope: detect parent-only global roots (for example `~/.config/opencode/`) without creating directories during detection
    - Behavior: `install` now auto-detects these agents and creates missing `skills/` target directories during install/apply
+   - Reinstall contract: repeated `install` for an existing skill backfills newly detected agent targets (no extra flag, no `repair` required)
    - Coverage: added core + CLI regression tests for parent-only `opencode` detection and install fan-out
    - Spec sync: updated `SPEC_AGENT_DETECT`, `SPEC_TEST_MATRIX`, and `SPEC_TRACEABILITY` for parent-root fallback contract

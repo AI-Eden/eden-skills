@@ -173,6 +173,9 @@ Docker is NOT required for Phase 2.5 tests (adapter tests remain in Phase 2).
 - If `~/.config/opencode/` exists but `~/.config/opencode/skills/` is missing,
   `install` without `--target` still detects `opencode` and creates
   `~/.config/opencode/skills/` during install.
+- If a skill was previously installed to currently detected agents, and a new
+  agent global root appears later (for example `~/.config/opencode/`), re-running
+  `install` for the same source MUST backfill that skill to the new agent target.
 
 ### TM-P25-027: No Agent Fallback
 
