@@ -206,7 +206,7 @@ Documentation: https://github.com/AI-Eden/eden-skills"#;
     long_about = "Deterministic & Blazing-Fast Skills Manager for AI Agents (Claude Code, Cursor, Codex & More)."
 )]
 #[command(
-    after_help = /* CATEGORIZED_GUIDE.to_string() +  */EXAMPLE_AND_DOC   
+    after_help = EXAMPLE_AND_DOC
 )]
 struct Cli {
     #[arg(
