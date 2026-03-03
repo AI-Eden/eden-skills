@@ -1,49 +1,50 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
+use crate::config::AgentKind;
 use crate::error::EdenError;
+use crate::paths::default_agent_project_path;
 use serde::Deserialize;
 
-const DISCOVERY_PARENT_DIRS: &[&str] = &[
+const DISCOVERY_MANUAL_PARENT_DIRS: &[&str] = &[
     "skills",
     "packages",
     "skills/.curated",
     "skills/.experimental",
     "skills/.system",
-    ".agents/skills",
-    ".agent/skills",
-    ".augment/skills",
-    ".claude/skills",
-    ".cline/skills",
-    ".codebuddy/skills",
-    ".commandcode/skills",
-    ".continue/skills",
-    ".cortex/skills",
-    ".crush/skills",
-    ".factory/skills",
-    ".goose/skills",
-    ".junie/skills",
-    ".iflow/skills",
-    ".kilocode/skills",
-    ".kiro/skills",
-    ".kode/skills",
-    ".mcpjam/skills",
-    ".vibe/skills",
-    ".mux/skills",
-    ".openhands/skills",
-    ".pi/skills",
-    ".qoder/skills",
-    ".qwen/skills",
-    ".roo/skills",
-    ".trae/skills",
-    ".windsurf/skills",
-    ".zencoder/skills",
-    ".neovate/skills",
-    ".pochi/skills",
-    ".adal/skills",
 ];
 const MAX_RECURSIVE_DISCOVERY_DEPTH: usize = 6;
 const MAX_RECURSIVE_DISCOVERY_RESULTS: usize = 256;
+
+static DISCOVERY_PARENT_DIRS: OnceLock<Vec<&'static str>> = OnceLock::new();
+
+fn discovery_parent_dirs() -> &'static [&'static str] {
+    DISCOVERY_PARENT_DIRS
+        .get_or_init(|| {
+            let mut dirs = Vec::new();
+            let mut seen = HashSet::new();
+
+            for &dir in DISCOVERY_MANUAL_PARENT_DIRS {
+                if seen.insert(dir) {
+                    dirs.push(dir);
+                }
+            }
+
+            for agent in AgentKind::all_non_custom() {
+                let Some(project_path) = default_agent_project_path(agent) else {
+                    continue;
+                };
+                if seen.insert(project_path) {
+                    dirs.push(project_path);
+                }
+            }
+
+            dirs
+        })
+        .as_slice()
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DiscoveredSkill {
@@ -60,7 +61,7 @@ pub fn discover_skills(root: &Path) -> Result<Vec<DiscoveredSkill>, EdenError> {
         discovered.push(parse_skill_markdown(&root_skill, ".", root)?);
     }
 
-    for parent_dir in DISCOVERY_PARENT_DIRS {
+    for parent_dir in discovery_parent_dirs() {
         discovered.extend(discover_directory_children(root, parent_dir)?);
     }
     discovered.extend(discover_from_plugin_manifests(root)?);

@@ -5,7 +5,9 @@ use std::sync::{Mutex, OnceLock};
 
 use eden_skills_core::config::{AgentKind, TargetConfig};
 use eden_skills_core::error::EdenError;
-use eden_skills_core::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
+use eden_skills_core::paths::{
+    default_agent_project_path, normalize_lexical, resolve_path_string, resolve_target_path,
+};
 use tempfile::tempdir;
 
 struct EnvVarReset {
@@ -124,6 +126,12 @@ fn resolve_target_path_supports_extended_agent_default_paths() {
         path: None,
         environment: "local".to_string(),
     };
+    let codex = TargetConfig {
+        agent: AgentKind::Codex,
+        expected_path: None,
+        path: None,
+        environment: "local".to_string(),
+    };
     let windsurf = TargetConfig {
         agent: AgentKind::Windsurf,
         expected_path: None,
@@ -139,16 +147,41 @@ fn resolve_target_path_supports_extended_agent_default_paths() {
 
     assert_eq!(
         resolve_target_path(&opencode, config_dir).expect("resolve opencode"),
-        home.path().join(".agents").join("skills")
+        home.path().join(".config").join("opencode").join("skills")
+    );
+    assert_eq!(
+        resolve_target_path(&codex, config_dir).expect("resolve codex"),
+        home.path().join(".codex").join("skills")
     );
     assert_eq!(
         resolve_target_path(&windsurf, config_dir).expect("resolve windsurf"),
-        home.path().join(".windsurf").join("skills")
+        home.path().join(".codeium").join("windsurf").join("skills")
     );
     assert_eq!(
         resolve_target_path(&adal, config_dir).expect("resolve adal"),
         home.path().join(".adal").join("skills")
     );
+}
+
+#[test]
+fn default_agent_project_path_matches_supported_agent_project_scope() {
+    assert_eq!(
+        default_agent_project_path(&AgentKind::Cursor),
+        Some(".agents/skills")
+    );
+    assert_eq!(
+        default_agent_project_path(&AgentKind::Codex),
+        Some(".agents/skills")
+    );
+    assert_eq!(
+        default_agent_project_path(&AgentKind::Windsurf),
+        Some(".windsurf/skills")
+    );
+    assert_eq!(
+        default_agent_project_path(&AgentKind::Openclaw),
+        Some("skills")
+    );
+    assert_eq!(default_agent_project_path(&AgentKind::Custom), None);
 }
 
 #[test]

@@ -114,10 +114,11 @@ and their immediate subdirectories for `SKILL.md`:
 4. `skills/.curated/`
 5. `skills/.experimental/`
 6. `skills/.system/`
-7. Agent-convention parent directories (for example `.claude/skills/`,
-   `.agents/skills/`, `.agent/skills/`, `.aider/skills/`, `.kiro/skills/`,
-   `.qwen/skills/`, `.windsurf/skills/`, `.goosehints/skills/`, and other
-   documented agent skill roots)
+7. Agent-convention parent directories derived from the Supported Agents
+   table's **Project Path** column (for example `.agents/skills/`,
+   `.agent/skills/`, `.claude/skills/`, `.augment/skills/`, `.cortex/skills/`,
+   `.qwen/skills/`, `.windsurf/skills/`, `.adal/skills/`, and `skills/` for
+   OpenClaw).
 
 The implementation SHOULD keep this list data-driven to simplify ecosystem
 expansion.

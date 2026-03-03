@@ -1,8 +1,10 @@
 use std::env;
 use std::path::{Path, PathBuf};
+use std::sync::OnceLock;
 
 use crate::config::{AgentKind, TargetConfig};
 use crate::error::EdenError;
+use crate::paths::default_agent_path;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct AgentDetectionRule {
@@ -10,136 +12,26 @@ struct AgentDetectionRule {
     agent: AgentKind,
 }
 
-const AGENT_RULES: &[AgentDetectionRule] = &[
-    AgentDetectionRule {
-        detection_subpath: ".claude",
-        agent: AgentKind::ClaudeCode,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".agents",
-        agent: AgentKind::Cursor,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".agent",
-        agent: AgentKind::Antigravity,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".augment",
-        agent: AgentKind::Augment,
-    },
-    AgentDetectionRule {
-        detection_subpath: "skills",
-        agent: AgentKind::Openclaw,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".cline",
-        agent: AgentKind::Cline,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".codebuddy",
-        agent: AgentKind::Codebuddy,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".commandcode",
-        agent: AgentKind::CommandCode,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".continue",
-        agent: AgentKind::Continue,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".cortex",
-        agent: AgentKind::Cortex,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".crush",
-        agent: AgentKind::Crush,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".factory",
-        agent: AgentKind::Droid,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".goose",
-        agent: AgentKind::Goose,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".junie",
-        agent: AgentKind::Junie,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".iflow",
-        agent: AgentKind::IflowCli,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".kilocode",
-        agent: AgentKind::Kilo,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".kiro",
-        agent: AgentKind::KiroCli,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".kode",
-        agent: AgentKind::Kode,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".mcpjam",
-        agent: AgentKind::Mcpjam,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".vibe",
-        agent: AgentKind::MistralVibe,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".mux",
-        agent: AgentKind::Mux,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".openhands",
-        agent: AgentKind::Openhands,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".pi",
-        agent: AgentKind::Pi,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".qoder",
-        agent: AgentKind::Qoder,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".qwen",
-        agent: AgentKind::QwenCode,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".roo",
-        agent: AgentKind::Roo,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".trae",
-        agent: AgentKind::Trae,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".windsurf",
-        agent: AgentKind::Windsurf,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".zencoder",
-        agent: AgentKind::Zencoder,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".neovate",
-        agent: AgentKind::Neovate,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".pochi",
-        agent: AgentKind::Pochi,
-    },
-    AgentDetectionRule {
-        detection_subpath: ".adal",
-        agent: AgentKind::Adal,
-    },
-];
+static AGENT_RULES: OnceLock<Vec<AgentDetectionRule>> = OnceLock::new();
+
+fn agent_rules() -> &'static [AgentDetectionRule] {
+    AGENT_RULES
+        .get_or_init(|| {
+            AgentKind::all_non_custom()
+                .iter()
+                .filter(|agent| agent.is_auto_detect_eligible())
+                .filter_map(|agent| {
+                    let default_path = default_agent_path(agent)?;
+                    let detection_subpath = default_path.strip_prefix("~/")?;
+                    Some(AgentDetectionRule {
+                        detection_subpath,
+                        agent: agent.clone(),
+                    })
+                })
+                .collect()
+        })
+        .as_slice()
+}
 
 pub fn detect_installed_agent_targets() -> Result<Vec<TargetConfig>, EdenError> {
     let home = user_home_dir()?;
@@ -148,7 +40,7 @@ pub fn detect_installed_agent_targets() -> Result<Vec<TargetConfig>, EdenError> 
 
 pub fn detect_installed_agent_targets_from_home(home: &Path) -> Vec<TargetConfig> {
     let mut detected = Vec::new();
-    for rule in AGENT_RULES {
+    for rule in agent_rules() {
         if home.join(rule.detection_subpath).is_dir() {
             detected.push(TargetConfig {
                 agent: rule.agent.clone(),

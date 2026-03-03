@@ -102,6 +102,7 @@ fn discovers_skills_under_agent_convention_directories() {
     let temp = tempdir().expect("tempdir");
     fs::create_dir_all(temp.path().join(".claude/skills/pdf")).expect("mkdir");
     fs::create_dir_all(temp.path().join(".agents/skills/review")).expect("mkdir");
+    fs::create_dir_all(temp.path().join(".windsurf/skills/wave")).expect("mkdir");
     fs::write(
         temp.path().join(".claude/skills/pdf/SKILL.md"),
         r#"---
@@ -120,14 +121,60 @@ description: Review tools
 "#,
     )
     .expect("write review skill");
+    fs::write(
+        temp.path().join(".windsurf/skills/wave/SKILL.md"),
+        r#"---
+name: wave
+description: Windsurf tools
+---
+"#,
+    )
+    .expect("write wave skill");
 
     let mut discovered = discover_skills(temp.path()).expect("discover");
     discovered.sort_by(|left, right| left.name.cmp(&right.name));
-    assert_eq!(discovered.len(), 2);
+    assert_eq!(discovered.len(), 3);
     assert_eq!(discovered[0].name, "pdf");
     assert_eq!(discovered[0].subpath, ".claude/skills/pdf");
     assert_eq!(discovered[1].name, "review");
     assert_eq!(discovered[1].subpath, ".agents/skills/review");
+    assert_eq!(discovered[2].name, "wave");
+    assert_eq!(discovered[2].subpath, ".windsurf/skills/wave");
+}
+
+#[test]
+fn project_scope_parent_dirs_do_not_include_global_only_roots() {
+    let temp = tempdir().expect("tempdir");
+    fs::create_dir_all(temp.path().join(".agents/skills/review")).expect("mkdir");
+    fs::create_dir_all(temp.path().join(".cursor/skills/global-only")).expect("mkdir");
+    fs::write(
+        temp.path().join(".agents/skills/review/SKILL.md"),
+        r#"---
+name: review
+description: Project-scope review tools
+---
+"#,
+    )
+    .expect("write review skill");
+    fs::write(
+        temp.path().join(".cursor/skills/global-only/SKILL.md"),
+        r#"---
+name: global-only
+description: Should not be discovered from standard roots
+---
+"#,
+    )
+    .expect("write global-only skill");
+
+    let discovered = discover_skills(temp.path()).expect("discover");
+    assert!(
+        discovered.iter().any(|skill| skill.name == "review"),
+        "expected project-scope .agents/skills skill to be discovered"
+    );
+    assert!(
+        !discovered.iter().any(|skill| skill.name == "global-only"),
+        "global-only path should not be discovered from project-scope parent dirs"
+    );
 }
 
 #[test]

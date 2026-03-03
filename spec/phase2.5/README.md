@@ -42,7 +42,7 @@ WS-6 (seed registry) is optional and does not require a normative spec.
 | :--- | :--- |
 | Install URL | MVP-001 ~ MVP-015 |
 | Schema Amendment | SCH-P25-001 ~ SCH-P25-003 |
-| Agent Detection | AGT-001 ~ AGT-004 |
+| Agent Detection | AGT-001 ~ AGT-006 |
 | CLI UX | UX-001 ~ UX-007 |
 | Distribution | DST-001 ~ DST-003 |
 | Test Scenarios | TM-P25-001 ~ TM-P25-028 |

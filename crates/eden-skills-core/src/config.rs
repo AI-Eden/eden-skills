@@ -166,6 +166,66 @@ impl AgentKind {
         }
     }
 
+    /// Canonical list of built-in agent kinds (excludes `custom`).
+    /// Keep this as the single source of truth for cross-module iteration.
+    pub const fn all_non_custom() -> &'static [Self] {
+        &[
+            Self::ClaudeCode,
+            Self::Cursor,
+            Self::Antigravity,
+            Self::Augment,
+            Self::Openclaw,
+            Self::Cline,
+            Self::Codebuddy,
+            Self::Codex,
+            Self::CommandCode,
+            Self::Continue,
+            Self::Cortex,
+            Self::Crush,
+            Self::Droid,
+            Self::GeminiCli,
+            Self::GithubCopilot,
+            Self::Goose,
+            Self::Junie,
+            Self::IflowCli,
+            Self::Kilo,
+            Self::KiroCli,
+            Self::Kode,
+            Self::Mcpjam,
+            Self::MistralVibe,
+            Self::Mux,
+            Self::Opencode,
+            Self::Openhands,
+            Self::Pi,
+            Self::Qoder,
+            Self::QwenCode,
+            Self::Roo,
+            Self::Trae,
+            Self::TraeCn,
+            Self::Windsurf,
+            Self::Zencoder,
+            Self::Neovate,
+            Self::Pochi,
+            Self::Adal,
+            Self::Amp,
+            Self::KimiCli,
+            Self::Replit,
+            Self::Universal,
+        ]
+    }
+
+    /// Whether this agent should participate in auto-detection when `install`
+    /// is executed without explicit `--target`.
+    ///
+    /// Shared-path aliases are excluded to avoid ambiguous auto-detected
+    /// identity for a single filesystem location.
+    pub const fn is_auto_detect_eligible(&self) -> bool {
+        !matches!(
+            self,
+            Self::Amp | Self::KimiCli | Self::Replit | Self::Universal | Self::Custom
+        )
+    }
+
     pub fn from_target_spec(spec: &str) -> Option<Self> {
         match spec {
             "amp" => Some(Self::Amp),

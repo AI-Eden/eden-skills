@@ -5,7 +5,7 @@ This file quantifies implementation progress and enforces model responsibility b
 
 ## 1. Snapshot
 
-- Date: 2026-03-02
+- Date: 2026-03-04
 - Workspace: `eden-skills`
 - Primary implementation model this cycle: `GPT-5 Codex (Builder)`
 
@@ -127,6 +127,7 @@ Current automated tests: `253` (workspace unit/integration-style tests).
 - [x] Completed Phase 2.7 Batch 4 post-completion test-isolation hotfix: fixed integration-test pollution where `lock_lifecycle_tests::install_creates_lock_file` could write to real `~/.eden-skills/skills/installed-skill` by rewriting init-generated `storage.root` to test-local temp storage, and added `init_does_not_create_storage_root_directory` regression coverage.
 - [x] Completed Phase 2.7 Batch 5 (WP-4 — Remove Enhancements): implemented batch remove (`SKILL_ID...`) with atomic unknown-ID validation, interactive no-arg remove on TTY, non-TTY no-arg usage failure, remove/install `-y` confirmation skip semantics, and remove JSON `removed` array output; added `remove_enhanced_tests.rs` covering TM-P27-032~039.
 - [x] Completed Phase 2.7 Batch 6 (Regression + Closeout): completed `TM-P27-040` by running full workspace quality gate (`cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`) and synchronized `spec/phase2.7/SPEC_TRACEABILITY.md`, `STATUS.yaml`, and `EXECUTION_TRACKER.md`.
+- [x] Post-closeout agent path alignment: unified agent default paths and auto-detection to `vercel-labs/skills` `Global Path` semantics (for example `cursor -> ~/.cursor/skills`, `codex -> ~/.codex/skills`, `windsurf -> ~/.codeium/windsurf/skills`), expanded discovery roots with Global-Path-derived directories (strip `~/`), and synchronized Phase 2.5 specs/traceability plus regression tests.
 
 ## 5. Pending Tasks with Planned LLM Ownership
 
@@ -292,6 +293,7 @@ Key architectural decisions for Builder reference:
 11. Phase 2.5 closeout readiness + tagged release dry-run is complete with quality gate pass. Added release-smoke contract regression for `eden-skills --help` success semantics (`distribution_tests`); validated local host-target archive packaging + checksum generation + smoke sequence (`--help`, `init`, `install ... --all`); gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`.
 
 12. Next recommended execution target: repository public-readiness checklist and first real tag release execution.
+13. Post-closeout compatibility hardening completed: switched from project-path-derived global defaults to Supported Agents Global Path mapping, updated shared-path alias semantics (`~/.config/agents/skills` explicit-target only), and synchronized `SPEC_AGENT_DETECT.md`, `SPEC_INSTALL_URL.md`, `SPEC_TEST_MATRIX.md`, and `SPEC_TRACEABILITY.md`.
 
 ## 9. Phase 2.7 Builder State
 

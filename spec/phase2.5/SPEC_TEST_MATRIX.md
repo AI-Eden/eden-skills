@@ -168,7 +168,7 @@ Docker is NOT required for Phase 2.5 tests (adapter tests remain in Phase 2).
 
 ### TM-P25-026: Multi-Agent Detection
 
-- On a system with both `~/.claude/` and `~/.cursor/` directories,
+- On a system with both `~/.claude/skills/` and `~/.cursor/skills/` directories,
   `install` without `--target` installs to both agent skill directories.
 
 ### TM-P25-027: No Agent Fallback
@@ -267,7 +267,8 @@ A release candidate MUST pass:
 ### TM-P25-037: Agent-Convention Directory Discovery
 
 - Repository with skills under agent convention roots (e.g.
-  `.claude/skills/pdf/SKILL.md`, `.agents/skills/review/SKILL.md`) is
+  `.claude/skills/pdf/SKILL.md`, `.agents/skills/review/SKILL.md`,
+  `.windsurf/skills/wave/SKILL.md`) is
   discovered without requiring recursive fallback.
 
 ### TM-P25-038: Marketplace Manifest Discovery

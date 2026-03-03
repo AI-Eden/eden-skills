@@ -1,5 +1,5 @@
 schema_version: 1
-updated_at: "2026-03-02"
+updated_at: "2026-03-04"
 project:
   name: eden-skills
   phase: phase27_ux_polish_lock
@@ -393,6 +393,21 @@ phase25:
         - remove now performs cleanup of canonical storage entries and scans known local agent roots for stale per-agent installs
         - default `storage.root` now points to `~/.eden-skills/skills` (replacing legacy `~/.local/share/eden-skills/repos`)
         - Windows without symlink permission now emits explicit hardcopy fallback warning that installs may be slower
+      quality_gate:
+        fmt_check: passed
+        clippy_workspace_deny_warnings: passed
+        test_workspace: passed
+    post_closeout_global_path_alignment:
+      status: completed
+      completed_at: "2026-03-04"
+      requirements: AGT-001, AGT-002, AGT-006, MVP-009
+      scenarios: TM-P25-026, TM-P25-028, TM-P25-037
+      notes:
+        - aligned agent auto-detection and default install paths to `vercel-labs/skills` Supported Agents `Global Path` column
+        - migrated cursor/codex/windsurf and other agent defaults away from project-path-derived global conventions
+        - expanded discovery parent-directory sniff list with Global-Path-derived roots (strip `~/` prefix)
+        - kept shared `~/.config/agents/skills` aliases (`amp`/`kimi-cli`/`replit`/`universal`) explicit-target only to avoid ambiguous auto-detection
+        - synchronized Phase 2.5 specs/traceability with updated path semantics and added regression tests
       quality_gate:
         fmt_check: passed
         clippy_workspace_deny_warnings: passed

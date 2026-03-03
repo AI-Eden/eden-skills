@@ -6,18 +6,23 @@ use crate::error::EdenError;
 
 const KNOWN_DEFAULT_AGENT_PATHS: &[&str] = &[
     "~/.adal/skills",
-    "~/.agent/skills",
     "~/.agents/skills",
     "~/.augment/skills",
     "~/.claude/skills",
-    "~/.cline/skills",
+    "~/.codeium/windsurf/skills",
+    "~/.codex/skills",
     "~/.codebuddy/skills",
     "~/.commandcode/skills",
+    "~/.config/agents/skills",
+    "~/.config/crush/skills",
+    "~/.config/goose/skills",
+    "~/.config/opencode/skills",
     "~/.continue/skills",
-    "~/.cortex/skills",
-    "~/.crush/skills",
+    "~/.copilot/skills",
+    "~/.cursor/skills",
     "~/.factory/skills",
-    "~/.goose/skills",
+    "~/.gemini/antigravity/skills",
+    "~/.gemini/skills",
     "~/.iflow/skills",
     "~/.junie/skills",
     "~/.kilocode/skills",
@@ -27,61 +32,114 @@ const KNOWN_DEFAULT_AGENT_PATHS: &[&str] = &[
     "~/.mux/skills",
     "~/.neovate/skills",
     "~/.openhands/skills",
-    "~/.pi/skills",
+    "~/.openclaw/skills",
+    "~/.pi/agent/skills",
     "~/.pochi/skills",
     "~/.qoder/skills",
     "~/.qwen/skills",
     "~/.roo/skills",
+    "~/.snowflake/cortex/skills",
+    "~/.trae-cn/skills",
     "~/.trae/skills",
     "~/.vibe/skills",
-    "~/.windsurf/skills",
     "~/.zencoder/skills",
-    "~/skills",
 ];
 
 pub fn default_agent_path(agent: &AgentKind) -> Option<&'static str> {
     match agent {
-        AgentKind::Amp => Some("~/.agents/skills"),
+        AgentKind::Amp => Some("~/.config/agents/skills"),
         AgentKind::Adal => Some("~/.adal/skills"),
-        AgentKind::Antigravity => Some("~/.agent/skills"),
+        AgentKind::Antigravity => Some("~/.gemini/antigravity/skills"),
         AgentKind::Augment => Some("~/.augment/skills"),
         AgentKind::ClaudeCode => Some("~/.claude/skills"),
-        AgentKind::Cline => Some("~/.cline/skills"),
+        AgentKind::Cline => Some("~/.agents/skills"),
         AgentKind::Codebuddy => Some("~/.codebuddy/skills"),
-        AgentKind::Codex => Some("~/.agents/skills"),
+        AgentKind::Codex => Some("~/.codex/skills"),
         AgentKind::CommandCode => Some("~/.commandcode/skills"),
         AgentKind::Continue => Some("~/.continue/skills"),
-        AgentKind::Cortex => Some("~/.cortex/skills"),
-        AgentKind::Crush => Some("~/.crush/skills"),
-        AgentKind::Cursor => Some("~/.agents/skills"),
+        AgentKind::Cortex => Some("~/.snowflake/cortex/skills"),
+        AgentKind::Crush => Some("~/.config/crush/skills"),
+        AgentKind::Cursor => Some("~/.cursor/skills"),
         AgentKind::Droid => Some("~/.factory/skills"),
-        AgentKind::GeminiCli => Some("~/.agents/skills"),
-        AgentKind::GithubCopilot => Some("~/.agents/skills"),
-        AgentKind::Goose => Some("~/.goose/skills"),
+        AgentKind::GeminiCli => Some("~/.gemini/skills"),
+        AgentKind::GithubCopilot => Some("~/.copilot/skills"),
+        AgentKind::Goose => Some("~/.config/goose/skills"),
         AgentKind::IflowCli => Some("~/.iflow/skills"),
         AgentKind::Junie => Some("~/.junie/skills"),
         AgentKind::Kilo => Some("~/.kilocode/skills"),
-        AgentKind::KimiCli => Some("~/.agents/skills"),
+        AgentKind::KimiCli => Some("~/.config/agents/skills"),
         AgentKind::KiroCli => Some("~/.kiro/skills"),
         AgentKind::Kode => Some("~/.kode/skills"),
         AgentKind::Mcpjam => Some("~/.mcpjam/skills"),
         AgentKind::MistralVibe => Some("~/.vibe/skills"),
         AgentKind::Mux => Some("~/.mux/skills"),
         AgentKind::Neovate => Some("~/.neovate/skills"),
-        AgentKind::Openclaw => Some("~/skills"),
-        AgentKind::Opencode => Some("~/.agents/skills"),
+        AgentKind::Openclaw => Some("~/.openclaw/skills"),
+        AgentKind::Opencode => Some("~/.config/opencode/skills"),
         AgentKind::Openhands => Some("~/.openhands/skills"),
-        AgentKind::Pi => Some("~/.pi/skills"),
+        AgentKind::Pi => Some("~/.pi/agent/skills"),
         AgentKind::Pochi => Some("~/.pochi/skills"),
         AgentKind::Qoder => Some("~/.qoder/skills"),
         AgentKind::QwenCode => Some("~/.qwen/skills"),
-        AgentKind::Replit => Some("~/.agents/skills"),
+        AgentKind::Replit => Some("~/.config/agents/skills"),
         AgentKind::Roo => Some("~/.roo/skills"),
         AgentKind::Trae => Some("~/.trae/skills"),
-        AgentKind::TraeCn => Some("~/.trae/skills"),
-        AgentKind::Universal => Some("~/.agents/skills"),
-        AgentKind::Windsurf => Some("~/.windsurf/skills"),
+        AgentKind::TraeCn => Some("~/.trae-cn/skills"),
+        AgentKind::Universal => Some("~/.config/agents/skills"),
+        AgentKind::Windsurf => Some("~/.codeium/windsurf/skills"),
         AgentKind::Zencoder => Some("~/.zencoder/skills"),
+        AgentKind::Custom => None,
+    }
+}
+
+/// Project-scope skill root for each supported agent, aligned with
+/// vercel-labs/skills "Supported Agents" -> "Project Path".
+///
+/// This is intentionally separate from `default_agent_path` (global scope)
+/// because project discovery and global installation have different semantics.
+pub fn default_agent_project_path(agent: &AgentKind) -> Option<&'static str> {
+    match agent {
+        AgentKind::Amp => Some(".agents/skills"),
+        AgentKind::Adal => Some(".adal/skills"),
+        AgentKind::Antigravity => Some(".agent/skills"),
+        AgentKind::Augment => Some(".augment/skills"),
+        AgentKind::ClaudeCode => Some(".claude/skills"),
+        AgentKind::Cline => Some(".agents/skills"),
+        AgentKind::Codebuddy => Some(".codebuddy/skills"),
+        AgentKind::Codex => Some(".agents/skills"),
+        AgentKind::CommandCode => Some(".commandcode/skills"),
+        AgentKind::Continue => Some(".continue/skills"),
+        AgentKind::Cortex => Some(".cortex/skills"),
+        AgentKind::Crush => Some(".crush/skills"),
+        AgentKind::Cursor => Some(".agents/skills"),
+        AgentKind::Droid => Some(".factory/skills"),
+        AgentKind::GeminiCli => Some(".agents/skills"),
+        AgentKind::GithubCopilot => Some(".agents/skills"),
+        AgentKind::Goose => Some(".goose/skills"),
+        AgentKind::IflowCli => Some(".iflow/skills"),
+        AgentKind::Junie => Some(".junie/skills"),
+        AgentKind::Kilo => Some(".kilocode/skills"),
+        AgentKind::KimiCli => Some(".agents/skills"),
+        AgentKind::KiroCli => Some(".kiro/skills"),
+        AgentKind::Kode => Some(".kode/skills"),
+        AgentKind::Mcpjam => Some(".mcpjam/skills"),
+        AgentKind::MistralVibe => Some(".vibe/skills"),
+        AgentKind::Mux => Some(".mux/skills"),
+        AgentKind::Neovate => Some(".neovate/skills"),
+        AgentKind::Openclaw => Some("skills"),
+        AgentKind::Opencode => Some(".agents/skills"),
+        AgentKind::Openhands => Some(".openhands/skills"),
+        AgentKind::Pi => Some(".pi/skills"),
+        AgentKind::Pochi => Some(".pochi/skills"),
+        AgentKind::Qoder => Some(".qoder/skills"),
+        AgentKind::QwenCode => Some(".qwen/skills"),
+        AgentKind::Replit => Some(".agents/skills"),
+        AgentKind::Roo => Some(".roo/skills"),
+        AgentKind::Trae => Some(".trae/skills"),
+        AgentKind::TraeCn => Some(".trae/skills"),
+        AgentKind::Universal => Some(".agents/skills"),
+        AgentKind::Windsurf => Some(".windsurf/skills"),
+        AgentKind::Zencoder => Some(".zencoder/skills"),
         AgentKind::Custom => None,
     }
 }
@@ -94,56 +152,11 @@ pub fn known_default_agent_paths() -> &'static [&'static str] {
 /// `primary`, with `primary` listed first. Derived entirely from
 /// `default_agent_path` — no extra data source.
 pub fn colocated_agents(primary: &AgentKind) -> Vec<AgentKind> {
-    use AgentKind::*;
-    // All non-Custom variants, kept in sync with the AgentKind enum.
-    const ALL: &[AgentKind] = &[
-        Adal,
-        Amp,
-        Antigravity,
-        Augment,
-        ClaudeCode,
-        Cline,
-        Codebuddy,
-        Codex,
-        CommandCode,
-        Continue,
-        Cortex,
-        Crush,
-        Cursor,
-        Droid,
-        GeminiCli,
-        GithubCopilot,
-        Goose,
-        IflowCli,
-        Junie,
-        Kilo,
-        KimiCli,
-        KiroCli,
-        Kode,
-        Mcpjam,
-        MistralVibe,
-        Mux,
-        Neovate,
-        Openclaw,
-        Opencode,
-        Openhands,
-        Pi,
-        Pochi,
-        Qoder,
-        QwenCode,
-        Replit,
-        Roo,
-        Trae,
-        TraeCn,
-        Universal,
-        Windsurf,
-        Zencoder,
-    ];
     let Some(target_path) = default_agent_path(primary) else {
         return vec![primary.clone()];
     };
     let mut result = vec![primary.clone()];
-    for agent in ALL {
+    for agent in AgentKind::all_non_custom() {
         if agent != primary && default_agent_path(agent) == Some(target_path) {
             result.push(agent.clone());
         }
@@ -152,8 +165,8 @@ pub fn colocated_agents(primary: &AgentKind) -> Vec<AgentKind> {
 }
 
 /// Returns a slash-separated display label that includes all agents sharing
-/// the same default install path as `primary`. E.g. for `cursor`:
-/// `"cursor/amp/codex/gemini-cli/github-copilot/kimi-cli/opencode/replit/universal"`.
+/// the same default install path as `primary`. E.g. for `amp`:
+/// `"amp/kimi-cli/replit/universal"`.
 /// Falls back to the plain agent name when the path is unique.
 pub fn colocated_agent_display_label(primary: &AgentKind) -> String {
     let agents = colocated_agents(primary);

@@ -8,8 +8,8 @@ use tempfile::tempdir;
 fn install_without_target_detects_multiple_agent_directories() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
-    fs::create_dir_all(home_dir.join(".claude")).expect("create .claude");
-    fs::create_dir_all(home_dir.join(".agents")).expect("create .agents");
+    fs::create_dir_all(home_dir.join(".claude/skills")).expect("create .claude/skills");
+    fs::create_dir_all(home_dir.join(".cursor/skills")).expect("create .cursor/skills");
     let repo_dir = temp.path().join("agent-detect-repo");
     write_root_skill_repo(&repo_dir, "agent-skill");
 
@@ -32,7 +32,7 @@ fn install_without_target_detects_multiple_agent_directories() {
         "claude target should be installed"
     );
     assert!(
-        home_dir.join(".agents/skills/agent-skill").exists(),
+        home_dir.join(".cursor/skills/agent-skill").exists(),
         "cursor target should be installed"
     );
 
@@ -83,8 +83,8 @@ fn install_without_target_falls_back_to_claude_with_warning() {
 fn explicit_target_override_skips_auto_detection() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
-    fs::create_dir_all(home_dir.join(".claude")).expect("create .claude");
-    fs::create_dir_all(home_dir.join(".agents")).expect("create .agents");
+    fs::create_dir_all(home_dir.join(".claude/skills")).expect("create .claude/skills");
+    fs::create_dir_all(home_dir.join(".cursor/skills")).expect("create .cursor/skills");
     let repo_dir = temp.path().join("override-repo");
     write_root_skill_repo(&repo_dir, "override-skill");
 
@@ -109,7 +109,7 @@ fn explicit_target_override_skips_auto_detection() {
     );
 
     assert!(
-        home_dir.join(".agents/skills/override-skill").exists(),
+        home_dir.join(".cursor/skills/override-skill").exists(),
         "cursor target should be installed"
     );
     assert!(
@@ -119,6 +119,44 @@ fn explicit_target_override_skips_auto_detection() {
 
     let agents = read_first_skill_target_agents(&config_path);
     assert_eq!(agents, vec!["cursor".to_string()]);
+}
+
+#[test]
+fn explicit_shared_global_target_alias_installs_to_config_agents_path() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("shared-global-target-repo");
+    write_root_skill_repo(&repo_dir, "shared-global-skill");
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "install",
+            "./shared-global-target-repo",
+            "--target",
+            "kimi-cli",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(
+        home_dir
+            .join(".config/agents/skills/shared-global-skill")
+            .exists(),
+        "kimi-cli should install into ~/.config/agents/skills"
+    );
+
+    let agents = read_first_skill_target_agents(&config_path);
+    assert_eq!(agents, vec!["kimi-cli".to_string()]);
 }
 
 fn eden_command(home_dir: &Path) -> Command {

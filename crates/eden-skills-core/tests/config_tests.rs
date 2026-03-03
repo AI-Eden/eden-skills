@@ -1,6 +1,6 @@
 use std::fs;
 
-use eden_skills_core::config::{load_from_file, LoadOptions};
+use eden_skills_core::config::{load_from_file, AgentKind, LoadOptions};
 use tempfile::tempdir;
 
 #[test]
@@ -217,4 +217,15 @@ agent = "windsurf"
     let loaded = load_from_file(&config_path, LoadOptions::default()).expect("load config");
     assert_eq!(loaded.config.skills.len(), 1);
     assert_eq!(loaded.config.skills[0].targets.len(), 2);
+}
+
+#[test]
+fn auto_detect_eligibility_excludes_shared_config_agents_aliases() {
+    assert!(AgentKind::ClaudeCode.is_auto_detect_eligible());
+    assert!(AgentKind::Cursor.is_auto_detect_eligible());
+    assert!(!AgentKind::Amp.is_auto_detect_eligible());
+    assert!(!AgentKind::KimiCli.is_auto_detect_eligible());
+    assert!(!AgentKind::Replit.is_auto_detect_eligible());
+    assert!(!AgentKind::Universal.is_auto_detect_eligible());
+    assert!(!AgentKind::Custom.is_auto_detect_eligible());
 }
