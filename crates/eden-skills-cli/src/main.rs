@@ -26,10 +26,10 @@ fn print_error(err: &EdenError) {
     eprintln!();
     if let Some(hint) = hint {
         if colors_enabled {
-            eprint!("    {} ", "->".purple());
+            eprint!(" {} ", "hint:".purple());
             eprintln!("{hint}");
         } else {
-            eprintln!("    -> {hint}");
+            eprintln!(" hint: {hint}");
         }
     }
 }

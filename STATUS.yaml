@@ -502,7 +502,7 @@ phase27:
       notes:
         - replaced hardcoded ANSI in ui rendering with `owo-colors` and removed direct `console` dependency
         - added root global `--color <auto|always|never>` and centralized color policy initialization (`configure_color_output`)
-        - added formatted runtime error output (`error:` + `->` hint) with contextual config-not-found and unknown-skill guidance
+        - added formatted runtime error output (`error:` + `hint:` hint) with contextual config-not-found and unknown-skill guidance
         - added preflight checks for missing git/docker executables before command paths that require external tooling
         - added output polish integration suite `output_polish_tests.rs` covering TM-P27-022 through TM-P27-031
         - follow-up hardening fixed test pollution where `lock_lifecycle_tests::install_creates_lock_file` could write `installed-skill` to real `~/.eden-skills/skills` by rewriting init-generated `storage.root` to test-local temp storage
