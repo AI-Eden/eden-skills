@@ -41,7 +41,12 @@ pub fn detect_installed_agent_targets() -> Result<Vec<TargetConfig>, EdenError> 
 pub fn detect_installed_agent_targets_from_home(home: &Path) -> Vec<TargetConfig> {
     let mut detected = Vec::new();
     for rule in agent_rules() {
-        if home.join(rule.detection_subpath).is_dir() {
+        let skills_dir = home.join(rule.detection_subpath);
+        // Some agents create a global config root before creating `skills/`.
+        // Treat parent-root presence as an installed-agent signal, and let
+        // install/apply create the missing `skills/` directory.
+        let detected_by_parent = skills_dir.parent().is_some_and(Path::is_dir);
+        if skills_dir.is_dir() || detected_by_parent {
             detected.push(TargetConfig {
                 agent: rule.agent.clone(),
                 expected_path: None,

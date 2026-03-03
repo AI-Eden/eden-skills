@@ -77,11 +77,13 @@ They are resolved when explicitly specified via `--target`:
 
 ### 2.3 Detection Logic
 
-1. For each agent in the Section 2.1 table, check if the detection path exists
-   and is a directory (`is_dir()`).
-2. Collect all agents whose detection path exists.
-3. If one or more agents are detected → use them as install targets.
-4. If no agents are detected → apply fallback behavior (Section 2.4).
+1. For each agent in the Section 2.1 table, check the detection path.
+2. An agent is considered detected when either condition is true:
+   - detection path exists and is a directory (`is_dir()`), or
+   - detection path's parent directory exists and is a directory.
+3. Collect all agents that satisfy the detection condition.
+4. If one or more agents are detected → use them as install targets.
+5. If no agents are detected → apply fallback behavior (Section 2.4).
 
 The detection is implemented as a data-driven rule table
 (`AGENT_RULES` in `crates/eden-skills-core/src/agents.rs`) to simplify
@@ -128,7 +130,7 @@ the targets already defined in `skills.toml` and are not affected.
 | ID | Owner | Priority | Statement | Verification |
 | :--- | :--- | :--- | :--- | :--- |
 | **AGT-001** | Builder | **P0** | `install` without `--target` MUST auto-detect installed agents by checking detection paths from Section 2.1. | Install on a system with `~/.claude/skills/` and `~/.codeium/windsurf/skills/` detects both. |
-| **AGT-002** | Builder | **P0** | Detection MUST check each agent's documented detection path (Section 2.1) using `is_dir()`. | Each detection path is checked; presence → included in targets. |
+| **AGT-002** | Builder | **P0** | Detection MUST check each agent's documented detection path (Section 2.1); agent is detected when `skills/` exists, or when only the parent config root exists. | Each detection path is checked; `skills/` or parent-root presence → included in targets. |
 | **AGT-003** | Builder | **P0** | Explicit `--target` MUST override auto-detection entirely. | `--target cursor` installs to Cursor only, even if other agents are detected. |
 | **AGT-004** | Builder | **P1** | No agents detected MUST fall back to `claude-code` with warning. | System with no agent dirs → install to `~/.claude/skills/` with warning. |
 | **AGT-005** | Builder | **P1** | Detection implementation MUST be data-driven (`AGENT_RULES` table) to allow ecosystem expansion without code restructuring. | Adding a new agent requires only a new row in `AGENT_RULES` and `default_agent_path`. |

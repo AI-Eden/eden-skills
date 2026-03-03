@@ -406,6 +406,7 @@ phase25:
         - aligned agent auto-detection and default install paths to `vercel-labs/skills` Supported Agents `Global Path` column
         - migrated cursor/codex/windsurf and other agent defaults away from project-path-derived global conventions
         - expanded discovery parent-directory sniff list with Global-Path-derived roots (strip `~/` prefix)
+        - detection now treats parent-only global roots (for example `~/.config/opencode/`) as installed-agent signals and lets install create missing `skills/` subdirectories
         - kept shared `~/.config/agents/skills` aliases (`amp`/`kimi-cli`/`replit`/`universal`) explicit-target only to avoid ambiguous auto-detection
         - synchronized Phase 2.5 specs/traceability with updated path semantics and added regression tests
       quality_gate:

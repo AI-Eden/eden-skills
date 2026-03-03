@@ -73,6 +73,23 @@ fn detects_global_agent_skill_directories() {
 }
 
 #[test]
+fn detects_agent_when_global_parent_exists_without_skills_dir() {
+    let temp = tempdir().expect("tempdir");
+    let home = temp.path();
+    fs::create_dir_all(home.join(".config/opencode")).expect("create .config/opencode");
+
+    let detected = detect_installed_agent_targets_from_home(home);
+    assert!(
+        detected.iter().any(|target| {
+            target.agent == AgentKind::Opencode
+                && target.path.is_none()
+                && target.environment == "local"
+        }),
+        "expected parent-only ~/.config/opencode to be detected as opencode installation"
+    );
+}
+
+#[test]
 fn does_not_auto_detect_shared_config_agents_path() {
     let temp = tempdir().expect("tempdir");
     let home = temp.path();

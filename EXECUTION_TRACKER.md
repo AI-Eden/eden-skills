@@ -344,3 +344,8 @@ Key architectural decisions for Builder reference:
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (all passed)
    - Environment note: executed with `HOME=/tmp`, `CARGO_HOME=/home/eden/.cargo`, and `RUSTUP_HOME=/home/eden/.rustup` for deterministic sandbox compatibility
    - Closeout sync: updated `spec/phase2.7/SPEC_TRACEABILITY.md` (`TM-P27-040` marked done), `STATUS.yaml` (Phase 2.7 closeout completed), and this tracker
+8. Post-closeout agent-detection hardening is complete:
+   - Scope: detect parent-only global roots (for example `~/.config/opencode/`) without creating directories during detection
+   - Behavior: `install` now auto-detects these agents and creates missing `skills/` target directories during install/apply
+   - Coverage: added core + CLI regression tests for parent-only `opencode` detection and install fan-out
+   - Spec sync: updated `SPEC_AGENT_DETECT`, `SPEC_TEST_MATRIX`, and `SPEC_TRACEABILITY` for parent-root fallback contract

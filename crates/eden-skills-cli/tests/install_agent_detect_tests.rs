@@ -80,6 +80,39 @@ fn install_without_target_falls_back_to_claude_with_warning() {
 }
 
 #[test]
+fn install_without_target_detects_parent_only_global_agent_root() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    fs::create_dir_all(home_dir.join(".config/opencode")).expect("create .config/opencode");
+    let repo_dir = temp.path().join("parent-only-opencode-repo");
+    write_root_skill_repo(&repo_dir, "opencode-parent-skill");
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args(["install", "./parent-only-opencode-repo", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    assert!(
+        home_dir
+            .join(".config/opencode/skills/opencode-parent-skill")
+            .exists(),
+        "opencode target should be installed even when only parent dir existed initially"
+    );
+
+    let agents = read_first_skill_target_agents(&config_path);
+    assert_eq!(agents, vec!["opencode".to_string()]);
+}
+
+#[test]
 fn explicit_target_override_skips_auto_detection() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");

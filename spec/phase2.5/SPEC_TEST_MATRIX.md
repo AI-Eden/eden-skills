@@ -170,6 +170,9 @@ Docker is NOT required for Phase 2.5 tests (adapter tests remain in Phase 2).
 
 - On a system with both `~/.claude/skills/` and `~/.cursor/skills/` directories,
   `install` without `--target` installs to both agent skill directories.
+- If `~/.config/opencode/` exists but `~/.config/opencode/skills/` is missing,
+  `install` without `--target` still detects `opencode` and creates
+  `~/.config/opencode/skills/` during install.
 
 ### TM-P25-027: No Agent Fallback
 
