@@ -33,7 +33,11 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 err.print().map_err(EdenError::Io)?;
                 return Ok(());
             }
-            _ => return Err(EdenError::InvalidArguments(err.to_string())),
+            _ => {
+                let raw = err.to_string();
+                let msg = raw.strip_prefix("error: ").unwrap_or(&raw).to_string();
+                return Err(EdenError::InvalidArguments(msg));
+            }
         },
     };
     configure_color_output(cli.color, cli.command.json_mode());
