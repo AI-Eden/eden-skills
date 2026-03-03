@@ -23,11 +23,13 @@ fn print_error(err: &EdenError) {
         "error:".to_string()
     };
     eprintln!("{prefix} {message}");
+    eprintln!();
     if let Some(hint) = hint {
         if colors_enabled {
-            eprintln!("  {}", format!("-> {hint}").dimmed());
+            eprint!("    {} ", "->".purple());
+            eprintln!("{hint}");
         } else {
-            eprintln!("  -> {hint}");
+            eprintln!("    -> {hint}");
         }
     }
 }

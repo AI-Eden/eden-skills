@@ -18,10 +18,18 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
     argv.push("eden-skills".to_string());
     argv.extend(args);
 
+    if argv.len() == 1 {
+        let _ = <Cli as clap::CommandFactory>::command().print_help();
+        println!();
+        return Ok(());
+    }
+
     let cli = match Cli::try_parse_from(argv) {
         Ok(cli) => cli,
         Err(err) => match err.kind() {
-            clap::error::ErrorKind::DisplayHelp | clap::error::ErrorKind::DisplayVersion => {
+            clap::error::ErrorKind::DisplayHelp
+            | clap::error::ErrorKind::DisplayVersion
+            | clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => {
                 err.print().map_err(EdenError::Io)?;
                 return Ok(());
             }
@@ -200,7 +208,6 @@ Documentation: https://github.com/AI-Eden/eden-skills"#;
 #[command(
     after_help = /* CATEGORIZED_GUIDE.to_string() +  */EXAMPLE_AND_DOC   
 )]
-#[command(disable_help_subcommand = true)]
 struct Cli {
     #[arg(
         long,
