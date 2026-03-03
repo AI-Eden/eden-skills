@@ -166,7 +166,7 @@ dependencies = [
 
 [[package]]
 name = "eden-skills"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "clap",
  "dialoguer",
@@ -183,7 +183,7 @@ dependencies = [
 
 [[package]]
 name = "eden-skills-core"
-version = "0.1.5"
+version = "0.1.6"
 dependencies = [
  "async-trait",
  "semver",
@@ -198,7 +198,7 @@ dependencies = [
 
 [[package]]
 name = "eden-skills-indexer"
-version = "0.1.5"
+version = "0.1.6"
 
 [[package]]
 name = "enable-ansi-support"
