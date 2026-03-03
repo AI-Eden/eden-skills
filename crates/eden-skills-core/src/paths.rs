@@ -97,11 +97,46 @@ pub fn colocated_agents(primary: &AgentKind) -> Vec<AgentKind> {
     use AgentKind::*;
     // All non-Custom variants, kept in sync with the AgentKind enum.
     const ALL: &[AgentKind] = &[
-        Adal, Amp, Antigravity, Augment, ClaudeCode, Cline, Codebuddy, Codex,
-        CommandCode, Continue, Cortex, Crush, Cursor, Droid, GeminiCli,
-        GithubCopilot, Goose, IflowCli, Junie, Kilo, KimiCli, KiroCli, Kode,
-        Mcpjam, MistralVibe, Mux, Neovate, Openclaw, Opencode, Openhands, Pi,
-        Pochi, Qoder, QwenCode, Replit, Roo, Trae, TraeCn, Universal, Windsurf,
+        Adal,
+        Amp,
+        Antigravity,
+        Augment,
+        ClaudeCode,
+        Cline,
+        Codebuddy,
+        Codex,
+        CommandCode,
+        Continue,
+        Cortex,
+        Crush,
+        Cursor,
+        Droid,
+        GeminiCli,
+        GithubCopilot,
+        Goose,
+        IflowCli,
+        Junie,
+        Kilo,
+        KimiCli,
+        KiroCli,
+        Kode,
+        Mcpjam,
+        MistralVibe,
+        Mux,
+        Neovate,
+        Openclaw,
+        Opencode,
+        Openhands,
+        Pi,
+        Pochi,
+        Qoder,
+        QwenCode,
+        Replit,
+        Roo,
+        Trae,
+        TraeCn,
+        Universal,
+        Windsurf,
         Zencoder,
     ];
     let Some(target_path) = default_agent_path(primary) else {
@@ -122,7 +157,11 @@ pub fn colocated_agents(primary: &AgentKind) -> Vec<AgentKind> {
 /// Falls back to the plain agent name when the path is unique.
 pub fn colocated_agent_display_label(primary: &AgentKind) -> String {
     let agents = colocated_agents(primary);
-    agents.iter().map(AgentKind::as_str).collect::<Vec<_>>().join("/")
+    agents
+        .iter()
+        .map(AgentKind::as_str)
+        .collect::<Vec<_>>()
+        .join("/")
 }
 
 pub fn resolve_target_path(target: &TargetConfig, config_dir: &Path) -> Result<PathBuf, EdenError> {
