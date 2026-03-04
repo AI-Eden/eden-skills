@@ -38,12 +38,19 @@ spec/
 │   ├── SPEC_DISTRIBUTION.md
 │   ├── SPEC_TEST_MATRIX.md
 │   └── SPEC_TRACEABILITY.md
-└── phase2.7/              (Phase 2.7: UX Polish & Lock File)
+├── phase2.7/              (Phase 2.7: UX Polish & Lock File)
+│   ├── README.md
+│   ├── SPEC_LOCK.md
+│   ├── SPEC_HELP_SYSTEM.md
+│   ├── SPEC_OUTPUT_POLISH.md
+│   ├── SPEC_REMOVE_ENH.md
+│   ├── SPEC_TEST_MATRIX.md
+│   └── SPEC_TRACEABILITY.md
+└── phase2.8/              (Phase 2.8: TUI Deep Optimization & Code Maintainability)
     ├── README.md
-    ├── SPEC_LOCK.md
-    ├── SPEC_HELP_SYSTEM.md
-    ├── SPEC_OUTPUT_POLISH.md
-    ├── SPEC_REMOVE_ENH.md
+    ├── SPEC_TABLE_RENDERING.md
+    ├── SPEC_OUTPUT_UPGRADE.md
+    ├── SPEC_CODE_STRUCTURE.md
     ├── SPEC_TEST_MATRIX.md
     └── SPEC_TRACEABILITY.md
 ```
@@ -86,6 +93,30 @@ distribution — without introducing any Phase 3 features (crawler, taxonomy, cu
 - `phase2.5/SPEC_DISTRIBUTION.md`: binary distribution via GitHub Releases and cargo install (DST-001~003)
 - `phase2.5/SPEC_TEST_MATRIX.md`: Phase 2.5 acceptance test scenarios (TM-P25-001~036)
 - `phase2.5/SPEC_TRACEABILITY.md`: Phase 2.5 requirement-to-implementation mapping
+
+## Phase 2.7: UX Polish & Lock File
+
+Phase 2.7 polishes the CLI user experience and introduces a lock file for
+diff-driven reconciliation.
+
+- `phase2.7/SPEC_LOCK.md`: `skills.lock` format, lifecycle, and diff-driven apply with `Remove` action (LCK-001~010)
+- `phase2.7/SPEC_HELP_SYSTEM.md`: help text, version info, command grouping, short flags (HLP-001~007)
+- `phase2.7/SPEC_OUTPUT_POLISH.md`: `owo-colors` migration, error refinement, `--color` flag (OUT-001~008)
+- `phase2.7/SPEC_REMOVE_ENH.md`: batch remove, interactive selection, `-y`/`--yes` flag (RMV-001~005)
+- `phase2.7/SPEC_TEST_MATRIX.md`: Phase 2.7 acceptance test scenarios (TM-P27-001~040)
+- `phase2.7/SPEC_TRACEABILITY.md`: Phase 2.7 requirement-to-implementation mapping
+
+## Phase 2.8: TUI Deep Optimization & Code Maintainability
+
+Phase 2.8 upgrades all human-mode command output to production quality,
+introduces table rendering, and decomposes the monolithic `commands.rs`
+with comprehensive doc comments.
+
+- `phase2.8/SPEC_TABLE_RENDERING.md`: `comfy-table` integration, table column definitions, long-content strategy, non-TTY degradation (TBL-001~007)
+- `phase2.8/SPEC_OUTPUT_UPGRADE.md`: full-command output upgrade, UiContext unification, error format alignment (OUP-001~020)
+- `phase2.8/SPEC_CODE_STRUCTURE.md`: `commands.rs` module decomposition, doc comment coverage for CLI and Core crates (CST-001~008)
+- `phase2.8/SPEC_TEST_MATRIX.md`: Phase 2.8 acceptance test scenarios (TM-P28-001~040)
+- `phase2.8/SPEC_TRACEABILITY.md`: Phase 2.8 requirement-to-implementation mapping
 
 ## Rule of Authority
 
@@ -133,15 +164,3 @@ The base file defines the foundation; extension files define additive changes on
 Extension files MUST NOT contradict base semantics except where explicitly noted
 as an amendment (Phase 2.5 `SPEC_SCHEMA_P25.md` Section 2 and Phase 2.7
 `SPEC_OUTPUT_POLISH.md` Section 2 are the documented exceptions).
-
-## Phase 2.7: UX Polish & Lock File
-
-Phase 2.7 polishes the CLI user experience and introduces a lock file for
-diff-driven reconciliation.
-
-- `phase2.7/SPEC_LOCK.md`: `skills.lock` format, lifecycle, and diff-driven apply with `Remove` action (LCK-001~010)
-- `phase2.7/SPEC_HELP_SYSTEM.md`: help text, version info, command grouping, short flags (HLP-001~007)
-- `phase2.7/SPEC_OUTPUT_POLISH.md`: `owo-colors` migration, error refinement, `--color` flag (OUT-001~008)
-- `phase2.7/SPEC_REMOVE_ENH.md`: batch remove, interactive selection, `-y`/`--yes` flag (RMV-001~005)
-- `phase2.7/SPEC_TEST_MATRIX.md`: Phase 2.7 acceptance test scenarios (TM-P27-001~040)
-- `phase2.7/SPEC_TRACEABILITY.md`: Phase 2.7 requirement-to-implementation mapping
