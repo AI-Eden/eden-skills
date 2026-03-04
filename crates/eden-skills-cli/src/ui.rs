@@ -239,30 +239,21 @@ pub fn abbreviate_home_path(path: &str) -> String {
     let Some(home_dir) = resolve_home_dir() else {
         return path.to_string();
     };
-    let home_dir = home_dir.trim_end_matches(['/', '\\']);
-    if home_dir.is_empty() {
+    let home_trimmed = home_dir.trim_end_matches(['/', '\\']);
+    if home_trimmed.is_empty() {
         return path.to_string();
     }
 
-    if path == home_dir {
+    let normalized_home = home_trimmed.replace('\\', "/");
+    let normalized_path = path.replace('\\', "/");
+
+    if normalized_path == normalized_home {
         return "~".to_string();
     }
-    if let Some(remainder) = path.strip_prefix(home_dir) {
-        if remainder.starts_with('/') || remainder.starts_with('\\') {
-            return format!("~{remainder}");
-        }
-    }
 
-    let normalized_home = home_dir.replace('\\', "/");
-    if normalized_home != home_dir {
-        let normalized_path = path.replace('\\', "/");
-        if normalized_path == normalized_home {
-            return "~".to_string();
-        }
-        if let Some(remainder) = normalized_path.strip_prefix(&normalized_home) {
-            if remainder.starts_with('/') {
-                return format!("~{remainder}");
-            }
+    if let Some(remainder) = normalized_path.strip_prefix(&normalized_home) {
+        if remainder.starts_with('/') {
+            return format!("~{remainder}");
         }
     }
 

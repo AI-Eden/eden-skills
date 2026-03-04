@@ -86,7 +86,7 @@ fn abbreviate_home_path_replaces_home_prefix_and_preserves_non_home_paths() {
     };
 
     let under_home = format!("{home_trimmed}{sep}.claude{sep}skills{sep}x");
-    let expected = format!("~{sep}.claude{sep}skills{sep}x");
+    let expected = "~/.claude/skills/x".to_string();
     assert_eq!(abbreviate_home_path(&under_home), expected);
 
     let exact_home = home_trimmed.to_string();

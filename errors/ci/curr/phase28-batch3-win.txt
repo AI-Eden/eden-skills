@@ -1,0 +1,34 @@
+     Running tests\output_upgrade_a1_tests.rs (target\debug\deps\output_upgrade_a1_tests-57875cc260c49e79.exe)
+
+running 11 tests
+test tm_p28_012_apply_source_sync_is_styled ... ok
+test tm_p28_013_apply_safety_summary_is_styled ... ok
+test tm_p28_015_apply_summary_is_styled ... ok
+test tm_p28_014_apply_per_skill_install_lines ... ok
+test tm_p28_016_apply_verification_is_styled ... ok
+test tm_p28_026_error_hint_uses_arrow ... ok
+test tm_p28_027_error_path_is_abbreviated ... FAILED
+test tm_p28_028_warning_format_is_styled ... ok
+test tm_p28_022_plan_empty_state ... ok
+test tm_p28_021_plan_header_and_colored_actions ... ok
+test tm_p28_017_repair_output_matches_apply_format ... ok
+
+failures:
+
+---- tm_p28_027_error_path_is_abbreviated stdout ----
+
+thread 'tm_p28_027_error_path_is_abbreviated' (7672) panicked at crates\eden-skills-cli\tests\output_upgrade_a1_tests.rs:322:5:
+expected HOME-abbreviated config path in error output, stderr=error: config file not found: ~\.eden-skills\skills.toml
+
+  → Run `eden-skills init` to create a new config.
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    tm_p28_027_error_path_is_abbreviated
+
+test result: FAILED. 10 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.69s
+
+error: test failed, to rerun pass `-p eden-skills --test output_upgrade_a1_tests`
+Error: Process completed with exit code 1.
