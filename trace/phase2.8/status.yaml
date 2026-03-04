@@ -38,3 +38,19 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 266
+  batch_3_output_upgrade_category_a1:
+    status: completed
+    completed_at: "2026-03-05"
+    requirements: OUP-001, OUP-002, OUP-004, OUP-013, OUP-014, OUP-015, OUP-016, OUP-017, OUP-019
+    scenarios: TM-P28-012, TM-P28-013, TM-P28-014, TM-P28-015, TM-P28-016, TM-P28-017, TM-P28-021, TM-P28-022, TM-P28-026, TM-P28-027, TM-P28-028
+    notes:
+      - added output_upgrade_a1_tests.rs with TM-aligned coverage for apply/repair, plan, error hint/path, and warning formatting
+      - upgraded apply and repair output in reconcile.rs to UiContext-driven human mode with Syncing/Safety action prefixes, per-target Install/Remove lines, styled Summary line, and Verification passed line
+      - upgraded plan text output in plan_cmd.rs to include Plan header, palette-colored right-aligned action labels, unicode arrow separator, and up-to-date empty-state rendering
+      - aligned error and warning display format to arrow-hint and two-space indented warning prefix via main.rs and common.rs helpers
+      - updated legacy assertions in output_polish_tests.rs, exit_code_matrix.rs, and phase25_schema_tests.rs for the new human output format
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 277

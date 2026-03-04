@@ -92,8 +92,11 @@ fn apply_reports_skipped_source_sync_on_repeated_run() {
     );
     let stdout = String::from_utf8_lossy(&second_apply.stdout);
     assert!(
-        stdout.contains("source sync: cloned=0 updated=0 skipped=0 failed=0"),
-        "noop-optimized apply skips unchanged skills before sync, got: {stdout}"
+        stdout.contains("Syncing")
+            && stdout.contains("0 cloned")
+            && stdout.contains("0 updated")
+            && stdout.contains("0 failed"),
+        "noop-optimized apply should report styled zero sync counts, got: {stdout}"
     );
 }
 
@@ -299,8 +302,8 @@ fn apply_aggregates_multiskill_source_failures_in_config_order() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("source sync: cloned=0 updated=0 skipped=0 failed=2"),
-        "expected deterministic mixed summary, got: {stdout}"
+        stdout.contains("Syncing") && stdout.contains("0 cloned") && stdout.contains("2 failed"),
+        "expected styled source sync summary with deterministic failure counts, got: {stdout}"
     );
 
     let stderr = String::from_utf8_lossy(&output.stderr);

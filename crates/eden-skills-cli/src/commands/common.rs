@@ -4,6 +4,7 @@ use std::future::Future;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use crate::ui::{abbreviate_home_path, UiContext};
 use eden_skills_core::config::{
     decode_registry_mode_repo, is_registry_mode_repo, load_from_file, LoadOptions, LoadedConfig,
     SourceConfig,
@@ -20,6 +21,7 @@ use eden_skills_core::registry::{
 };
 use eden_skills_core::safety::{LicenseStatus, SkillSafetyReport};
 use eden_skills_core::source::SyncSummary;
+use owo_colors::OwoColorize;
 
 pub(crate) const REGISTRY_SYNC_MARKER_FILE: &str = ".eden-last-sync";
 
@@ -39,17 +41,16 @@ pub(crate) fn load_config_with_context(
     match load_from_file(config_path, LoadOptions { strict }) {
         Ok(loaded) => Ok(loaded),
         Err(EdenError::Io(err)) if err.kind() == std::io::ErrorKind::NotFound => {
+            let display_path = abbreviate_home_path(&config_path.display().to_string());
             Err(EdenError::Runtime(with_hint(
-                format!("config file not found: {}", config_path.display()),
+                format!("config file not found: {display_path}"),
                 "Run `eden-skills init` to create a new config.",
             )))
         }
         Err(EdenError::Io(err)) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+            let display_path = abbreviate_home_path(&config_path.display().to_string());
             Err(EdenError::Runtime(with_hint(
-                format!(
-                    "permission denied reading config file: {}",
-                    config_path.display()
-                ),
+                format!("permission denied reading config file: {display_path}"),
                 "Check file permissions or run with appropriate privileges.",
             )))
         }
@@ -259,6 +260,17 @@ pub(crate) fn print_source_sync_summary(summary: &SyncSummary) {
     );
 }
 
+pub(crate) fn print_source_sync_summary_human(ui: &UiContext, summary: &SyncSummary) {
+    println!(
+        "{}  {} cloned, {} updated, {} skipped, {} failed",
+        ui.action_prefix("Syncing"),
+        style_count(ui, summary.cloned, CountStyle::GreenIfNonZero),
+        style_count(ui, summary.updated, CountStyle::GreenIfNonZero),
+        style_count(ui, summary.skipped, CountStyle::DimAlways),
+        style_count(ui, summary.failed, CountStyle::RedIfNonZero),
+    );
+}
+
 pub(crate) fn source_sync_failure_error(summary: &SyncSummary) -> Option<EdenError> {
     if summary.failed == 0 {
         return None;
@@ -285,7 +297,7 @@ pub(crate) fn source_sync_failure_error(summary: &SyncSummary) -> Option<EdenErr
     )))
 }
 
-pub(crate) fn print_safety_summary(reports: &[SkillSafetyReport]) {
+pub(crate) fn print_safety_summary_human(ui: &UiContext, reports: &[SkillSafetyReport]) {
     let permissive = reports
         .iter()
         .filter(|r| matches!(r.license_status, LicenseStatus::Permissive))
@@ -294,16 +306,63 @@ pub(crate) fn print_safety_summary(reports: &[SkillSafetyReport]) {
         .iter()
         .filter(|r| matches!(r.license_status, LicenseStatus::NonPermissive))
         .count();
-    let unknown = reports
-        .iter()
-        .filter(|r| matches!(r.license_status, LicenseStatus::Unknown))
-        .count();
     let risk_labeled = reports.iter().filter(|r| !r.risk_labels.is_empty()).count();
     let no_exec = reports.iter().filter(|r| r.no_exec_metadata_only).count();
+    let risk_flags = non_permissive + risk_labeled;
 
     println!(
-        "safety summary: permissive={permissive} non_permissive={non_permissive} unknown={unknown} risk_labeled={risk_labeled} no_exec={no_exec}"
+        "{}  {} permissive, {} risk flags, {} no-exec",
+        ui.action_prefix("Safety"),
+        style_count(ui, permissive, CountStyle::GreenIfNonZero),
+        style_count(ui, risk_flags, CountStyle::YellowIfNonZero),
+        style_count(ui, no_exec, CountStyle::DimAlways),
     );
+}
+
+pub(crate) fn print_warning(ui: &UiContext, warning: &str) {
+    let prefix = if ui.colors_enabled() {
+        "warning:".yellow().bold().to_string()
+    } else {
+        "warning:".to_string()
+    };
+    eprintln!("  {prefix} {warning}");
+}
+
+pub(crate) fn style_count_for_action(ui: &UiContext, action: &str, count: usize) -> String {
+    let style = match action {
+        "create" => CountStyle::GreenIfNonZero,
+        "update" => CountStyle::CyanIfNonZero,
+        "noop" => CountStyle::DimAlways,
+        "conflict" => CountStyle::YellowIfNonZero,
+        "remove" => CountStyle::RedIfNonZero,
+        _ => CountStyle::Plain,
+    };
+    style_count(ui, count, style)
+}
+
+enum CountStyle {
+    Plain,
+    GreenIfNonZero,
+    CyanIfNonZero,
+    YellowIfNonZero,
+    RedIfNonZero,
+    DimAlways,
+}
+
+fn style_count(ui: &UiContext, count: usize, style: CountStyle) -> String {
+    let raw = count.to_string();
+    if !ui.colors_enabled() {
+        return raw;
+    }
+    match style {
+        CountStyle::Plain => raw,
+        CountStyle::GreenIfNonZero if count > 0 => raw.green().to_string(),
+        CountStyle::CyanIfNonZero if count > 0 => raw.cyan().to_string(),
+        CountStyle::YellowIfNonZero if count > 0 => raw.yellow().to_string(),
+        CountStyle::RedIfNonZero if count > 0 => raw.red().to_string(),
+        CountStyle::DimAlways => raw.dimmed().to_string(),
+        _ => raw,
+    }
 }
 
 pub(crate) fn resolve_registry_mode_skills_for_execution(

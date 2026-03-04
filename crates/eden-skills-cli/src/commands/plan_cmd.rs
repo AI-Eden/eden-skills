@@ -4,16 +4,19 @@ use eden_skills_core::lock::{
     compute_lock_diff, lock_path_for_config, read_lock_file, LockSkillEntry,
 };
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
+use owo_colors::OwoColorize;
 
-use super::common::{load_config_with_context, resolve_config_path};
+use super::common::{load_config_with_context, print_warning, resolve_config_path};
 use super::CommandOptions;
+use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
 
 pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, options.strict)?;
-    for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+    let ui = UiContext::from_env(options.json);
+    for warning in &loaded.warnings {
+        print_warning(&ui, warning);
     }
 
     let config_dir = config_dir_from_path(config_path);
@@ -27,28 +30,36 @@ pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     if options.json {
         print_plan_json(&plan)?;
     } else {
-        print_plan_text(&plan);
+        print_plan_text(&ui, &plan);
     }
     Ok(())
 }
 
-pub(crate) fn print_plan_text(items: &[PlanItem]) {
-    if items.is_empty() {
-        println!("plan: 0 actions");
+pub(crate) fn print_plan_text(ui: &UiContext, items: &[PlanItem]) {
+    let has_pending_action = items
+        .iter()
+        .any(|item| !matches!(item.action, Action::Noop));
+    if items.is_empty() || !has_pending_action {
+        println!(
+            "{}  {} 0 actions (up to date)",
+            ui.action_prefix("Plan"),
+            ui.status_symbol(StatusSymbol::Success),
+        );
         return;
     }
+    println!("{}  {} actions", ui.action_prefix("Plan"), items.len());
+    println!();
 
     for item in items {
         println!(
-            "{} {} {} -> {} ({})",
-            action_label(item.action),
+            "  {}  {} → {} ({})",
+            style_plan_action_label(ui, item.action),
             item.skill_id,
-            item.source_path,
-            item.target_path,
+            abbreviate_home_path(&item.target_path),
             item.install_mode.as_str()
         );
         for reason in &item.reasons {
-            println!("  reason: {reason}");
+            println!("           reason: {reason}");
         }
     }
 }
@@ -67,6 +78,20 @@ pub(crate) fn action_label(action: Action) -> &'static str {
         Action::Noop => "noop",
         Action::Conflict => "conflict",
         Action::Remove => "remove",
+    }
+}
+
+fn style_plan_action_label(ui: &UiContext, action: Action) -> String {
+    let padded = format!("{:>8}", action_label(action));
+    if !ui.colors_enabled() {
+        return padded;
+    }
+    match action {
+        Action::Create => padded.green().to_string(),
+        Action::Update => padded.cyan().to_string(),
+        Action::Noop => padded.dimmed().to_string(),
+        Action::Conflict => padded.yellow().to_string(),
+        Action::Remove => padded.red().to_string(),
     }
 }
 

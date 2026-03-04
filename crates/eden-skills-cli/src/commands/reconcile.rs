@@ -17,13 +17,15 @@ use eden_skills_core::verify::verify_config_state;
 
 use super::common::{
     apply_plan_item, block_on_command_future, ensure_docker_available_for_targets,
-    ensure_git_available, load_config_with_context, print_safety_summary,
-    print_source_sync_summary, read_head_sha, remove_path, resolve_config_path,
-    resolve_effective_reactor_concurrency, resolve_registry_mode_skills_for_execution,
-    source_sync_failure_error, write_lock_for_config, write_lock_for_config_with_commits,
+    ensure_git_available, load_config_with_context, print_safety_summary_human,
+    print_source_sync_summary_human, print_warning, read_head_sha, remove_path,
+    resolve_config_path, resolve_effective_reactor_concurrency,
+    resolve_registry_mode_skills_for_execution, source_sync_failure_error, style_count_for_action,
+    write_lock_for_config, write_lock_for_config_with_commits,
 };
 
 use super::CommandOptions;
+use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
 
 pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     block_on_command_future(apply_async(config_path, options, None))
@@ -37,6 +39,10 @@ pub async fn apply_async(
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, options.strict)?;
+    let ui = UiContext::from_env(options.json);
+    for warning in &loaded.warnings {
+        print_warning(&ui, warning);
+    }
     let concurrency = resolve_effective_reactor_concurrency(
         concurrency_override,
         loaded.config.reactor.concurrency,
@@ -62,51 +68,67 @@ pub async fn apply_async(
 
     let sync_config = filter_config_for_sync(&execution_config, &diff);
     let sync_summary = sync_sources_async_with_reactor(&sync_config, &config_dir, reactor).await?;
-    print_source_sync_summary(&sync_summary);
+    print_source_sync_summary_human(&ui, &sync_summary);
     let safety_reports = analyze_skills(&execution_config, &config_dir)?;
     persist_reports(&safety_reports)?;
-    print_safety_summary(&safety_reports);
+    print_safety_summary_human(&ui, &safety_reports);
     if let Some(err) = source_sync_failure_error(&sync_summary) {
         return Err(err);
     }
 
-    let removed_count =
+    let removed_skill_ids =
         uninstall_orphaned_lock_entries(&diff.removed, &config_dir, &execution_config.storage_root)
             .await?;
+    print_remove_lines(&ui, &removed_skill_ids);
+    let removed_count = removed_skill_ids.len();
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
     let plan = build_plan(&execution_config, &config_dir)?;
+    let mut install_prefix_emitted = false;
 
     let mut created = 0usize;
     let mut updated = 0usize;
     let mut noops = 0usize;
     let mut conflicts = 0usize;
-    let mut skipped_no_exec = 0usize;
 
     for item in &plan {
         match item.action {
             Action::Create => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    skipped_no_exec += 1;
+                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
                     continue;
                 }
                 apply_plan_item(item)?;
                 created += 1;
+                print_install_applied_line(
+                    &ui,
+                    &mut install_prefix_emitted,
+                    &item.skill_id,
+                    &item.target_path,
+                    item.install_mode.as_str(),
+                );
             }
             Action::Update => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    skipped_no_exec += 1;
+                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
                     continue;
                 }
                 apply_plan_item(item)?;
                 updated += 1;
+                print_install_applied_line(
+                    &ui,
+                    &mut install_prefix_emitted,
+                    &item.skill_id,
+                    &item.target_path,
+                    item.install_mode.as_str(),
+                );
             }
             Action::Noop => {
                 noops += 1;
             }
             Action::Conflict => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    skipped_no_exec += 1;
+                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
                     continue;
                 }
                 conflicts += 1;
@@ -116,7 +138,14 @@ pub async fn apply_async(
     }
 
     println!(
-        "apply summary: create={created} update={updated} noop={noops} conflict={conflicts} skipped_no_exec={skipped_no_exec} removed={removed_count}"
+        "{}  {} {} created, {} updated, {} noop, {} conflicts, {} removed",
+        ui.action_prefix("Summary"),
+        ui.status_symbol(StatusSymbol::Success),
+        style_count_for_action(&ui, "create", created),
+        style_count_for_action(&ui, "update", updated),
+        style_count_for_action(&ui, "noop", noops),
+        style_count_for_action(&ui, "conflict", conflicts),
+        style_count_for_action(&ui, "remove", removed_count),
     );
 
     if options.strict && conflicts > 0 {
@@ -144,7 +173,10 @@ pub async fn apply_async(
         &resolved_commits,
     )?;
 
-    println!("apply verification: ok");
+    println!(
+        "  {} Verification passed",
+        ui.status_symbol(StatusSymbol::Success)
+    );
     Ok(())
 }
 
@@ -160,6 +192,10 @@ pub async fn repair_async(
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, options.strict)?;
+    let ui = UiContext::from_env(options.json);
+    for warning in &loaded.warnings {
+        print_warning(&ui, warning);
+    }
     let concurrency = resolve_effective_reactor_concurrency(
         concurrency_override,
         loaded.config.reactor.concurrency,
@@ -174,49 +210,83 @@ pub async fn repair_async(
     }
     let sync_summary =
         sync_sources_async_with_reactor(&execution_config, &config_dir, reactor).await?;
-    print_source_sync_summary(&sync_summary);
+    print_source_sync_summary_human(&ui, &sync_summary);
     let safety_reports = analyze_skills(&execution_config, &config_dir)?;
     persist_reports(&safety_reports)?;
-    print_safety_summary(&safety_reports);
+    print_safety_summary_human(&ui, &safety_reports);
     if let Some(err) = source_sync_failure_error(&sync_summary) {
         return Err(err);
     }
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
     let plan = build_plan(&execution_config, &config_dir)?;
+    let mut install_prefix_emitted = false;
 
-    let mut repaired = 0usize;
-    let mut skipped_conflicts = 0usize;
-    let mut skipped_no_exec = 0usize;
+    let mut created = 0usize;
+    let mut updated = 0usize;
+    let mut noops = 0usize;
+    let mut conflicts = 0usize;
 
     for item in &plan {
         match item.action {
-            Action::Create | Action::Update => {
+            Action::Create => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    skipped_no_exec += 1;
+                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
                     continue;
                 }
                 apply_plan_item(item)?;
-                repaired += 1;
+                created += 1;
+                print_install_applied_line(
+                    &ui,
+                    &mut install_prefix_emitted,
+                    &item.skill_id,
+                    &item.target_path,
+                    item.install_mode.as_str(),
+                );
+            }
+            Action::Update => {
+                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
+                    continue;
+                }
+                apply_plan_item(item)?;
+                updated += 1;
+                print_install_applied_line(
+                    &ui,
+                    &mut install_prefix_emitted,
+                    &item.skill_id,
+                    &item.target_path,
+                    item.install_mode.as_str(),
+                );
             }
             Action::Conflict => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    skipped_no_exec += 1;
+                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
                     continue;
                 }
-                skipped_conflicts += 1;
+                conflicts += 1;
             }
-            Action::Noop | Action::Remove => {}
+            Action::Noop => {
+                noops += 1;
+            }
+            Action::Remove => {}
         }
     }
 
     println!(
-        "repair summary: repaired={repaired} skipped_conflicts={skipped_conflicts} skipped_no_exec={skipped_no_exec}"
+        "{}  {} {} created, {} updated, {} noop, {} conflicts, {} removed",
+        ui.action_prefix("Summary"),
+        ui.status_symbol(StatusSymbol::Success),
+        style_count_for_action(&ui, "create", created),
+        style_count_for_action(&ui, "update", updated),
+        style_count_for_action(&ui, "noop", noops),
+        style_count_for_action(&ui, "conflict", conflicts),
+        style_count_for_action(&ui, "remove", 0),
     );
 
-    if options.strict && skipped_conflicts > 0 {
+    if options.strict && conflicts > 0 {
         return Err(EdenError::Conflict(format!(
-            "repair skipped {skipped_conflicts} conflict entries in strict mode"
+            "repair skipped {conflicts} conflict entries in strict mode"
         )));
     }
 
@@ -233,7 +303,10 @@ pub async fn repair_async(
 
     write_lock_for_config(config_path, &execution_config, &config_dir)?;
 
-    println!("repair verification: ok");
+    println!(
+        "  {} Verification passed",
+        ui.status_symbol(StatusSymbol::Success)
+    );
     Ok(())
 }
 
@@ -286,8 +359,8 @@ async fn uninstall_orphaned_lock_entries(
     removed: &[LockSkillEntry],
     config_dir: &Path,
     storage_root: &str,
-) -> Result<usize, EdenError> {
-    let mut count = 0;
+) -> Result<Vec<String>, EdenError> {
+    let mut removed_ids = Vec::with_capacity(removed.len());
     for entry in removed {
         for target in &entry.targets {
             let target_path = PathBuf::from(&target.path);
@@ -303,9 +376,9 @@ async fn uninstall_orphaned_lock_entries(
         if storage_dir.exists() {
             fs::remove_dir_all(&storage_dir)?;
         }
-        count += 1;
+        removed_ids.push(entry.id.clone());
     }
-    Ok(count)
+    Ok(removed_ids)
 }
 
 fn remove_from_known_local_agent_targets(
@@ -324,4 +397,62 @@ fn remove_from_known_local_agent_targets(
         }
     }
     Ok(())
+}
+
+fn print_install_applied_line(
+    ui: &UiContext,
+    install_prefix_emitted: &mut bool,
+    skill_id: &str,
+    target_path: &str,
+    mode: &str,
+) {
+    let prefix = if *install_prefix_emitted {
+        "          ".to_string()
+    } else {
+        *install_prefix_emitted = true;
+        format!("{}  ", ui.action_prefix("Install"))
+    };
+    println!(
+        "{prefix}{} {} → {} ({mode})",
+        ui.status_symbol(StatusSymbol::Success),
+        skill_id,
+        abbreviate_home_path(target_path),
+    );
+}
+
+fn print_install_skipped_line(ui: &UiContext, install_prefix_emitted: &mut bool, skill_id: &str) {
+    let prefix = if *install_prefix_emitted {
+        "          ".to_string()
+    } else {
+        *install_prefix_emitted = true;
+        format!("{}  ", ui.action_prefix("Install"))
+    };
+    println!(
+        "{prefix}{} {} (skipped: metadata-only)",
+        ui.status_symbol(StatusSymbol::Skipped),
+        skill_id,
+    );
+}
+
+fn print_remove_lines(ui: &UiContext, removed_skill_ids: &[String]) {
+    if removed_skill_ids.is_empty() {
+        return;
+    }
+
+    let mut remove_prefix_emitted = false;
+    for skill_id in removed_skill_ids {
+        if remove_prefix_emitted {
+            println!(
+                "          {} {skill_id}",
+                ui.status_symbol(StatusSymbol::Success)
+            );
+        } else {
+            remove_prefix_emitted = true;
+            println!(
+                "{}  {} {skill_id}",
+                ui.action_prefix("Remove"),
+                ui.status_symbol(StatusSymbol::Success)
+            );
+        }
+    }
 }

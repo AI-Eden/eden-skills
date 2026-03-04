@@ -104,7 +104,11 @@ root = "./storage"
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("apply summary: create=0 update=0 noop=0 conflict=0"),
-        "expected zero apply summary for empty config, stdout={stdout}"
+        stdout.contains("Summary")
+            && stdout.contains("0 created")
+            && stdout.contains("0 updated")
+            && stdout.contains("0 noop")
+            && stdout.contains("0 conflicts"),
+        "expected styled zero apply summary for empty config, stdout={stdout}"
     );
 }

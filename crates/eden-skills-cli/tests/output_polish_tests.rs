@@ -196,8 +196,8 @@ fn error_output_uses_error_prefix_and_hint_for_missing_config() {
         "formatted error prefix is required, stderr={stderr}"
     );
     assert!(
-        stderr.contains("hint:"),
-        "hint line with arrow is required, stderr={stderr}"
+        stderr.contains("→") && !stderr.contains("hint:"),
+        "hint line must use arrow prefix, stderr={stderr}"
     );
     assert!(
         stderr.contains(&format!(
@@ -245,8 +245,8 @@ fn remove_unknown_skill_includes_available_skills_hint() {
         "message should explain unknown skill in config, stderr={stderr}"
     );
     assert!(
-        stderr.contains("hint: Available skills: known-skill"),
-        "hint should list available skills, stderr={stderr}"
+        stderr.contains("→ Available skills: known-skill"),
+        "hint should list available skills with arrow prefix, stderr={stderr}"
     );
     assert!(
         !has_ansi_codes(&stderr),

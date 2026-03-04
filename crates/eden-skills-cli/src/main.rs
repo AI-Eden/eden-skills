@@ -16,6 +16,7 @@ async fn main() -> ExitCode {
 
 fn print_error(err: &EdenError) {
     let (message, hint) = user_message_and_hint(err);
+    let message = abbreviate_message_paths(&message);
     let colors_enabled = eden_skills_cli::ui::color_output_enabled();
     let prefix = if colors_enabled {
         "error:".red().bold().to_string()
@@ -26,10 +27,9 @@ fn print_error(err: &EdenError) {
     eprintln!();
     if let Some(hint) = hint {
         if colors_enabled {
-            eprint!(" {} ", "hint:".purple());
-            eprintln!("{hint}");
+            eprintln!("  {} {hint}", "→".dimmed());
         } else {
-            eprintln!(" hint: {hint}");
+            eprintln!("  → {hint}");
         }
     }
 }
@@ -55,4 +55,21 @@ fn split_hint(raw: &str) -> (String, Option<String>) {
         Some((message, hint)) => (message.to_string(), Some(hint.to_string())),
         None => (raw.to_string(), None),
     }
+}
+
+fn abbreviate_message_paths(message: &str) -> String {
+    for prefix in [
+        "config file not found: ",
+        "permission denied reading config file: ",
+        "storage directory not found: ",
+        "permission denied writing to ",
+    ] {
+        if let Some(path) = message.strip_prefix(prefix) {
+            return format!(
+                "{prefix}{}",
+                eden_skills_cli::ui::abbreviate_home_path(path)
+            );
+        }
+    }
+    message.to_string()
 }
