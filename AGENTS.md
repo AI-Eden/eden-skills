@@ -10,12 +10,13 @@ This file is designed for fast recovery after context compression.
 3. `spec/phase2/SPEC_*.md` (Phase 2 architecture contracts)
 4. `spec/phase2.5/SPEC_*.md` (Phase 2.5 MVP launch contracts)
 5. `spec/phase2.7/SPEC_*.md` (Phase 2.7 UX polish & lock file contracts)
-6. `spec/phase1/SPEC_TRACEABILITY.md` or `spec/phase2/SPEC_TRACEABILITY.md` or `spec/phase2.5/SPEC_TRACEABILITY.md` or `spec/phase2.7/SPEC_TRACEABILITY.md`
-7. `spec/phase1/PHASE1_BUILDER_REMAINING.md` or `spec/phase2/PHASE2_BUILDER_REMAINING.md`
+6. `spec/phase2.8/SPEC_*.md` (Phase 2.8 TUI deep optimization & code maintainability contracts)
+7. Current phase's `SPEC_TRACEABILITY.md`
 8. `STATUS.yaml`
 9. `EXECUTION_TRACKER.md`
 10. `ROADMAP.md`
 11. `README.md`
+12. `trace/` (archived phase records — read only when historical context is needed)
 
 ## 2. Authority Order
 
@@ -37,8 +38,8 @@ When files disagree, follow:
 
 1. Update `spec/` first for behavior changes.
 2. Implement code to match spec.
-3. Update tests, especially `spec/phase1/SPEC_TEST_MATRIX.md`, `spec/phase2/SPEC_TEST_MATRIX.md`, `spec/phase2.5/SPEC_TEST_MATRIX.md`, or `spec/phase2.7/SPEC_TEST_MATRIX.md` scenarios.
-4. Update `spec/phase1/SPEC_TRACEABILITY.md`, `spec/phase2/SPEC_TRACEABILITY.md`, `spec/phase2.5/SPEC_TRACEABILITY.md`, or `spec/phase2.7/SPEC_TRACEABILITY.md` links for changed requirements.
+3. Update tests per the current phase's `SPEC_TEST_MATRIX.md`.
+4. Update the current phase's `SPEC_TRACEABILITY.md` links for changed requirements.
 5. Update `STATUS.yaml` and `EXECUTION_TRACKER.md`.
 
 ## 5. Quick Start Task Routing
@@ -72,17 +73,22 @@ When files disagree, follow:
 - If task is color library, error messages, or `--color` flag: start from `spec/phase2.7/SPEC_OUTPUT_POLISH.md`.
 - If task is batch remove or interactive remove: start from `spec/phase2.7/SPEC_REMOVE_ENH.md`.
 
+### Phase 2.8 (TUI Deep Optimization & Code Maintainability)
+
+- If task is table rendering or `comfy-table` integration: start from `spec/phase2.8/SPEC_TABLE_RENDERING.md`.
+- If task is command output format, UiContext, or error hint format: start from `spec/phase2.8/SPEC_OUTPUT_UPGRADE.md`.
+- If task is `commands.rs` decomposition or doc comments: start from `spec/phase2.8/SPEC_CODE_STRUCTURE.md`.
+
 ### General
 
 - If task is progress planning: use `STATUS.yaml` first, then `EXECUTION_TRACKER.md`.
-- If task is Builder closeout triage: use `spec/phase2/PHASE2_BUILDER_REMAINING.md`.
+- If task needs historical phase context: check `trace/<phase>/` archives.
 
 ## 6. Guardrails
 
 - Preserve `skills.toml` as source-of-truth config.
 - Keep command semantics deterministic and idempotent.
-- Do not introduce Phase 3 crawler/taxonomy implementation into Phase 1, Phase 2, Phase 2.5, or Phase 2.7 specs.
-- Phase 1 spec files (`spec/phase1/`) are frozen; changes require explicit user approval.
-- Phase 2 spec files (`spec/phase2/`) are frozen; changes require explicit user approval.
-- Phase 2.5 amends one Phase 1 validation rule (empty skills array) with user approval.
-- Phase 2.7 amends Phase 2.5 `SPEC_CLI_UX.md` technology stack (replaces `console` with `owo-colors`).
+- Do not introduce Phase 3 crawler/taxonomy implementation into any current phase specs.
+- Phase 1, 2, 2.5, and 2.7 spec files are frozen; changes require explicit user approval.
+- Phase 2.8 extends Phase 2.5 `SPEC_CLI_UX.md` visual design language with table rendering and full output upgrade.
+- Completed phase execution records are archived in `trace/<phase>/`. Root `STATUS.yaml` and `EXECUTION_TRACKER.md` only contain the active phase.

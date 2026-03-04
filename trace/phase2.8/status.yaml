@@ -1,0 +1,24 @@
+status: active_implementation
+started_at: "2026-03-04"
+spec_files:
+  - spec/phase2.8/SPEC_TABLE_RENDERING.md
+  - spec/phase2.8/SPEC_OUTPUT_UPGRADE.md
+  - spec/phase2.8/SPEC_CODE_STRUCTURE.md
+  - spec/phase2.8/SPEC_TEST_MATRIX.md
+  - spec/phase2.8/SPEC_TRACEABILITY.md
+builder_progress:
+  batch_1_commands_decomposition:
+    status: completed
+    completed_at: "2026-03-05"
+    requirements: CST-001, CST-002, CST-003
+    scenarios: TM-P28-001, TM-P28-002
+    notes:
+      - decomposed monolithic commands.rs (~3768 lines) into commands/ directory with 8 sub-modules
+      - modules created: mod.rs, install.rs, reconcile.rs, diagnose.rs, plan_cmd.rs, config_ops.rs, remove.rs, update.rs, common.rs
+      - public API unchanged via mod.rs re-exports
+      - all 253 existing tests pass without modification
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 253

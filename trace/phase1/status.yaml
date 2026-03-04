@@ -1,0 +1,60 @@
+mandatory_commands:
+  plan: implemented
+  apply: implemented
+  doctor: implemented
+  repair: implemented
+safety_gate_mechanics:
+  implemented: true
+  includes:
+    - safety_metadata_persistence
+    - risk_label_detection
+    - no_exec_metadata_only_enforcement
+doctor_contract_hardening:
+  strict_non_strict_payload_parity: implemented
+  json_required_fields_mixed_findings: implemented
+source_sync_hardening:
+  deterministic_summary_reporting: implemented
+  stage_diagnostics_clone_fetch_checkout: implemented
+  multiskill_partial_failure_aggregation: implemented
+  strict_mode_precedence_over_conflict_exit: implemented
+no_exec_verify_interactions:
+  mixed_skill_verify_skip_scoping: implemented
+  strict_conflict_ignores_no_exec_conflicts: implemented
+strict_verify_precedence_hardening:
+  apply_repair_precedence_parity: implemented
+  strict_conflict_precedes_post_mutation_verify: implemented
+closeout_audit:
+  builder_phase1:
+    completed: true
+    completed_at: "2026-02-13"
+    verified:
+      - command_spec_parity
+      - traceability_completeness
+      - test_matrix_consistency
+test_matrix:
+  covered: 7
+  total: 7
+  missing: []
+ci:
+  workflow_defined: true
+  linux_macos_smoke_configured: true
+  windows_smoke_configured: true
+  hosted_run_verified: true
+  hosted_run_reference:
+    workflow: CI
+    run_id: 22000208004
+    run_url: https://github.com/AI-Eden/eden-skills/actions/runs/22000208004
+    branch: main
+    event: push
+    completed_at: "2026-02-13T19:36:41Z"
+  windows_hosted_run_verified: true
+  windows_hosted_run_reference:
+    workflow: CI
+    run_id: 22139248260
+    run_url: https://github.com/AI-Eden/eden-skills/actions/runs/22139248260
+    job_name: cargo test (windows-latest)
+    job_url: https://github.com/AI-Eden/eden-skills/actions/runs/22139248260/job/63998896303
+    branch: main
+    event: push
+    completed_at: "2026-02-18T12:15:21Z"
+builder_remaining: spec/phase1/PHASE1_BUILDER_REMAINING.md
