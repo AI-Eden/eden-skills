@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
 use std::time::Duration;
 
 use clap::ValueEnum;
+use comfy_table::{presets, Cell, ContentArrangement, Table};
 use indicatif::{ProgressBar, ProgressStyle};
 use owo_colors::OwoColorize;
 
@@ -147,6 +148,33 @@ impl UiContext {
         }
     }
 
+    pub fn table(&self, headers: &[&str]) -> Table {
+        let mut table = Table::new();
+        let human_tty = self.stdout_is_tty && !self.ci;
+        if human_tty {
+            table.load_preset(presets::UTF8_FULL_CONDENSED);
+        } else {
+            table.load_preset(presets::ASCII_FULL_CONDENSED);
+            table.set_width(80);
+        }
+        table.set_content_arrangement(ContentArrangement::Dynamic);
+
+        let style_headers = human_tty && self.colors_enabled();
+        let header_cells = headers
+            .iter()
+            .map(|header| {
+                let content = if style_headers {
+                    (*header).bold().to_string()
+                } else {
+                    (*header).to_string()
+                };
+                Cell::new(content)
+            })
+            .collect::<Vec<_>>();
+        table.set_header(header_cells);
+        table
+    }
+
     pub fn spinner(&self, action: &str, detail: String) -> UiSpinner {
         if !self.spinner_enabled() {
             return UiSpinner {
@@ -207,6 +235,74 @@ impl UiSpinner {
     }
 }
 
+pub fn abbreviate_home_path(path: &str) -> String {
+    let Some(home_dir) = resolve_home_dir() else {
+        return path.to_string();
+    };
+    let home_dir = home_dir.trim_end_matches(['/', '\\']);
+    if home_dir.is_empty() {
+        return path.to_string();
+    }
+
+    if path == home_dir {
+        return "~".to_string();
+    }
+    if let Some(remainder) = path.strip_prefix(home_dir) {
+        if remainder.starts_with('/') || remainder.starts_with('\\') {
+            return format!("~{remainder}");
+        }
+    }
+
+    let normalized_home = home_dir.replace('\\', "/");
+    if normalized_home != home_dir {
+        let normalized_path = path.replace('\\', "/");
+        if normalized_path == normalized_home {
+            return "~".to_string();
+        }
+        if let Some(remainder) = normalized_path.strip_prefix(&normalized_home) {
+            if remainder.starts_with('/') {
+                return format!("~{remainder}");
+            }
+        }
+    }
+
+    path.to_string()
+}
+
+pub fn abbreviate_repo_url(url: &str) -> String {
+    let remainder = if let Some(rest) = url.strip_prefix("https://github.com/") {
+        rest
+    } else if let Some(rest) = url.strip_prefix("http://github.com/") {
+        rest
+    } else if let Some(rest) = url.strip_prefix("git@github.com:") {
+        rest
+    } else {
+        return url.to_string();
+    };
+
+    let path = remainder
+        .split(['?', '#'])
+        .next()
+        .unwrap_or(remainder)
+        .trim_end_matches('/');
+    let mut parts = path.split('/');
+    let Some(owner) = parts.next() else {
+        return url.to_string();
+    };
+    let Some(repo_raw) = parts.next() else {
+        return url.to_string();
+    };
+    if owner.is_empty() || repo_raw.is_empty() || parts.next().is_some() {
+        return url.to_string();
+    }
+
+    let repo = repo_raw.strip_suffix(".git").unwrap_or(repo_raw);
+    if repo.is_empty() {
+        return url.to_string();
+    }
+    format!("{owner}/{repo}")
+}
+
 fn env_var_present(name: &str) -> bool {
     std::env::var(name)
         .ok()
@@ -215,6 +311,17 @@ fn env_var_present(name: &str) -> bool {
 
 fn configured_color_when() -> ColorWhen {
     ColorWhen::from_u8(COLOR_WHEN_OVERRIDE.load(Ordering::Relaxed))
+}
+
+fn resolve_home_dir() -> Option<String> {
+    std::env::var("HOME")
+        .ok()
+        .filter(|value| !value.is_empty())
+        .or_else(|| {
+            std::env::var("USERPROFILE")
+                .ok()
+                .filter(|value| !value.is_empty())
+        })
 }
 
 fn resolve_colors_enabled(color_when: ColorWhen, json_mode: bool, stdout_is_tty: bool) -> bool {

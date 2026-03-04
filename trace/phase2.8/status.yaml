@@ -22,3 +22,19 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 253
+  batch_2_table_infrastructure:
+    status: completed
+    completed_at: "2026-03-05"
+    requirements: TBL-001, TBL-002
+    scenarios: TM-P28-004, TM-P28-032, TM-P28-033
+    notes:
+      - added comfy-table = "7" to eden-skills-cli dependency set
+      - added UiContext::table() factory with TTY UTF-8 and non-TTY ASCII border presets
+      - added non-TTY fallback width (80) with dynamic content wrapping in table factory
+      - added presentation-only path abbreviation helpers in ui.rs: abbreviate_home_path and abbreviate_repo_url
+      - added integration tests in table_infra_tests.rs for dependency presence, table policy, and abbreviation helpers
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 266

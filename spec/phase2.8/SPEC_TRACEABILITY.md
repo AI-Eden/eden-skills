@@ -11,8 +11,8 @@ Builder execution.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| TBL-001 | `SPEC_TABLE_RENDERING.md` 2.1 | `comfy-table` MUST be added as dependency | | TM-P28-004 | pending |
-| TBL-002 | `SPEC_TABLE_RENDERING.md` 3.1 | `UiContext` MUST provide `table()` factory | | TM-P28-005, TM-P28-006 | pending |
+| TBL-001 | `SPEC_TABLE_RENDERING.md` 2.1 | `comfy-table` MUST be added as dependency | `crates/eden-skills-cli/Cargo.toml` (`comfy-table = "7"`) | `table_infra_tests::comfy_table_dependency_is_declared_in_cli_cargo_toml` (TM-P28-004) | done |
+| TBL-002 | `SPEC_TABLE_RENDERING.md` 3.1 | `UiContext` MUST provide `table()` factory | `crates/eden-skills-cli/src/ui.rs` (`UiContext::table`, `abbreviate_home_path`, `abbreviate_repo_url`) | `table_infra_tests::ui_context_table_uses_utf8_borders_and_bold_headers_on_tty`, `table_infra_tests::ui_context_table_uses_ascii_borders_and_wraps_to_80_on_non_tty`, `table_infra_tests::abbreviate_home_path_replaces_home_prefix_and_preserves_non_home_paths` (TM-P28-032), `table_infra_tests::abbreviate_repo_url_extracts_github_owner_and_repo` (TM-P28-033) | done |
 | TBL-003 | `SPEC_TABLE_RENDERING.md` 5.1 | `list` MUST render as table | | TM-P28-005, TM-P28-006, TM-P28-007 | pending |
 | TBL-004 | `SPEC_TABLE_RENDERING.md` 5.2 | `install --dry-run` targets MUST render as table | | TM-P28-008 | pending |
 | TBL-005 | `SPEC_TABLE_RENDERING.md` 5.3 | `install --list` MUST render as numbered table | | TM-P28-009 | pending |
@@ -64,7 +64,7 @@ Builder execution.
 | TM-P28-001 | `SPEC_TEST_MATRIX.md` 2 | Commands module split regression | | pending |
 | TM-P28-002 | `SPEC_TEST_MATRIX.md` 2 | Public API unchanged | | pending |
 | TM-P28-003 | `SPEC_TEST_MATRIX.md` 2 | Module doc comments present | | pending |
-| TM-P28-004 | `SPEC_TEST_MATRIX.md` 3 | comfy-table dependency present | | pending |
+| TM-P28-004 | `SPEC_TEST_MATRIX.md` 3 | comfy-table dependency present | `table_infra_tests::comfy_table_dependency_is_declared_in_cli_cargo_toml` | done |
 | TM-P28-005 | `SPEC_TEST_MATRIX.md` 3 | List renders as table | | pending |
 | TM-P28-006 | `SPEC_TEST_MATRIX.md` 3 | List table non-TTY degradation | | pending |
 | TM-P28-007 | `SPEC_TEST_MATRIX.md` 3 | List table JSON unchanged | | pending |
@@ -92,8 +92,8 @@ Builder execution.
 | TM-P28-029 | `SPEC_TEST_MATRIX.md` 6 | Non-TTY tables use ASCII borders | | pending |
 | TM-P28-030 | `SPEC_TEST_MATRIX.md` 6 | Color never disables table styling | | pending |
 | TM-P28-031 | `SPEC_TEST_MATRIX.md` 6 | JSON mode never renders tables | | pending |
-| TM-P28-032 | `SPEC_TEST_MATRIX.md` 7 | Home path abbreviated | | pending |
-| TM-P28-033 | `SPEC_TEST_MATRIX.md` 7 | Repo URL abbreviated | | pending |
+| TM-P28-032 | `SPEC_TEST_MATRIX.md` 7 | Home path abbreviated | `table_infra_tests::abbreviate_home_path_replaces_home_prefix_and_preserves_non_home_paths` | done |
+| TM-P28-033 | `SPEC_TEST_MATRIX.md` 7 | Repo URL abbreviated | `table_infra_tests::abbreviate_repo_url_extracts_github_owner_and_repo` | done |
 | TM-P28-034 | `SPEC_TEST_MATRIX.md` 8 | CLI module docs | | pending |
 | TM-P28-035 | `SPEC_TEST_MATRIX.md` 8 | Core module docs | | pending |
 | TM-P28-036 | `SPEC_TEST_MATRIX.md` 8 | UiContext documented | | pending |
