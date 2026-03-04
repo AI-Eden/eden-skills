@@ -285,7 +285,13 @@ Phase 1/2/2.5/2.7 regression: ALL existing tests MUST continue to pass
 - [ ] spec/phase2.8/SPEC_TRACEABILITY.md updated with Implementation
       and Tests columns for completed requirements
 - [ ] STATUS.yaml updated with Phase 2.8 implementation progress
+      *** THIS IS MANDATORY FOR EVERY BATCH, NOT JUST THE FINAL ONE. ***
+      After each batch, add a builder_progress entry under phase28 with
+      batch name, status, requirements, scenarios, notes, and quality_gate.
+      Follow the exact format used in phase27.builder_progress entries.
 - [ ] EXECUTION_TRACKER.md updated with completed items
+      *** THIS IS MANDATORY FOR EVERY BATCH, NOT JUST THE FINAL ONE. ***
+      After each batch, append the batch completion record.
 
 [Hard Constraints]
 - Language: communicate with user in Chinese (Simplified). ALL file content
@@ -379,7 +385,9 @@ Within each batch:
    For Batch 6: add doc comments following Chapter 8 guidance.
 6. Run quality gate checks (fmt, clippy, test).
 7. Update SPEC_TRACEABILITY.md with implementation and test references.
-8. Update STATUS.yaml and EXECUTION_TRACKER.md.
+8. Update STATUS.yaml and EXECUTION_TRACKER.md. THIS STEP IS NOT OPTIONAL.
+   You MUST update BOTH files after EVERY batch — not just the final one.
+   A batch is NOT complete until these tracking files reflect the work done.
 9. STOP. End with a Chinese summary to the user:
     - Implemented requirements and their status.
     - Test results (pass/fail counts).
