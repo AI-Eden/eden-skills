@@ -569,7 +569,7 @@ phase27:
         current_test_inventory: 253
 
 next_execution_targets:
-  - repository_public_readiness_checklist_and_first_tag_release_execution
+  - phase28_batch2_table_infrastructure
 
 phase1_builder_remaining_index: spec/phase1/PHASE1_BUILDER_REMAINING.md
 phase2_builder_remaining_index: spec/phase2/PHASE2_BUILDER_REMAINING.md
