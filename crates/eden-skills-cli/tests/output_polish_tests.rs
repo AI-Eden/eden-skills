@@ -8,12 +8,27 @@ use tempfile::tempdir;
 #[test]
 fn no_hardcoded_ansi_literals_in_ui_and_commands_sources() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    for relative in ["src/ui.rs", "src/commands.rs"] {
-        let source = fs::read_to_string(crate_root.join(relative))
-            .unwrap_or_else(|err| panic!("failed to read {relative}: {err}"));
+    let mut sources_to_check: Vec<PathBuf> = vec![crate_root.join("src/ui.rs")];
+    let commands_dir = crate_root.join("src/commands");
+    if commands_dir.is_dir() {
+        for entry in fs::read_dir(&commands_dir).expect("read src/commands/") {
+            let entry = entry.expect("read dir entry");
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "rs") {
+                sources_to_check.push(path);
+            }
+        }
+    } else {
+        sources_to_check.push(crate_root.join("src/commands.rs"));
+    }
+    for path in &sources_to_check {
+        let relative = path.strip_prefix(crate_root).unwrap_or(path);
+        let source = fs::read_to_string(path)
+            .unwrap_or_else(|err| panic!("failed to read {}: {err}", relative.display()));
         assert!(
             !source.contains("\\u{1b}[") && !source.contains("\\x1b["),
-            "{relative} must not contain hardcoded ANSI literals"
+            "{} must not contain hardcoded ANSI literals",
+            relative.display()
         );
     }
 }

@@ -1,0 +1,778 @@
+use std::collections::{BTreeMap, HashMap, HashSet};
+use std::fs;
+use std::future::Future;
+use std::path::{Path, PathBuf};
+use std::process::Command;
+
+use eden_skills_core::config::{
+    decode_registry_mode_repo, is_registry_mode_repo, load_from_file, LoadOptions, LoadedConfig,
+    SourceConfig,
+};
+use eden_skills_core::config::{AgentKind, Config, InstallMode, SkillConfig, TargetConfig};
+use eden_skills_core::error::EdenError;
+use eden_skills_core::lock::{build_lock_from_config, lock_path_for_config, write_lock_file};
+use eden_skills_core::paths::resolve_path_string;
+use eden_skills_core::plan::PlanItem;
+use eden_skills_core::reactor::{MAX_CONCURRENCY_LIMIT, MIN_CONCURRENCY_LIMIT};
+use eden_skills_core::registry::{
+    parse_registry_specs_from_toml, resolve_skill_from_registry_sources,
+    sort_registry_specs_by_priority, RegistrySource,
+};
+use eden_skills_core::safety::{LicenseStatus, SkillSafetyReport};
+use eden_skills_core::source::SyncSummary;
+
+pub(crate) const REGISTRY_SYNC_MARKER_FILE: &str = ".eden-last-sync";
+
+pub(crate) fn resolve_config_path(config_path: &str) -> Result<PathBuf, EdenError> {
+    let cwd = std::env::current_dir().map_err(EdenError::Io)?;
+    resolve_path_string(config_path, &cwd)
+}
+
+pub(crate) fn with_hint(message: impl Into<String>, hint: impl Into<String>) -> String {
+    format!("{}\nhint: {}", message.into(), hint.into())
+}
+
+pub(crate) fn load_config_with_context(
+    config_path: &Path,
+    strict: bool,
+) -> Result<LoadedConfig, EdenError> {
+    match load_from_file(config_path, LoadOptions { strict }) {
+        Ok(loaded) => Ok(loaded),
+        Err(EdenError::Io(err)) if err.kind() == std::io::ErrorKind::NotFound => {
+            Err(EdenError::Runtime(with_hint(
+                format!("config file not found: {}", config_path.display()),
+                "Run `eden-skills init` to create a new config.",
+            )))
+        }
+        Err(EdenError::Io(err)) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+            Err(EdenError::Runtime(with_hint(
+                format!(
+                    "permission denied reading config file: {}",
+                    config_path.display()
+                ),
+                "Check file permissions or run with appropriate privileges.",
+            )))
+        }
+        Err(err) => Err(err),
+    }
+}
+
+pub(crate) fn git_bin() -> String {
+    std::env::var("EDEN_SKILLS_GIT_BIN")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "git".to_string())
+}
+
+pub(crate) fn ensure_git_available() -> Result<(), EdenError> {
+    let git = git_bin();
+    match Command::new(&git).arg("--version").output() {
+        Ok(output) if output.status.success() => Ok(()),
+        Ok(output) => Err(EdenError::Runtime(with_hint(
+            format!(
+                "git executable not found (command `{git}` exited with status {})",
+                output.status
+            ),
+            "Install Git: https://git-scm.com/downloads",
+        ))),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            Err(EdenError::Runtime(with_hint(
+                "git executable not found",
+                "Install Git: https://git-scm.com/downloads",
+            )))
+        }
+        Err(err) => Err(EdenError::Runtime(with_hint(
+            format!("failed to invoke git executable `{git}`: {err}"),
+            "Ensure Git is installed and available on PATH.",
+        ))),
+    }
+}
+
+pub(crate) fn ensure_docker_available_for_targets<'a, I>(targets: I) -> Result<(), EdenError>
+where
+    I: IntoIterator<Item = &'a str>,
+{
+    if !targets.into_iter().any(|environment| {
+        environment
+            .strip_prefix("docker:")
+            .is_some_and(|container| !container.is_empty())
+    }) {
+        return Ok(());
+    }
+
+    let docker_bin = doctor_docker_bin();
+    match Command::new(&docker_bin).arg("--version").output() {
+        Ok(output) if output.status.success() => Ok(()),
+        Ok(output) => Err(EdenError::Runtime(with_hint(
+            format!(
+                "docker executable not found (command `{docker_bin}` exited with status {})",
+                output.status
+            ),
+            "Install Docker: https://docs.docker.com/get-docker/",
+        ))),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => {
+            Err(EdenError::Runtime(with_hint(
+                "docker executable not found",
+                "Install Docker: https://docs.docker.com/get-docker/",
+            )))
+        }
+        Err(err) => Err(EdenError::Runtime(with_hint(
+            format!("failed to invoke docker executable `{docker_bin}`: {err}"),
+            "Install Docker or ensure `docker` is available on PATH.",
+        ))),
+    }
+}
+
+pub(crate) fn doctor_docker_bin() -> String {
+    std::env::var("EDEN_SKILLS_DOCKER_BIN")
+        .ok()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "docker".to_string())
+}
+
+pub(crate) fn resolve_effective_reactor_concurrency(
+    cli_override: Option<usize>,
+    config_concurrency: usize,
+    field_path: &str,
+) -> Result<usize, EdenError> {
+    let concurrency = cli_override.unwrap_or(config_concurrency);
+    if !(MIN_CONCURRENCY_LIMIT..=MAX_CONCURRENCY_LIMIT).contains(&concurrency) {
+        return Err(EdenError::Validation(format!(
+            "INVALID_CONCURRENCY: {field_path}: expected value in [{MIN_CONCURRENCY_LIMIT}, {MAX_CONCURRENCY_LIMIT}], got {concurrency}"
+        )));
+    }
+    Ok(concurrency)
+}
+
+pub(crate) fn block_on_command_future<F>(future: F) -> Result<(), EdenError>
+where
+    F: Future<Output = Result<(), EdenError>>,
+{
+    if tokio::runtime::Handle::try_current().is_ok() {
+        return Err(EdenError::Runtime(
+            "sync command API called inside async runtime; use async command entrypoints"
+                .to_string(),
+        ));
+    }
+
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .map_err(|err| EdenError::Runtime(format!("failed to initialize tokio runtime: {err}")))?;
+    runtime.block_on(future)
+}
+
+pub(crate) fn run_git_command(command: &mut Command, context: &str) -> Result<String, String> {
+    let output = command
+        .output()
+        .map_err(|err| format!("git invocation failed while trying to {context}: {err}"))?;
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if output.status.success() {
+        return Ok(stdout);
+    }
+    Err(format!(
+        "git command failed while trying to {context}: status={} stderr=`{}` stdout=`{}`",
+        output.status, stderr, stdout
+    ))
+}
+
+pub(crate) fn read_head_sha(repo_dir: &Path) -> Option<String> {
+    let stdout = run_git_command(
+        Command::new("git")
+            .arg("-C")
+            .arg(repo_dir)
+            .arg("rev-parse")
+            .arg("HEAD"),
+        &format!("read HEAD for `{}`", repo_dir.display()),
+    )
+    .ok()?;
+    let sha = stdout.lines().next()?.trim();
+    if sha.is_empty() {
+        None
+    } else {
+        Some(sha.to_string())
+    }
+}
+
+pub(crate) fn agent_kind_label(agent: &AgentKind) -> &'static str {
+    agent.as_str()
+}
+
+pub(crate) fn parse_target_specs(specs: &[String]) -> Result<Vec<TargetConfig>, EdenError> {
+    let mut targets = Vec::with_capacity(specs.len());
+    for spec in specs {
+        if let Some(agent) = AgentKind::from_target_spec(spec) {
+            targets.push(TargetConfig {
+                agent,
+                expected_path: None,
+                path: None,
+                environment: "local".to_string(),
+            });
+            continue;
+        }
+
+        if let Some(rest) = spec.strip_prefix("custom:") {
+            if rest.trim().is_empty() {
+                return Err(EdenError::InvalidArguments(
+                    "invalid target spec `custom:`: path is required".to_string(),
+                ));
+            }
+            targets.push(TargetConfig {
+                agent: AgentKind::Custom,
+                expected_path: None,
+                path: Some(rest.to_string()),
+                environment: "local".to_string(),
+            });
+            continue;
+        }
+
+        return Err(EdenError::InvalidArguments(format!(
+            "invalid target spec `{spec}` (expected a supported agent id or `custom:<path>`)"
+        )));
+    }
+    Ok(targets)
+}
+
+pub(crate) fn format_quoted_ids(ids: &[String]) -> String {
+    ids.iter()
+        .map(|id| format!("'{id}'"))
+        .collect::<Vec<_>>()
+        .join(", ")
+}
+
+pub(crate) fn unique_ids(ids: &[String]) -> Vec<String> {
+    let mut seen = HashSet::new();
+    let mut unique = Vec::new();
+    for id in ids {
+        if seen.insert(id.as_str()) {
+            unique.push(id.clone());
+        }
+    }
+    unique
+}
+
+pub(crate) fn print_source_sync_summary(summary: &SyncSummary) {
+    println!(
+        "source sync: cloned={} updated={} skipped={} failed={}",
+        summary.cloned, summary.updated, summary.skipped, summary.failed
+    );
+}
+
+pub(crate) fn source_sync_failure_error(summary: &SyncSummary) -> Option<EdenError> {
+    if summary.failed == 0 {
+        return None;
+    }
+
+    let details = summary
+        .failures
+        .iter()
+        .map(|failure| {
+            format!(
+                "skill={} stage={} repo_dir={} detail={}",
+                failure.skill_id,
+                failure.stage.as_str(),
+                failure.repo_dir,
+                failure.detail
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("; ");
+
+    Some(EdenError::Runtime(format!(
+        "source sync failed for {} skill(s): {details}",
+        summary.failed
+    )))
+}
+
+pub(crate) fn print_safety_summary(reports: &[SkillSafetyReport]) {
+    let permissive = reports
+        .iter()
+        .filter(|r| matches!(r.license_status, LicenseStatus::Permissive))
+        .count();
+    let non_permissive = reports
+        .iter()
+        .filter(|r| matches!(r.license_status, LicenseStatus::NonPermissive))
+        .count();
+    let unknown = reports
+        .iter()
+        .filter(|r| matches!(r.license_status, LicenseStatus::Unknown))
+        .count();
+    let risk_labeled = reports.iter().filter(|r| !r.risk_labels.is_empty()).count();
+    let no_exec = reports.iter().filter(|r| r.no_exec_metadata_only).count();
+
+    println!(
+        "safety summary: permissive={permissive} non_permissive={non_permissive} unknown={unknown} risk_labeled={risk_labeled} no_exec={no_exec}"
+    );
+}
+
+pub(crate) fn resolve_registry_mode_skills_for_execution(
+    config_path: &Path,
+    config: &Config,
+    config_dir: &Path,
+) -> Result<Config, EdenError> {
+    if !config
+        .skills
+        .iter()
+        .any(|skill| is_registry_mode_repo(&skill.source.repo))
+    {
+        return Ok(config.clone());
+    }
+
+    let raw_toml = fs::read_to_string(config_path)?;
+    let sorted_specs = sort_registry_specs_by_priority(
+        &parse_registry_specs_from_toml(&raw_toml).map_err(EdenError::from)?,
+    );
+    if sorted_specs.is_empty() {
+        return Err(EdenError::Runtime(
+            "Registry index not found. Run `eden-skills update` first.".to_string(),
+        ));
+    }
+
+    let storage_root = resolve_path_string(&config.storage_root, config_dir)?;
+    let registries_root = storage_root.join("registries");
+    let registry_sources = sorted_specs
+        .into_iter()
+        .map(|spec| RegistrySource {
+            name: spec.name.clone(),
+            priority: spec.priority,
+            root: registries_root.join(spec.name),
+        })
+        .collect::<Vec<_>>();
+
+    let mut resolved = config.clone();
+    for skill in &mut resolved.skills {
+        if !is_registry_mode_repo(&skill.source.repo) {
+            continue;
+        }
+
+        let preferred_registry = decode_registry_mode_repo(&skill.source.repo)
+            .unwrap_or(None)
+            .unwrap_or_default();
+        let sources_for_skill = if preferred_registry.is_empty() {
+            registry_sources.clone()
+        } else {
+            registry_sources
+                .iter()
+                .filter(|source| source.name == preferred_registry)
+                .cloned()
+                .collect::<Vec<_>>()
+        };
+
+        if sources_for_skill.is_empty() {
+            let repo_dir = storage_root.join(&skill.id);
+            return Err(EdenError::Runtime(format!(
+                "source sync failed for 1 skill(s): skill={} stage=clone repo_dir={} detail=registry `{}` is not configured",
+                skill.id,
+                repo_dir.display(),
+                preferred_registry
+            )));
+        }
+        for source in &sources_for_skill {
+            validate_registry_manifest_for_resolution(source)?;
+        }
+        if sources_for_skill.iter().all(|source| !source.root.exists()) {
+            let repo_dir = storage_root.join(&skill.id);
+            return Err(EdenError::Runtime(format!(
+                "source sync failed for 1 skill(s): skill={} stage=clone repo_dir={} detail=Registry index not found. Run `eden-skills update` first.",
+                skill.id,
+                repo_dir.display()
+            )));
+        }
+
+        let resolved_skill = resolve_skill_from_registry_sources(
+            &sources_for_skill,
+            &skill.id,
+            Some(skill.source.r#ref.as_str()),
+        )
+        .map_err(|err| {
+            let repo_dir = storage_root.join(&skill.id);
+            EdenError::Runtime(format!(
+                "source sync failed for 1 skill(s): skill={} stage=clone repo_dir={} detail=registry resolution failed: {}",
+                skill.id,
+                repo_dir.display(),
+                err
+            ))
+        })?;
+
+        skill.source = SourceConfig {
+            repo: resolved_skill.repo,
+            subpath: resolved_skill.subpath,
+            r#ref: resolved_skill.git_ref,
+        };
+    }
+
+    Ok(resolved)
+}
+
+fn validate_registry_manifest_for_resolution(source: &RegistrySource) -> Result<(), EdenError> {
+    if !source.root.exists() {
+        return Ok(());
+    }
+
+    let manifest_path = source.root.join("manifest.toml");
+    if !manifest_path.exists() {
+        eprintln!(
+            "warning: registry `{}` is missing manifest.toml; assuming format_version = 1",
+            source.name
+        );
+        return Ok(());
+    }
+
+    let raw_manifest = fs::read_to_string(&manifest_path)?;
+    let manifest: toml::Value = toml::from_str(&raw_manifest).map_err(|err| {
+        EdenError::Runtime(format!(
+            "registry `{}` manifest.toml is invalid TOML: {err}",
+            source.name
+        ))
+    })?;
+    let Some(format_version) = manifest.get("format_version").and_then(|v| v.as_integer()) else {
+        return Err(EdenError::Runtime(format!(
+            "registry `{}` manifest.toml is missing `format_version`",
+            source.name
+        )));
+    };
+    if format_version != 1 {
+        eprintln!(
+            "warning: registry `{}` manifest format_version={} (expected 1); continuing",
+            source.name, format_version
+        );
+    }
+    Ok(())
+}
+
+pub(crate) fn write_normalized_config(path: &Path, config: &Config) -> Result<(), EdenError> {
+    let registries = read_existing_registries(path)?;
+    let toml = normalized_config_toml(config, registries.as_ref());
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, toml)?;
+    Ok(())
+}
+
+pub(crate) fn normalized_config_toml(
+    config: &Config,
+    registries: Option<&BTreeMap<String, ExistingRegistryConfig>>,
+) -> String {
+    let mut out = String::new();
+
+    out.push_str(&format!("version = {}\n\n", config.version));
+    out.push_str("[storage]\n");
+    out.push_str(&format!(
+        "root = \"{}\"\n\n",
+        toml_escape_str(&config.storage_root)
+    ));
+    if config.reactor.concurrency != eden_skills_core::reactor::DEFAULT_CONCURRENCY_LIMIT {
+        out.push_str("[reactor]\n");
+        out.push_str(&format!("concurrency = {}\n\n", config.reactor.concurrency));
+    }
+    if let Some(registries) = registries {
+        if !registries.is_empty() {
+            out.push_str(&render_registries_toml(registries));
+            out.push('\n');
+        }
+    }
+
+    for skill in &config.skills {
+        out.push_str(&normalized_skill_toml(skill));
+        out.push('\n');
+    }
+
+    out
+}
+
+pub(crate) fn read_existing_registries(
+    path: &Path,
+) -> Result<Option<BTreeMap<String, ExistingRegistryConfig>>, EdenError> {
+    if !path.exists() {
+        return Ok(None);
+    }
+    let raw = fs::read_to_string(path)?;
+    let parsed: ExistingRegistryFile = match toml::from_str(&raw) {
+        Ok(value) => value,
+        Err(_) => return Ok(None),
+    };
+    if parsed.registries.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(parsed.registries))
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+struct ExistingRegistryFile {
+    #[serde(default)]
+    registries: BTreeMap<String, ExistingRegistryConfig>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub(crate) struct ExistingRegistryConfig {
+    pub(crate) url: String,
+    pub(crate) priority: Option<i64>,
+    pub(crate) auto_update: Option<bool>,
+}
+
+fn render_registries_toml(registries: &BTreeMap<String, ExistingRegistryConfig>) -> String {
+    let mut out = String::new();
+    out.push_str("[registries]\n");
+    for (name, registry) in registries {
+        out.push_str(&format!(
+            "{} = {{ url = \"{}\"",
+            toml_escape_str(name),
+            toml_escape_str(&registry.url)
+        ));
+        if let Some(priority) = registry.priority {
+            out.push_str(&format!(", priority = {priority}"));
+        }
+        if let Some(auto_update) = registry.auto_update {
+            out.push_str(&format!(", auto_update = {auto_update}"));
+        }
+        out.push_str(" }\n");
+    }
+    out
+}
+
+fn normalized_skill_toml(skill: &SkillConfig) -> String {
+    let mut out = String::new();
+
+    out.push_str("[[skills]]\n");
+    if is_registry_mode_repo(&skill.source.repo) {
+        out.push_str(&format!("name = \"{}\"\n", toml_escape_str(&skill.id)));
+        out.push_str(&format!(
+            "version = \"{}\"\n",
+            toml_escape_str(&skill.source.r#ref)
+        ));
+        if let Some(Some(registry_name)) = decode_registry_mode_repo(&skill.source.repo) {
+            out.push_str(&format!(
+                "registry = \"{}\"\n",
+                toml_escape_str(&registry_name)
+            ));
+        }
+        out.push('\n');
+    } else {
+        out.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(&skill.id)));
+
+        out.push_str("[skills.source]\n");
+        out.push_str(&format!(
+            "repo = \"{}\"\n",
+            toml_escape_str(&skill.source.repo)
+        ));
+        out.push_str(&format!(
+            "subpath = \"{}\"\n",
+            toml_escape_str(&skill.source.subpath)
+        ));
+        out.push_str(&format!(
+            "ref = \"{}\"\n\n",
+            toml_escape_str(&skill.source.r#ref)
+        ));
+    }
+
+    out.push_str("[skills.install]\n");
+    out.push_str(&format!(
+        "mode = \"{}\"\n\n",
+        toml_escape_str(skill.install.mode.as_str())
+    ));
+
+    for target in &skill.targets {
+        out.push_str(&normalized_target_toml(target));
+        out.push('\n');
+    }
+
+    out.push_str("[skills.verify]\n");
+    out.push_str(&format!("enabled = {}\n", skill.verify.enabled));
+    out.push_str("checks = [");
+    out.push_str(
+        &skill
+            .verify
+            .checks
+            .iter()
+            .map(|c| format!("\"{}\"", toml_escape_str(c)))
+            .collect::<Vec<_>>()
+            .join(", "),
+    );
+    out.push_str("]\n\n");
+
+    out.push_str("[skills.safety]\n");
+    out.push_str(&format!(
+        "no_exec_metadata_only = {}\n",
+        skill.safety.no_exec_metadata_only
+    ));
+
+    out
+}
+
+fn normalized_target_toml(target: &TargetConfig) -> String {
+    let mut out = String::new();
+    out.push_str("[[skills.targets]]\n");
+    out.push_str(&format!(
+        "agent = \"{}\"\n",
+        toml_escape_str(agent_kind_label(&target.agent))
+    ));
+    if let Some(expected) = &target.expected_path {
+        out.push_str(&format!(
+            "expected_path = \"{}\"\n",
+            toml_escape_str(expected)
+        ));
+    }
+    if let Some(path) = &target.path {
+        out.push_str(&format!("path = \"{}\"\n", toml_escape_str(path)));
+    }
+    if target.environment != "local" {
+        out.push_str(&format!(
+            "environment = \"{}\"\n",
+            toml_escape_str(&target.environment)
+        ));
+    }
+    out
+}
+
+fn toml_escape_str(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('\"', "\\\"")
+}
+
+pub(crate) fn write_lock_for_config(
+    config_path: &Path,
+    config: &Config,
+    config_dir: &Path,
+) -> Result<(), EdenError> {
+    write_lock_for_config_with_commits(config_path, config, config_dir, &HashMap::new())
+}
+
+pub(crate) fn write_lock_for_config_with_commits(
+    config_path: &Path,
+    config: &Config,
+    config_dir: &Path,
+    resolved_commits: &HashMap<String, String>,
+) -> Result<(), EdenError> {
+    let lock_path = lock_path_for_config(config_path);
+    let lock = build_lock_from_config(config, config_dir, resolved_commits)?;
+    write_lock_file(&lock_path, &lock)
+}
+
+pub(crate) fn apply_plan_item(item: &PlanItem) -> Result<(), EdenError> {
+    let source_path = PathBuf::from(&item.source_path);
+    let target_path = PathBuf::from(&item.target_path);
+
+    if !source_path.exists() {
+        return Err(EdenError::Runtime(format!(
+            "source path missing for skill `{}`: {}",
+            item.skill_id, item.source_path
+        )));
+    }
+
+    match item.install_mode {
+        InstallMode::Symlink => apply_symlink(&source_path, &target_path),
+        InstallMode::Copy => apply_copy(&source_path, &target_path),
+    }
+}
+
+fn apply_symlink(source_path: &Path, target_path: &Path) -> Result<(), EdenError> {
+    ensure_parent_dir(target_path)?;
+    if fs::symlink_metadata(target_path).is_ok() {
+        remove_path(target_path)?;
+    }
+
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(source_path, target_path)?;
+    }
+    #[cfg(windows)]
+    {
+        if source_path.is_dir() {
+            std::os::windows::fs::symlink_dir(source_path, target_path)
+                .map_err(|err| map_windows_symlink_error(err, source_path, target_path))?;
+        } else {
+            std::os::windows::fs::symlink_file(source_path, target_path)
+                .map_err(|err| map_windows_symlink_error(err, source_path, target_path))?;
+        }
+    }
+
+    Ok(())
+}
+
+#[cfg(windows)]
+fn map_windows_symlink_error(
+    err: std::io::Error,
+    source_path: &Path,
+    target_path: &Path,
+) -> EdenError {
+    if err.kind() == std::io::ErrorKind::PermissionDenied {
+        return EdenError::Runtime(format!(
+            "failed to create symlink `{}` -> `{}`: {}. Enable Developer Mode or run as Administrator.",
+            target_path.display(),
+            source_path.display(),
+            err
+        ));
+    }
+    EdenError::Io(err)
+}
+
+fn apply_copy(source_path: &Path, target_path: &Path) -> Result<(), EdenError> {
+    ensure_parent_dir(target_path)?;
+    if fs::symlink_metadata(target_path).is_ok() {
+        remove_path(target_path)?;
+    }
+    copy_recursively(source_path, target_path)
+}
+
+pub(crate) fn ensure_parent_dir(path: &Path) -> Result<(), EdenError> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    Ok(())
+}
+
+pub(crate) fn remove_path(path: &Path) -> Result<(), EdenError> {
+    let metadata = fs::symlink_metadata(path)?;
+    if metadata.file_type().is_symlink() {
+        remove_symlink_path(path)?;
+        return Ok(());
+    }
+    if metadata.is_file() {
+        fs::remove_file(path)?;
+        return Ok(());
+    }
+    if metadata.is_dir() {
+        fs::remove_dir_all(path)?;
+    }
+    Ok(())
+}
+
+#[cfg(not(windows))]
+fn remove_symlink_path(path: &Path) -> Result<(), EdenError> {
+    fs::remove_file(path)?;
+    Ok(())
+}
+
+#[cfg(windows)]
+fn remove_symlink_path(path: &Path) -> Result<(), EdenError> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+            fs::remove_dir(path)?;
+            Ok(())
+        }
+        Err(err) => Err(EdenError::Io(err)),
+    }
+}
+
+pub(crate) fn copy_recursively(source: &Path, target: &Path) -> Result<(), EdenError> {
+    if source.is_file() {
+        fs::copy(source, target)?;
+        return Ok(());
+    }
+
+    fs::create_dir_all(target)?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let child_source = entry.path();
+        let child_target = target.join(entry.file_name());
+        if child_source.is_dir() {
+            copy_recursively(&child_source, &child_target)?;
+        } else {
+            fs::copy(&child_source, &child_target)?;
+        }
+    }
+    Ok(())
+}
