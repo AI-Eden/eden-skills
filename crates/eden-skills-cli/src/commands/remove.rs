@@ -162,7 +162,7 @@ fn resolve_remove_ids(
     }
 
     if config.skills.is_empty() {
-        println!("  Skills   0 configured");
+        println!("{}   0 configured", ui.action_prefix("Skills"));
         println!();
         println!("  Nothing to remove.");
         return Ok(RemoveSelection::SkillIds(Vec::new()));
@@ -303,7 +303,11 @@ fn print_remove_summary(ui: &UiContext, removed: &[String]) {
 }
 
 fn print_remove_candidates(config: &Config, ui: &UiContext) {
-    println!("  Skills   {} configured:", config.skills.len());
+    println!(
+        "{}   {} configured",
+        ui.action_prefix("Skills"),
+        config.skills.len()
+    );
     println!();
 
     let mut table = ui.table(&["#", "Skill", "Source"]);
