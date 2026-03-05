@@ -15,7 +15,7 @@ spec_files:
 requirement_ids:
   table_fix: TFX-001 ~ TFX-003
   update_ext: UPD-001 ~ UPD-008
-  install_ux: IUX-001 ~ IUX-008
+  install_ux: IUX-001 ~ IUX-009
   output_consistency: OCN-001 ~ OCN-010
   newline_policy: NLP-001 ~ NLP-006
 
@@ -58,8 +58,8 @@ batches:
   batch3:
     name: "Install UX: Card Preview + Tree Display"
     work_packages: [WP-3-pt1]
-    requirements: [IUX-001, IUX-002, IUX-003, IUX-006, IUX-007]
-    status: in_progress
+    requirements: [IUX-001, IUX-002, IUX-003, IUX-006, IUX-007, IUX-009]
+    status: completed
   batch4:
     name: "Install UX: Step Progress + Apply/Repair Integration"
     work_packages: [WP-3-pt2]
@@ -118,19 +118,27 @@ builder_progress:
       test_workspace: passed
       current_test_inventory: 315
   batch_3_install_ux_card_preview_tree_display:
-    status: in_progress
+    status: completed
     started_at: "2026-03-06"
-    requirements: IUX-001, IUX-002, IUX-003
-    scenarios: TM-P29-015, TM-P29-016, TM-P29-017, TM-P29-018, TM-P29-019
+    completed_at: "2026-03-06"
+    requirements: IUX-001, IUX-002, IUX-003, IUX-006, IUX-007, IUX-009
+    scenarios: TM-P29-015, TM-P29-016, TM-P29-017, TM-P29-018, TM-P29-019, TM-P29-023, TM-P29-024, TM-P29-027, TM-P29-041, TM-P29-042, TM-P29-043
     notes:
       - merged discovery rendering into unified `print_discovery_preview()` and wired both `install --list` and interactive selection preview to the same card-style output path
       - replaced install discovery table/em-dash output with numbered card lines (`n. skill`) plus indented wrapped description lines
       - applied non-`--list` truncation to 8 entries with dimmed footer hint (`... and N more (use --list to see all)`)
-      - added TM-P29 discovery coverage in `install_discovery_tests.rs` for card format parity, description indentation, name-only rendering, and truncation behavior
+      - added `--list --json` contract path for discovery output to return JSON array of discovered skills (name/description/subpath) without installation side effects
+      - switched install result lines from flat arrow format to grouped tree format with per-skill headers and connector lines (`├─` / `└─`)
+      - upgraded URL-mode `install --dry-run` preview to two titled tables (`Skill / Version / Source`, `Install Targets`) with 4-space table indentation, default 8-row truncation, and `--dry-run --list` full expansion
+      - simplified `Install Targets` preview table to `Agent/Path/Mode` columns and de-duplicated rows across multi-skill dry-run previews
+      - installed SIGINT cursor-restore hook in CLI entrypoint to restore terminal cursor on Ctrl+C interruptions during interactive prompts
+      - handled interactive prompt interruption as graceful cancel (`· Install cancelled`) instead of runtime error output
+      - added TM-P29 install UX coverage in `install_discovery_tests.rs` for card format parity, description indentation, name-only rendering, truncation, tree connectors, grouped skill headers, and list-json contract
       - updated legacy assertions in `table_fix_tests.rs`, `output_upgrade_b_tests.rs`, and `output_upgrade_a2_tests.rs` to match phase2.9 card-preview contracts
-      - "remaining in WP-3 pt1: tree-style grouped install result output (IUX-006, IUX-007); TM-P29-027 (`install --list --json`) still pending"
+      - manual visual scenario TM-P29-025 remains pending for tree connector/path/mode color verification in a real terminal
+      - manual terminal verification for SIGINT cursor restoration remains pending
     quality_gate:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
-      current_test_inventory: 319
+      current_test_inventory: 325

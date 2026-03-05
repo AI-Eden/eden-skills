@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 use std::process::Command;
 
+use serde_json::Value;
 use tempfile::tempdir;
 
 #[test]
@@ -829,6 +830,376 @@ fn tm_p29_019_discovery_preview_truncates_to_eight_in_interactive_mode() {
     );
 }
 
+#[test]
+fn tm_p29_023_install_results_use_tree_display_with_connectors() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("tree-install-repo");
+    write_skill(
+        &repo_dir.join("skills/alpha/SKILL.md"),
+        "alpha-skill",
+        "Alpha details",
+    );
+    write_skill(
+        &repo_dir.join("skills/beta/SKILL.md"),
+        "beta-skill",
+        "Beta details",
+    );
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./tree-install-repo",
+            "--all",
+            "--target",
+            "claude-code",
+            "--target",
+            "cursor",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Install"),
+        "tree output should include Install action header, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("├─") && stdout.contains("└─"),
+        "tree output should include branch connectors, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("(symlink)"),
+        "tree output should include install mode labels, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("→"),
+        "legacy flat arrow output must be removed, stdout={stdout}"
+    );
+}
+
+#[test]
+fn tm_p29_024_tree_groups_skill_name_once_per_skill_group() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("tree-group-repo");
+    write_skill(
+        &repo_dir.join("skills/alpha/SKILL.md"),
+        "alpha-skill",
+        "Alpha details",
+    );
+    write_skill(
+        &repo_dir.join("skills/beta/SKILL.md"),
+        "beta-skill",
+        "Beta details",
+    );
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./tree-group-repo",
+            "--all",
+            "--target",
+            "claude-code",
+            "--target",
+            "cursor",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert_eq!(
+        stdout.matches("✓ alpha-skill").count(),
+        1,
+        "alpha-skill should appear once as grouped skill header, stdout={stdout}"
+    );
+    assert_eq!(
+        stdout.matches("✓ beta-skill").count(),
+        1,
+        "beta-skill should appear once as grouped skill header, stdout={stdout}"
+    );
+}
+
+#[test]
+fn tm_p29_027_install_list_json_contract_returns_discovered_skill_array() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("list-json-repo");
+    write_skill(
+        &repo_dir.join("skills/alpha/SKILL.md"),
+        "alpha-skill",
+        "Alpha details",
+    );
+    write_skill(
+        &repo_dir.join("skills/beta/SKILL.md"),
+        "beta-skill",
+        "Beta details",
+    );
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./list-json-repo",
+            "--list",
+            "--json",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install --list --json");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install --list --json should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let payload: Value = serde_json::from_str(&stdout)
+        .unwrap_or_else(|err| panic!("stdout must be json: {err}\nstdout={stdout}"));
+    let items = payload
+        .as_array()
+        .expect("install --list --json should return a JSON array");
+    assert_eq!(
+        items.len(),
+        2,
+        "expected two discovered skills, json={payload}"
+    );
+
+    let mut names = items
+        .iter()
+        .map(|item| {
+            assert!(
+                item.get("description").and_then(Value::as_str).is_some(),
+                "each discovered skill must include description string, json={payload}"
+            );
+            assert!(
+                item.get("subpath").and_then(Value::as_str).is_some(),
+                "each discovered skill must include subpath string, json={payload}"
+            );
+            item.get("name")
+                .and_then(Value::as_str)
+                .expect("each discovered skill must include name string")
+                .to_string()
+        })
+        .collect::<Vec<_>>();
+    names.sort();
+    assert_eq!(
+        names,
+        vec!["alpha-skill".to_string(), "beta-skill".to_string()],
+        "json names should match discovered skills, json={payload}"
+    );
+    assert!(
+        !config_path.exists(),
+        "--list --json should not create config file"
+    );
+}
+
+#[test]
+fn interactive_confirm_interrupt_cancels_without_error_output() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("interactive-interrupt-repo");
+    write_skill(&repo_dir.join("skills/a/SKILL.md"), "skill-a", "A");
+    write_skill(&repo_dir.join("skills/b/SKILL.md"), "skill-b", "B");
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .env("EDEN_SKILLS_TEST_CONFIRM", "interrupt")
+        .args(["install", "./interactive-interrupt-repo", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run install with interrupted prompt");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "interrupted prompt should cancel install without error, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Install cancelled"),
+        "interrupted prompt should emit cancellation line, stdout={stdout}"
+    );
+    assert!(
+        String::from_utf8_lossy(&output.stderr).trim().is_empty(),
+        "interrupted prompt should not emit runtime error to stderr, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let ids = read_skill_ids(&config_path);
+    assert!(
+        ids.is_empty(),
+        "interrupted prompt should not persist selected skills"
+    );
+}
+
+#[test]
+fn dry_run_multi_skill_preview_defaults_to_eight_skill_rows() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("dry-run-many-skills");
+    for index in 1..=10 {
+        write_skill(
+            &repo_dir.join(format!("skills/skill-{index}/SKILL.md")),
+            &format!("skill-{index}"),
+            &format!("Skill {index} description"),
+        );
+    }
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./dry-run-many-skills",
+            "--all",
+            "--dry-run",
+            "--target",
+            "claude-code",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run dry-run install");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "dry-run install should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Skill / Version / Source"),
+        "dry-run should include skill preview title, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("Install Targets"),
+        "dry-run should include targets preview title, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("    "),
+        "dry-run tables should be indented by 4 spaces, stdout={stdout}"
+    );
+
+    let skill_table = extract_titled_table_block(&stdout, "Skill / Version / Source");
+    assert!(
+        skill_table.contains("| #")
+            && skill_table.contains("| Skill")
+            && skill_table.contains("| Version")
+            && skill_table.contains("| Source"),
+        "skill preview should render table headers, table={skill_table}"
+    );
+    assert!(
+        skill_table.contains("| 8"),
+        "default dry-run skill table should include row #8, table={skill_table}"
+    );
+    assert!(
+        !skill_table.contains("| 9"),
+        "default dry-run skill table should truncate rows beyond 8, table={skill_table}"
+    );
+    assert!(
+        stdout.contains("... and 2 more (use --dry-run --list to show all)"),
+        "dry-run output should include truncation footer, stdout={stdout}"
+    );
+
+    let target_table = extract_titled_table_block(&stdout, "Install Targets");
+    assert!(
+        target_table.contains("| Agent")
+            && target_table.contains("| Path")
+            && target_table.contains("| Mode"),
+        "target preview should keep Agent/Path/Mode columns, table={target_table}"
+    );
+    assert!(
+        !target_table.contains("| Skill"),
+        "target preview table should not include Skill column, table={target_table}"
+    );
+}
+
+#[test]
+fn dry_run_multi_skill_with_list_shows_all_skill_rows() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("dry-run-many-skills-list");
+    for index in 1..=10 {
+        write_skill(
+            &repo_dir.join(format!("skills/skill-{index}/SKILL.md")),
+            &format!("skill-{index}"),
+            &format!("Skill {index} description"),
+        );
+    }
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./dry-run-many-skills-list",
+            "--all",
+            "--dry-run",
+            "--list",
+            "--target",
+            "claude-code",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run dry-run install --list");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "dry-run install --list should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let skill_table = extract_titled_table_block(&stdout, "Skill / Version / Source");
+    assert!(
+        skill_table.contains("| 10"),
+        "dry-run --list skill table should include all rows, table={skill_table}"
+    );
+    assert!(
+        !stdout.contains("use --dry-run --list to show all"),
+        "dry-run --list should not emit truncation footer, stdout={stdout}"
+    );
+}
+
 fn eden_command(home_dir: &Path) -> Command {
     let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
     command.env("HOME", home_dir);
@@ -945,6 +1316,31 @@ fn extract_discovery_preview_block(stdout: &str) -> String {
             continue;
         }
         break;
+    }
+    lines.join("\n")
+}
+
+fn extract_titled_table_block(stdout: &str, title: &str) -> String {
+    let mut lines = Vec::new();
+    let mut started = false;
+    let title_line = format!("  {title}");
+    for line in stdout.lines() {
+        if !started {
+            if line == title_line {
+                started = true;
+            }
+            continue;
+        }
+        if line.is_empty() {
+            if !lines.is_empty() {
+                break;
+            }
+            continue;
+        }
+        if line.starts_with("  ") && !line.starts_with("    ") {
+            break;
+        }
+        lines.push(line.to_string());
     }
     lines.join("\n")
 }

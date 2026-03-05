@@ -133,14 +133,27 @@ fn tm_p28_008_install_dry_run_renders_targets_table() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("Dry Run")
-            && stdout.contains("Skill:")
-            && stdout.contains("Version:")
-            && stdout.contains("Source:"),
-        "dry-run output should include metadata header, stdout={stdout}"
+            && stdout.contains("Skill / Version / Source")
+            && stdout.contains("Install Targets"),
+        "dry-run output should include both titled preview sections, stdout={stdout}"
     );
     assert!(
-        stdout.contains("Agent") && stdout.contains("Path") && stdout.contains("Mode"),
-        "dry-run output should include targets table headers, stdout={stdout}"
+        stdout.contains("#")
+            && stdout.contains("Skill")
+            && stdout.contains("Version")
+            && stdout.contains("Source")
+            && stdout.contains("Agent")
+            && stdout.contains("Path")
+            && stdout.contains("Mode"),
+        "dry-run output should include skill and target table headers, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("    +") || stdout.contains("    ┌"),
+        "dry-run tables should be left-indented by four spaces, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("Skill:") && !stdout.contains("Version:") && !stdout.contains("Source:"),
+        "legacy key-value metadata lines must be removed, stdout={stdout}"
     );
     assert!(
         !stdout.contains("target agent="),

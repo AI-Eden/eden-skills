@@ -1,11 +1,16 @@
+use std::io::{IsTerminal, Write};
 use std::process::ExitCode;
+use std::sync::Once;
 
 use eden_skills_core::error::EdenError;
 use owo_colors::OwoColorize;
 
 #[tokio::main]
 async fn main() -> ExitCode {
-    match eden_skills_cli::run().await {
+    install_sigint_cursor_restore_handler();
+    let result = eden_skills_cli::run().await;
+    restore_terminal_cursor();
+    match result {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             print_error(&err);
@@ -76,4 +81,26 @@ fn abbreviate_message_paths(message: &str) -> String {
         }
     }
     message.to_string()
+}
+
+fn install_sigint_cursor_restore_handler() {
+    static SETUP: Once = Once::new();
+    SETUP.call_once(|| {
+        let _ = ctrlc::set_handler(|| {
+            let mut stderr = std::io::stderr();
+            let _ = stderr.write_all(b"\n");
+            let _ = stderr.flush();
+            restore_terminal_cursor();
+            std::process::exit(130);
+        });
+    });
+}
+
+fn restore_terminal_cursor() {
+    if !(std::io::stdout().is_terminal() || std::io::stderr().is_terminal()) {
+        return;
+    }
+    let mut stderr = std::io::stderr();
+    let _ = stderr.write_all(b"\x1b[?25h");
+    let _ = stderr.flush();
 }

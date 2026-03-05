@@ -95,7 +95,7 @@ pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
             install_registry_mode_async(&req, config_path, &skill_name, &ui).await
         }
         DetectedInstallSource::Url(url_source) => {
-            if !req.list {
+            if !req.list || req.dry_run {
                 ensure_install_config_exists(config_path, &ui, auto_create_missing_parent)?;
             }
             install_url_mode_async(&req, config_path, &url_source, &ui).await
@@ -183,13 +183,14 @@ async fn install_registry_mode_async(
     )?;
 
     if req.dry_run {
+        let preview_skill_ids = vec![skill_name.to_string()];
         print_install_dry_run(
             ui,
             req.options.json,
             &single_skill_config,
-            skill_name,
-            &requested_constraint,
+            &preview_skill_ids,
             &config_dir,
+            true,
         )?;
         return Ok(());
     }
@@ -275,8 +276,12 @@ async fn install_remote_url_mode_async(
         print_warning(ui, "No SKILL.md found; installing directory as-is.");
     }
 
-    if req.list {
-        print_discovery_preview(ui, &discovered, true);
+    if req.list && !req.dry_run {
+        if req.options.json {
+            print_discovery_json(&discovered)?;
+        } else {
+            print_discovery_preview(ui, &discovered, true);
+        }
         return Ok(());
     }
 
@@ -300,6 +305,9 @@ async fn install_remote_url_mode_async(
     }
 
     let selected = resolve_local_install_selection(&discovered, req.all, &req.skill, req.yes, ui)?;
+    if selected.is_empty() {
+        return Ok(());
+    }
     let resolved_targets = resolve_url_mode_install_targets(&req.target, ui)?;
 
     let loaded = load_config_with_context(config_path, req.options.strict)?;
@@ -333,17 +341,15 @@ async fn install_remote_url_mode_async(
     let selected_config = select_config_skills(&config, &selected_ids);
 
     if req.dry_run {
-        if let Some(skill_id) = selected_ids.first() {
-            print_install_dry_run(
-                ui,
-                req.options.json,
-                &selected_config,
-                skill_id,
-                &source_ref,
-                &config_dir,
-            )?;
-            return Ok(());
-        }
+        print_install_dry_run(
+            ui,
+            req.options.json,
+            &selected_config,
+            &selected_ids,
+            &config_dir,
+            req.list,
+        )?;
+        return Ok(());
     }
 
     write_normalized_config(config_path, &config)?;
@@ -412,8 +418,12 @@ async fn install_local_url_mode_async(
         print_warning(ui, "No SKILL.md found; installing directory as-is.");
     }
 
-    if req.list {
-        print_discovery_preview(ui, &discovered, true);
+    if req.list && !req.dry_run {
+        if req.options.json {
+            print_discovery_json(&discovered)?;
+        } else {
+            print_discovery_preview(ui, &discovered, true);
+        }
         return Ok(());
     }
 
@@ -437,6 +447,9 @@ async fn install_local_url_mode_async(
     }
 
     let selected = resolve_local_install_selection(&discovered, req.all, &req.skill, req.yes, ui)?;
+    if selected.is_empty() {
+        return Ok(());
+    }
     let resolved_targets = resolve_url_mode_install_targets(&req.target, ui)?;
 
     let loaded = load_config_with_context(config_path, req.options.strict)?;
@@ -474,17 +487,15 @@ async fn install_local_url_mode_async(
     let selected_config = select_config_skills(&config, &selected_ids);
 
     if req.dry_run {
-        if let Some(skill_id) = selected_ids.first() {
-            print_install_dry_run(
-                ui,
-                req.options.json,
-                &selected_config,
-                skill_id,
-                &source_ref,
-                &config_dir,
-            )?;
-            return Ok(());
-        }
+        print_install_dry_run(
+            ui,
+            req.options.json,
+            &selected_config,
+            &selected_ids,
+            &config_dir,
+            req.list,
+        )?;
+        return Ok(());
     }
 
     write_normalized_config(config_path, &config)?;
@@ -662,12 +673,24 @@ fn resolve_local_install_selection(
     }
 
     print_discovery_preview(ui, discovered, false);
-    let install_all = prompt_install_all(discovered.len())?;
+    let install_all = match prompt_install_all(discovered.len())? {
+        PromptOutcome::Cancelled => {
+            print_install_cancelled(ui);
+            return Ok(Vec::new());
+        }
+        PromptOutcome::Value(value) => value,
+    };
     if install_all {
         return Ok(discovered.to_vec());
     }
 
-    let names = prompt_skill_names()?;
+    let names = match prompt_skill_names()? {
+        PromptOutcome::Cancelled => {
+            print_install_cancelled(ui);
+            return Ok(Vec::new());
+        }
+        PromptOutcome::Value(value) => value,
+    };
     if names.is_empty() {
         return Err(EdenError::InvalidArguments(
             "no skill names provided".to_string(),
@@ -711,35 +734,79 @@ fn select_named_skills(
     Ok(selected)
 }
 
-fn prompt_install_all(skill_count: usize) -> Result<bool, EdenError> {
+enum PromptOutcome<T> {
+    Value(T),
+    Cancelled,
+}
+
+fn prompt_install_all(skill_count: usize) -> Result<PromptOutcome<bool>, EdenError> {
     if let Ok(response) = std::env::var("EDEN_SKILLS_TEST_CONFIRM") {
         let normalized = response.trim().to_ascii_lowercase();
-        return Ok(matches!(normalized.as_str(), "y" | "yes" | "true" | ""));
+        if normalized == "interrupt" {
+            return Ok(PromptOutcome::Cancelled);
+        }
+        return Ok(PromptOutcome::Value(matches!(
+            normalized.as_str(),
+            "y" | "yes" | "true" | ""
+        )));
     }
 
-    Confirm::new()
+    match Confirm::new()
         .with_prompt(format!("Install all {skill_count} skills?"))
         .default(true)
         .interact()
-        .map_err(|err| EdenError::Runtime(format!("interactive prompt failed: {err}")))
+    {
+        Ok(value) => Ok(PromptOutcome::Value(value)),
+        Err(dialoguer::Error::IO(err)) if err.kind() == std::io::ErrorKind::Interrupted => {
+            Ok(PromptOutcome::Cancelled)
+        }
+        Err(err) => Err(EdenError::Runtime(format!(
+            "interactive prompt failed: {err}"
+        ))),
+    }
 }
 
-fn prompt_skill_names() -> Result<Vec<String>, EdenError> {
+fn prompt_skill_names() -> Result<PromptOutcome<Vec<String>>, EdenError> {
     if let Ok(raw) = std::env::var("EDEN_SKILLS_TEST_SKILL_INPUT") {
-        return Ok(raw
-            .split_whitespace()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>());
+        if raw.trim().eq_ignore_ascii_case("interrupt") {
+            return Ok(PromptOutcome::Cancelled);
+        }
+        return Ok(PromptOutcome::Value(
+            raw.split_whitespace()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>(),
+        ));
     }
 
-    let input: String = Input::new()
+    let input: String = match Input::new()
         .with_prompt("Enter skill names to install (space-separated)")
         .interact_text()
-        .map_err(|err| EdenError::Runtime(format!("interactive prompt failed: {err}")))?;
-    Ok(input
-        .split_whitespace()
-        .map(ToString::to_string)
-        .collect::<Vec<_>>())
+    {
+        Ok(value) => value,
+        Err(dialoguer::Error::IO(err)) if err.kind() == std::io::ErrorKind::Interrupted => {
+            return Ok(PromptOutcome::Cancelled);
+        }
+        Err(err) => {
+            return Err(EdenError::Runtime(format!(
+                "interactive prompt failed: {err}"
+            )));
+        }
+    };
+    Ok(PromptOutcome::Value(
+        input
+            .split_whitespace()
+            .map(ToString::to_string)
+            .collect::<Vec<_>>(),
+    ))
+}
+
+fn print_install_cancelled(ui: &UiContext) {
+    if !ui.json_mode() {
+        println!(
+            "  {} Install cancelled",
+            ui.status_symbol(StatusSymbol::Skipped)
+        );
+    }
 }
 
 fn print_discovery_preview(ui: &UiContext, skills: &[DiscoveredSkill], show_all: bool) {
@@ -800,6 +867,25 @@ fn print_discovery_preview(ui: &UiContext, skills: &[DiscoveredSkill], show_all:
             println!("{footer}");
         }
     }
+
+    println!();
+}
+
+fn print_discovery_json(skills: &[DiscoveredSkill]) -> Result<(), EdenError> {
+    let payload = skills
+        .iter()
+        .map(|skill| {
+            serde_json::json!({
+                "name": &skill.name,
+                "description": &skill.description,
+                "subpath": &skill.subpath,
+            })
+        })
+        .collect::<Vec<_>>();
+    let encoded = serde_json::to_string_pretty(&payload)
+        .map_err(|err| EdenError::Runtime(format!("failed to encode install list json: {err}")))?;
+    println!("{encoded}");
+    Ok(())
 }
 
 fn discovery_description_wrap_width(indent_len: usize) -> usize {
@@ -888,20 +974,152 @@ fn select_single_skill_config(config: &Config, skill_id: &str) -> Result<Config,
     Ok(single)
 }
 
+const DRY_RUN_SKILL_PREVIEW_LIMIT: usize = 8;
+const DRY_RUN_TABLE_INDENT: usize = 4;
+
+#[derive(Debug, Clone)]
+struct DryRunSkillPreviewRow {
+    skill_id: String,
+    version: String,
+    source: String,
+}
+
+#[derive(Debug, Clone)]
+struct DryRunTargetPreviewRow {
+    agent: String,
+    path: String,
+    mode: String,
+}
+
+#[derive(Debug, Clone)]
+struct DryRunPreviewData {
+    skills: Vec<DryRunSkillPreviewRow>,
+    targets: Vec<DryRunTargetPreviewRow>,
+}
+
 fn print_install_dry_run(
     ui: &UiContext,
     json_mode: bool,
-    single_skill_config: &Config,
-    skill_id: &str,
-    version_or_ref: &str,
+    resolved_config: &Config,
+    skill_ids: &[String],
     config_dir: &Path,
+    show_all_skills: bool,
 ) -> Result<(), EdenError> {
-    let resolved_skill = single_skill_config
-        .skills
-        .first()
-        .ok_or_else(|| EdenError::Runtime("resolved install skill is missing".to_string()))?;
+    let preview_data = build_dry_run_preview_data(resolved_config, skill_ids, config_dir)?;
 
     if json_mode {
+        return print_install_dry_run_json(resolved_config, skill_ids, config_dir);
+    }
+
+    println!("{}  install preview", ui.action_prefix("Dry Run"));
+    println!();
+
+    let display_count = if show_all_skills {
+        preview_data.skills.len()
+    } else {
+        preview_data.skills.len().min(DRY_RUN_SKILL_PREVIEW_LIMIT)
+    };
+    let displayed_skills = &preview_data.skills[..display_count];
+
+    let mut skill_table = ui.table(&["#", "Skill", "Version", "Source"]);
+    if let Some(column) = skill_table.column_mut(0) {
+        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(4)));
+    }
+    for (index, row) in displayed_skills.iter().enumerate() {
+        skill_table.add_row(vec![
+            (index + 1).to_string(),
+            row.skill_id.clone(),
+            row.version.clone(),
+            row.source.clone(),
+        ]);
+    }
+    print_titled_table(ui, "Skill / Version / Source", &skill_table);
+    if !show_all_skills && preview_data.skills.len() > DRY_RUN_SKILL_PREVIEW_LIMIT {
+        let footer = format!(
+            "    ... and {} more (use --dry-run --list to show all)",
+            preview_data.skills.len() - DRY_RUN_SKILL_PREVIEW_LIMIT
+        );
+        if ui.colors_enabled() {
+            println!("{}", footer.dimmed());
+        } else {
+            println!("{footer}");
+        }
+    }
+
+    println!();
+    let mut target_table = ui.table(&["Agent", "Path", "Mode"]);
+    if let Some(column) = target_table.column_mut(2) {
+        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
+    }
+    for row in &preview_data.targets {
+        target_table.add_row(vec![row.agent.clone(), row.path.clone(), row.mode.clone()]);
+    }
+    print_titled_table(ui, "Install Targets", &target_table);
+
+    Ok(())
+}
+
+fn build_dry_run_preview_data(
+    resolved_config: &Config,
+    skill_ids: &[String],
+    config_dir: &Path,
+) -> Result<DryRunPreviewData, EdenError> {
+    let mut skill_rows = Vec::new();
+    let mut target_rows = Vec::new();
+    let mut seen_target_rows = HashSet::new();
+
+    for skill_id in skill_ids {
+        let skill = resolved_config
+            .skills
+            .iter()
+            .find(|candidate| &candidate.id == skill_id)
+            .ok_or_else(|| {
+                EdenError::Runtime(format!("resolved install skill is missing: `{skill_id}`"))
+            })?;
+
+        let source_repo_display = abbreviate_home_path(&abbreviate_repo_url(&skill.source.repo));
+        skill_rows.push(DryRunSkillPreviewRow {
+            skill_id: skill.id.clone(),
+            version: skill.source.r#ref.clone(),
+            source: format!("{source_repo_display} ({})", skill.source.subpath),
+        });
+
+        for target in &skill.targets {
+            let resolved_path = resolve_target_path(target, config_dir)
+                .map(|path| path.display().to_string())
+                .unwrap_or_else(|err| format!("ERROR: {err}"));
+            let row = DryRunTargetPreviewRow {
+                agent: agent_kind_label(&target.agent).to_string(),
+                path: abbreviate_home_path(&resolved_path),
+                mode: skill.install.mode.as_str().to_string(),
+            };
+            let key = format!("{}|{}|{}", row.agent, row.path, row.mode);
+            if seen_target_rows.insert(key) {
+                target_rows.push(row);
+            }
+        }
+    }
+
+    Ok(DryRunPreviewData {
+        skills: skill_rows,
+        targets: target_rows,
+    })
+}
+
+fn print_install_dry_run_json(
+    resolved_config: &Config,
+    skill_ids: &[String],
+    config_dir: &Path,
+) -> Result<(), EdenError> {
+    let mut skill_payloads = Vec::new();
+    for skill_id in skill_ids {
+        let resolved_skill = resolved_config
+            .skills
+            .iter()
+            .find(|candidate| &candidate.id == skill_id)
+            .ok_or_else(|| {
+                EdenError::Runtime(format!("resolved install skill is missing: `{skill_id}`"))
+            })?;
         let targets = resolved_skill
             .targets
             .iter()
@@ -916,58 +1134,56 @@ fn print_install_dry_run(
                 })
             })
             .collect::<Vec<_>>();
-        let payload = serde_json::json!({
+        skill_payloads.push(serde_json::json!({
             "skill": skill_id,
-            "version": version_or_ref,
-            "dry_run": true,
+            "version": resolved_skill.source.r#ref,
             "resolved": {
-                "repo": resolved_skill.source.repo.clone(),
-                "ref": resolved_skill.source.r#ref.clone(),
-                "subpath": resolved_skill.source.subpath.clone(),
+                "repo": resolved_skill.source.repo,
+                "ref": resolved_skill.source.r#ref,
+                "subpath": resolved_skill.source.subpath,
             },
             "targets": targets,
-        });
-        let encoded = serde_json::to_string_pretty(&payload)
-            .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
-        println!("{encoded}");
-    } else {
-        let source_repo_display =
-            abbreviate_home_path(&abbreviate_repo_url(&resolved_skill.source.repo));
-        println!("{}  install preview", ui.action_prefix("Dry Run"));
-        println!();
-        println!("  Skill:   {skill_id}");
-        println!("  Version: {version_or_ref}");
-        println!(
-            "  Source:  {} ({})",
-            source_repo_display, resolved_skill.source.subpath
-        );
-        println!();
-
-        let mode_label = resolved_skill.install.mode.as_str().to_string();
-        let target_rows = resolved_skill
-            .targets
-            .iter()
-            .map(|target| {
-                let resolved_path = resolve_target_path(target, config_dir)
-                    .map(|path| path.display().to_string())
-                    .unwrap_or_else(|err| format!("ERROR: {err}"));
-                (
-                    agent_kind_label(&target.agent).to_string(),
-                    abbreviate_home_path(&resolved_path),
-                )
-            })
-            .collect::<Vec<_>>();
-
-        let mut table = ui.table(&["Agent", "Path", "Mode"]);
-        if let Some(column) = table.column_mut(2) {
-            column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
-        }
-        for (agent, path) in target_rows {
-            table.add_row(vec![agent, path, mode_label.clone()]);
-        }
-        println!("{table}");
+        }));
     }
+
+    let payload = if skill_payloads.len() == 1 {
+        let mut single = skill_payloads
+            .into_iter()
+            .next()
+            .ok_or_else(|| EdenError::Runtime("resolved install skill is missing".to_string()))?;
+        if let Some(map) = single.as_object_mut() {
+            map.insert("dry_run".to_string(), serde_json::json!(true));
+        }
+        single
+    } else {
+        serde_json::json!({
+            "dry_run": true,
+            "skills": skill_payloads,
+        })
+    };
+
+    let encoded = serde_json::to_string_pretty(&payload)
+        .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
+    println!("{encoded}");
     Ok(())
+}
+
+fn print_titled_table(ui: &UiContext, title: &str, table: &comfy_table::Table) {
+    let rendered_title = if ui.colors_enabled() {
+        title.bold().underline().to_string()
+    } else {
+        title.to_string()
+    };
+    println!("  {rendered_title}");
+    println!();
+    print_indented_block(&table.to_string(), DRY_RUN_TABLE_INDENT);
+}
+
+fn print_indented_block(content: &str, indent: usize) {
+    let prefix = " ".repeat(indent);
+    for line in content.lines() {
+        println!("{prefix}{line}");
+    }
 }
 
 fn execute_install_plan(
@@ -1338,7 +1554,7 @@ fn unique_agent_count(config: &Config) -> usize {
 
 fn print_install_result_lines(ui: &UiContext, installed_targets: &[InstallTargetLine]) {
     let mut install_prefix_emitted = false;
-    for target in installed_targets {
+    for (skill_id, targets) in group_install_targets(installed_targets) {
         let prefix = if install_prefix_emitted {
             "          ".to_string()
         } else {
@@ -1346,13 +1562,23 @@ fn print_install_result_lines(ui: &UiContext, installed_targets: &[InstallTarget
             format!("{}  ", ui.action_prefix("Install"))
         };
         println!(
-            "{prefix}{} {} {} {} {}",
+            "{prefix}{} {}",
             ui.status_symbol(StatusSymbol::Success),
-            style_skill_id(ui, &target.skill_id),
-            style_arrow(ui),
-            ui.styled_path(&target.target_path),
-            style_mode_label(ui, &target.mode)
+            style_skill_id(ui, &skill_id),
         );
+        for (index, target) in targets.iter().enumerate() {
+            let connector = if index + 1 == targets.len() {
+                "└─"
+            } else {
+                "├─"
+            };
+            println!(
+                "             {} {} {}",
+                style_tree_connector(ui, connector),
+                ui.styled_path(&target.target_path),
+                style_mode_label(ui, &target.mode)
+            );
+        }
     }
 }
 
@@ -1362,6 +1588,7 @@ fn print_install_result_summary(
     agent_count: usize,
     conflict_count: usize,
 ) {
+    println!();
     println!(
         "  {} {} skills installed to {} agents, {} conflicts",
         ui.status_symbol(StatusSymbol::Success),
@@ -1388,13 +1615,24 @@ fn style_mode_label(ui: &UiContext, mode: &str) -> String {
     }
 }
 
-fn style_arrow(ui: &UiContext) -> String {
-    let arrow = "→";
+fn style_tree_connector(ui: &UiContext, connector: &str) -> String {
     if ui.colors_enabled() {
-        arrow.dimmed().to_string()
+        connector.dimmed().to_string()
     } else {
-        arrow.to_string()
+        connector.to_string()
     }
+}
+
+fn group_install_targets(targets: &[InstallTargetLine]) -> Vec<(String, Vec<&InstallTargetLine>)> {
+    let mut groups: Vec<(String, Vec<&InstallTargetLine>)> = Vec::new();
+    for target in targets {
+        if let Some(group) = groups.last_mut().filter(|(id, _)| id == &target.skill_id) {
+            group.1.push(target);
+        } else {
+            groups.push((target.skill_id.clone(), vec![target]));
+        }
+    }
+    groups
 }
 
 fn parse_install_target_spec(spec: &str) -> Result<TargetConfig, EdenError> {

@@ -4,7 +4,7 @@ Phase 2.9 acceptance test scenarios.
 
 ## 1. Convention
 
-- Scenario IDs: `TM-P29-001` to `TM-P29-040`.
+- Scenario IDs: `TM-P29-001` to `TM-P29-043`.
 - Tests marked `auto` are implemented as Rust integration tests.
 - Tests marked `manual` require manual verification (e.g., visual
   inspection of colored output in a real terminal).
@@ -50,6 +50,9 @@ Phase 2.9 acceptance test scenarios.
 | TM-P29-025 | Tree paths are cyan, connectors dimmed, mode dimmed | IUX-007 | manual | pending |
 | TM-P29-026 | `apply`/`repair` use tree-style install lines | IUX-008 | auto | pending |
 | TM-P29-027 | `install --list --json` output unchanged | IUX-001 | auto | pending |
+| TM-P29-041 | `install --dry-run` (multi-skill) renders titled table sections for skill preview and targets | IUX-009 | auto | pending |
+| TM-P29-042 | `install --dry-run` skill table defaults to first 8 rows and shows truncation footer | IUX-009 | auto | pending |
+| TM-P29-043 | `install --dry-run --list` shows all selected skill rows (no truncation footer) | IUX-009 | auto | pending |
 
 ## 5. Output Consistency (WP-4)
 

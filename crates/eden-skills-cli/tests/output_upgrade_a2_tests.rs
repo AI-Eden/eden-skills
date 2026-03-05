@@ -226,16 +226,20 @@ fn tm_p28_024_install_per_skill_results() {
         "install output should include Install action prefix, stdout={stdout}"
     );
     assert!(
-        stdout.contains("✓ alpha-skill →") && stdout.contains("✓ beta-skill →"),
-        "install output should include per-skill per-target result lines, stdout={stdout}"
+        stdout.contains("✓ alpha-skill") && stdout.contains("✓ beta-skill"),
+        "install output should include grouped per-skill result headers, stdout={stdout}"
     );
     assert!(
-        stdout.matches("→").count() >= 4,
-        "expected 4+ target arrows for 2 skills x 2 targets, stdout={stdout}"
+        stdout.contains("├─") && stdout.contains("└─"),
+        "install output should include tree connectors for per-target lines, stdout={stdout}"
     );
     assert!(
         stdout.contains("(symlink)"),
         "per-target result lines should include install mode, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("→"),
+        "legacy flat arrow output should be removed, stdout={stdout}"
     );
     assert!(
         stdout.contains("skills installed to") && stdout.contains("conflicts"),

@@ -10,7 +10,7 @@ Started: 2026-03-05
 | --- | --- | --- | --- | --- |
 | 1 | Foundation: Table Fix + Newline Policy | WP-1 + WP-5 | TFX-001~003, NLP-001~006 | completed |
 | 2 | Output Consistency | WP-4 | OCN-001~010 | completed |
-| 3 | Install UX: Card Preview + Tree Display | WP-3 pt1 | IUX-001~003, IUX-006~007 | in_progress |
+| 3 | Install UX: Card Preview + Tree Display | WP-3 pt1 | IUX-001~003, IUX-006~007, IUX-009 | completed |
 | 4 | Install UX: Step Progress + Apply/Repair Integration | WP-3 pt2 | IUX-004~005, IUX-008 | pending |
 | 5 | Update Extension | WP-2 | UPD-001~008 | pending |
 | 6 | Regression + Closeout | — | TM regression | pending |
@@ -65,19 +65,30 @@ Started: 2026-03-05
   - `TM-P29-034` remains pending for terminal color verification.
   - `TM-P29-004` and `TM-P29-005` remain pending from Batch 1.
 
-### Batch 3 — Install UX: Card Preview + Tree Display (In Progress, started 2026-03-06)
+### Batch 3 — Install UX: Card Preview + Tree Display (Completed 2026-03-06)
 
-- Requirements in scope: `IUX-001`, `IUX-002`, `IUX-003`, `IUX-006`, `IUX-007`
+- Requirements in scope: `IUX-001`, `IUX-002`, `IUX-003`, `IUX-006`, `IUX-007`, `IUX-009`
 - Completed in this pass:
   - Merged discovery preview rendering into `print_discovery_preview()` and routed both `install --list` + interactive preview through the same formatter (`IUX-002`).
   - Switched discovery preview from table/em-dash style to card-style numbered lines with indented description follow-up lines and wrapping (`IUX-001`, `IUX-003`).
   - Added non-`--list` truncation behavior at 8 entries with footer hint `... and N more (use --list to see all)` (`IUX-001`).
+  - Added `install --list --json` contract output as a discovered-skill JSON array (`name`, `description`, `subpath`) while preserving no-install side effects (`IUX-001` / TM-P29-027).
+  - Replaced flat install result arrows with grouped tree output (`✓ skill` header + `├─`/`└─` target lines) and inserted summary separator blank line (`IUX-006`, `IUX-007`).
+  - Upgraded URL-mode `install --dry-run` preview to two titled tables (`Skill / Version / Source`, `Install Targets`) with 4-space table indentation, default 8-row truncation, and `--dry-run --list` full expansion (`IUX-009`).
+  - Simplified `Install Targets` preview to `Agent / Path / Mode` columns and de-duplicated identical target rows across multi-skill dry-run previews.
+  - Added SIGINT cursor-restore handling in `main.rs` and graceful prompt-interrupt cancellation (`· Install cancelled`) to avoid runtime error noise on Ctrl+C during interactive prompts.
   - Added/updated tests:
     - `tm_p29_015_install_list_shows_card_style_numbered_list`
     - `tm_p29_016_interactive_preview_matches_list_card_format`
     - `tm_p29_017_discovery_description_uses_indented_followup_line`
     - `tm_p29_018_discovery_skill_without_description_renders_name_only_line`
     - `tm_p29_019_discovery_preview_truncates_to_eight_in_interactive_mode`
+    - `tm_p29_023_install_results_use_tree_display_with_connectors`
+    - `tm_p29_024_tree_groups_skill_name_once_per_skill_group`
+    - `tm_p29_027_install_list_json_contract_returns_discovered_skill_array`
+    - `dry_run_multi_skill_preview_defaults_to_eight_skill_rows`
+    - `dry_run_multi_skill_with_list_shows_all_skill_rows`
+    - `interactive_confirm_interrupt_cancels_without_error_output`
   - Updated superseded legacy assertions in:
     - `tests/table_fix_tests.rs`
     - `tests/output_upgrade_b_tests.rs`
@@ -86,7 +97,7 @@ Started: 2026-03-05
   - `cargo fmt --all -- --check` ✅
   - `cargo clippy --workspace -- -D warnings` ✅
   - `cargo test --workspace` ✅
-  - Test inventory: `319`
-- Remaining in Batch 3:
-  - Tree-style grouped install result output (`IUX-006`, `IUX-007`)
-  - `TM-P29-027` (`install --list --json` contract confirmation)
+  - Test inventory: `325`
+- Manual scenarios:
+  - `TM-P29-025` remains pending for terminal visual verification of tree connector/path/mode coloring.
+  - SIGINT cursor-restore path remains pending for terminal manual verification.

@@ -247,6 +247,27 @@ The tree-style display MUST also be used by `apply` and `repair`
 for their per-skill install output (replacing the current flat
 `print_install_applied_line` calls in `reconcile.rs`).
 
+### 4.8 Dry-Run Multi-Skill Preview
+
+When `install --dry-run` resolves multiple selected skills in URL mode,
+human output MUST render two titled tables:
+
+1. `Skill / Version / Source`
+2. `Install Targets`
+
+Formatting requirements:
+
+- The title line for each table MUST be rendered as a standalone heading
+  before the table.
+- Each table block MUST be left-indented by 4 spaces.
+- The `Skill / Version / Source` table MUST default to the first 8
+  selected skills.
+- The `Install Targets` table MUST include only `Agent`, `Path`, and
+  `Mode` columns (no per-skill column).
+- When `--list` is combined with `--dry-run`, ALL selected skills MUST
+  be shown (no truncation).
+- JSON mode behavior remains machine-readable and MUST NOT render tables.
+
 ## 5. Normative Requirements
 
 | ID | Owner | Priority | Statement | Verification |
@@ -259,6 +280,7 @@ for their per-skill install output (replacing the current flat
 | **IUX-006** | Builder | **P0** | Install results MUST use tree-style grouped display per Section 4.3. | Tree connectors (`├─`, `└─`) present; skill name appears once per group. |
 | **IUX-007** | Builder | **P0** | Tree connectors and mode labels MUST be dimmed; paths MUST be cyan. | Color verification in styled output. |
 | **IUX-008** | Builder | **P1** | `apply`/`repair` MUST use the same tree-style display for install lines. | `reconcile.rs` uses tree format. |
+| **IUX-009** | Builder | **P1** | `install --dry-run` multi-skill preview MUST render titled indented skill/target tables; skill table defaults to 8 rows and `--list` shows all. Target table MUST be `Agent/Path/Mode` only. | Dry-run output shows two titled tables with 4-space indentation; truncation/default + `--list` full behavior validated; target table excludes skill column. |
 
 ## 6. Backward Compatibility
 
@@ -266,6 +288,6 @@ for their per-skill install output (replacing the current flat
 | :--- | :--- |
 | `install --list --json` | JSON output unchanged. |
 | `install --json` | JSON output unchanged. |
-| `install --dry-run` | Dry-run output unchanged (metadata + targets table). |
+| `install --dry-run` | Multi-skill dry-run uses titled table preview (`Skill / Version / Source` + `Install Targets`) with default 8-row skill truncation; `--dry-run --list` shows all selected skills. |
 | `EDEN_SKILLS_TEST_CONFIRM` | Test env var still works for non-interactive flows. |
 | Spinner for cloning | Cloning spinner preserved. Discovery preview follows it. |

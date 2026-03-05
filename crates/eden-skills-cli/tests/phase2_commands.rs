@@ -485,14 +485,23 @@ path = "{target_root}"
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         stdout.contains("Dry Run")
-            && stdout.contains("Skill:")
-            && stdout.contains("Version:")
-            && stdout.contains("Source:"),
-        "expected structured dry-run metadata header, stdout={stdout}"
+            && stdout.contains("Skill / Version / Source")
+            && stdout.contains("Install Targets"),
+        "expected dry-run preview sections with titles, stdout={stdout}"
     );
     assert!(
-        stdout.contains("Agent") && stdout.contains("Path") && stdout.contains("Mode"),
-        "expected dry-run targets table headers, stdout={stdout}"
+        stdout.contains("#")
+            && stdout.contains("Skill")
+            && stdout.contains("Version")
+            && stdout.contains("Source")
+            && stdout.contains("Agent")
+            && stdout.contains("Path")
+            && stdout.contains("Mode"),
+        "expected dry-run skill and target tables, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("Skill:") && !stdout.contains("Version:") && !stdout.contains("Source:"),
+        "legacy dry-run key-value metadata lines must be removed, stdout={stdout}"
     );
     assert!(
         !stdout.contains("target agent="),
