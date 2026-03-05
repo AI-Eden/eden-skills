@@ -3,7 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.9.
 Use this file to recover accurate context after compression.
 
-**Status:** ACTIVE — Batch 1 through Batch 4 rows are populated.
+**Status:** ACTIVE — Batch 1 through Batch 5 rows are populated.
 
 ## 1. Table Fix Requirements
 
@@ -17,14 +17,14 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| UPD-001 | `SPEC_UPDATE_EXT.md` 2.1–2.2 | `update` MUST refresh Mode A skill sources | | TM-P29-006, TM-P29-013 | pending |
-| UPD-002 | `SPEC_UPDATE_EXT.md` 2.2 | `update` without `--apply` MUST NOT mutate local state | | TM-P29-007 | pending |
-| UPD-003 | `SPEC_UPDATE_EXT.md` 2.3 | `update --apply` MUST reconcile changed skills | | TM-P29-008 | pending |
-| UPD-004 | `SPEC_UPDATE_EXT.md` 3.1 | Skill refresh results MUST render as table | | TM-P29-010 | pending |
-| UPD-005 | `SPEC_UPDATE_EXT.md` 3.5 | Status values MUST render as plain labels in table cells (no ANSI styling attributes) | | TM-P29-011 | pending |
-| UPD-006 | `SPEC_UPDATE_EXT.md` 3.3 | No registries + no skills: install guidance | | TM-P29-009 | pending |
-| UPD-007 | `SPEC_UPDATE_EXT.md` 3.6 | `--json` MUST include `skills` array | | TM-P29-012 | pending |
-| UPD-008 | `SPEC_UPDATE_EXT.md` 4 | Skill refresh MUST use reactor concurrency | | TM-P29-014 | pending |
+| UPD-001 | `SPEC_UPDATE_EXT.md` 2.1–2.2 | `update` MUST refresh Mode A skill sources | `crates/eden-skills-cli/src/commands/update.rs` (`build_mode_a_refresh_tasks`, `refresh_mode_a_skills`, `refresh_mode_a_task_blocking`) | `crates/eden-skills-cli/tests/update_ext_tests.rs` (`tm_p29_006_update_with_mode_a_skills_fetches_and_reports_status`, `tm_p29_013_update_with_registries_and_skills_shows_both_sections`) | completed |
+| UPD-002 | `SPEC_UPDATE_EXT.md` 2.2 | `update` without `--apply` MUST NOT mutate local state | `crates/eden-skills-cli/src/commands/update.rs` (`refresh_mode_a_task_blocking`, `read_fetch_head_sha`) | `crates/eden-skills-cli/tests/update_ext_tests.rs` (`tm_p29_007_update_without_apply_does_not_mutate_local_state`) | completed |
+| UPD-003 | `SPEC_UPDATE_EXT.md` 2.3 | `update --apply` MUST reconcile changed skills | `crates/eden-skills-cli/src/lib.rs` (`UpdateArgs.apply` wiring), `crates/eden-skills-cli/src/commands/mod.rs` (`UpdateRequest.apply`), `crates/eden-skills-cli/src/commands/update.rs` (`apply_refreshed_skills`, `materialize_fetch_heads`) | `crates/eden-skills-cli/tests/update_ext_tests.rs` (`tm_p29_008_update_apply_reconciles_skills_with_new_commits`) | completed |
+| UPD-004 | `SPEC_UPDATE_EXT.md` 3.1 | Skill refresh results MUST render as table | `crates/eden-skills-cli/src/commands/update.rs` (`print_update_refresh_sections`, `skill_refresh_status_cell`) | `crates/eden-skills-cli/tests/update_ext_tests.rs` (`tm_p29_010_update_skill_refresh_renders_as_table`) | completed |
+| UPD-005 | `SPEC_UPDATE_EXT.md` 3.5 | Status values MUST render as plain labels in table cells (no ANSI styling attributes) | `crates/eden-skills-cli/src/commands/update.rs` (`SkillRefreshStatus::table_label`, `skill_refresh_status_cell`) | `crates/eden-skills-cli/tests/update_ext_tests.rs` (`tm_p29_011_update_skill_status_cells_are_plain_labels`) | completed |
+| UPD-006 | `SPEC_UPDATE_EXT.md` 3.3 | No registries + no skills: install guidance | `crates/eden-skills-cli/src/commands/update.rs` (`print_empty_update_guidance`, empty-source early return in `update_async`) | `crates/eden-skills-cli/tests/update_ext_tests.rs` (`tm_p29_009_update_with_no_registries_and_no_skills_shows_guidance`) | completed |
+| UPD-007 | `SPEC_UPDATE_EXT.md` 3.6 | `--json` MUST include `skills` array | `crates/eden-skills-cli/src/commands/update.rs` (`print_update_json`) | `crates/eden-skills-cli/tests/update_ext_tests.rs` (`tm_p29_012_update_json_includes_skills_array`) | completed |
+| UPD-008 | `SPEC_UPDATE_EXT.md` 4 | Skill refresh MUST use reactor concurrency | `crates/eden-skills-cli/src/commands/update.rs` (`refresh_mode_a_skills`, `update_async` concurrency resolution) | `crates/eden-skills-cli/tests/update_ext_tests.rs` (`tm_p29_014_update_skill_refresh_uses_reactor_concurrency`) | completed |
 
 ## 3. Install UX Requirements
 

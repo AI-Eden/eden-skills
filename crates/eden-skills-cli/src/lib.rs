@@ -81,6 +81,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
             commands::update_async(commands::UpdateRequest {
                 config_path: args.config,
                 concurrency: args.concurrency,
+                apply: args.apply,
                 options: CommandOptions {
                     strict: args.strict,
                     json: args.json,
@@ -384,6 +385,11 @@ struct UpdateArgs {
     json: bool,
     #[arg(long, help = "Maximum number of concurrent operations")]
     concurrency: Option<usize>,
+    #[arg(
+        long,
+        help = "After refresh, reconcile skills with detected source updates"
+    )]
+    apply: bool,
 }
 
 #[derive(Debug, Clone, Args)]

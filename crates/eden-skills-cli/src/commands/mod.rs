@@ -35,6 +35,7 @@ pub struct CommandOptions {
 pub struct UpdateRequest {
     pub config_path: String,
     pub concurrency: Option<usize>,
+    pub apply: bool,
     pub options: CommandOptions,
 }
 

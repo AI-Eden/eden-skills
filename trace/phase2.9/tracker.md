@@ -12,7 +12,7 @@ Started: 2026-03-05
 | 2 | Output Consistency | WP-4 | OCN-001~010 | completed |
 | 3 | Install UX: Card Preview + Tree Display | WP-3 pt1 | IUX-001~003, IUX-006~007, IUX-009 | completed |
 | 4 | Install UX: Step Progress + Apply/Repair Integration | WP-3 pt2 | IUX-004~005, IUX-008 | completed |
-| 5 | Update Extension | WP-2 | UPD-001~008 | pending |
+| 5 | Update Extension | WP-2 | UPD-001~008 | completed |
 | 6 | Regression + Closeout | — | TM regression | pending |
 
 ## Completion Records
@@ -132,5 +132,36 @@ Started: 2026-03-05
   - `cargo test --workspace` ✅
   - Test inventory: `331`
 - Manual scenarios still pending:
+  - `TM-P29-004`, `TM-P29-005`, `TM-P29-025`, `TM-P29-034`
+  - SIGINT cursor-restore behavior in a real terminal session
+
+### Batch 5 — Update Extension (Completed 2026-03-06)
+
+- Requirements in scope: `UPD-001`, `UPD-002`, `UPD-003`, `UPD-004`, `UPD-005`, `UPD-006`, `UPD-007`, `UPD-008`
+- Completed in this pass:
+  - Added `--apply` flag to `update` CLI args and request wiring (`lib.rs`, `commands/mod.rs`).
+  - Extended `update` to run two sequential refresh layers:
+    - registry sync (existing behavior),
+    - Mode A skill refresh (`git fetch --depth 1 origin <ref>`) with reactor concurrency.
+  - Implemented Mode A refresh status model and rendering:
+    - table statuses: `new commit`, `up-to-date`, `missing`, `failed`,
+    - `Refresh  N skills checked` section in human output,
+    - plain text status cells (no ANSI styling attributes in table cells).
+  - Added empty-state guidance for no registries + no skills:
+    - `Update  no skills or registries configured`
+    - `→ Run 'eden-skills install <owner/repo>' to get started.`
+  - Extended `update --json` output additively with `skills` array (`id`, `status`, `local_sha`, `remote_sha`) and conditional `applied` field when `--apply` is set.
+  - Implemented `update --apply` reconcile path for changed/missing Mode A skills:
+    - source sync, safety analysis, plan application, verification, lock write.
+    - added fetch-head materialization (`reset --hard FETCH_HEAD`) during apply path to realize fetched commits before reconciliation.
+  - Added new integration test file:
+    - `crates/eden-skills-cli/tests/update_ext_tests.rs`
+    - covers `TM-P29-006` through `TM-P29-014`.
+- Validation:
+  - `cargo fmt --all` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace` ✅
+  - Test inventory: `340`
+- Manual scenarios still pending (from prior batches):
   - `TM-P29-004`, `TM-P29-005`, `TM-P29-025`, `TM-P29-034`
   - SIGINT cursor-restore behavior in a real terminal session

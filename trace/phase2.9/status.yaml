@@ -70,7 +70,7 @@ batches:
     work_packages: [WP-2]
     requirements:
       [UPD-001, UPD-002, UPD-003, UPD-004, UPD-005, UPD-006, UPD-007, UPD-008]
-    status: pending
+    status: completed
   batch6:
     name: "Regression + Closeout"
     work_packages: []
@@ -162,3 +162,22 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 331
+  batch_5_update_extension:
+    status: completed
+    started_at: "2026-03-06"
+    completed_at: "2026-03-06"
+    requirements: UPD-001, UPD-002, UPD-003, UPD-004, UPD-005, UPD-006, UPD-007, UPD-008
+    scenarios: TM-P29-006, TM-P29-007, TM-P29-008, TM-P29-009, TM-P29-010, TM-P29-011, TM-P29-012, TM-P29-013, TM-P29-014
+    notes:
+      - added `--apply` CLI flag for `update` and threaded it through `UpdateRequest` (`lib.rs`, `commands/mod.rs`)
+      - extended `update` with dual-layer refresh: registry sync + Mode A skill source refresh via reactor-concurrency `git fetch --depth 1 origin <ref>`
+      - added Mode A refresh status model (`new commit`, `up-to-date`, `missing`, `failed`) and rendered `Skill/Status` table in human output
+      - added empty-source guidance path for `update` when both registries and skills are absent
+      - extended `update --json` payload with additive `skills` array (`id`, `status`, `local_sha`, `remote_sha`) and conditional `applied` field for `--apply`
+      - implemented `update --apply` reconcile flow for refreshed skills (source sync, safety, plan apply, verify, lock write) and fetch-head materialization for changed repos
+      - added dedicated integration coverage in `tests/update_ext_tests.rs` for TM-P29-006 through TM-P29-014
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 340
