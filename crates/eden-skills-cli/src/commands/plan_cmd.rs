@@ -1,3 +1,9 @@
+//! Read-only plan preview via the `plan` command.
+//!
+//! Computes the lock diff and builds an action plan without performing
+//! any side effects. Renders as colored text for small plans or as a
+//! table when the action count exceeds a threshold.
+
 use eden_skills_core::config::{config_dir_from_path, InstallMode};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::lock::{
@@ -10,6 +16,15 @@ use super::common::{load_config_with_context, print_warning, resolve_config_path
 use super::CommandOptions;
 use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
 
+/// Preview planned reconciliation actions without side effects.
+///
+/// Computes the lock diff and builds an action plan. Integrates
+/// lock-based remove items for orphaned entries. Renders as colored
+/// text (≤ 5 actions) or table (> 5 actions) in human mode, or JSON.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on config load, lock read, or plan build failures.
 pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();

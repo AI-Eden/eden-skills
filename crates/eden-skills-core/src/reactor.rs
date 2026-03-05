@@ -1,3 +1,10 @@
+//! Concurrent task execution via a two-phase reactor model.
+//!
+//! [`SkillReactor`] coordinates async tasks using a Tokio [`JoinSet`]
+//! bounded by a [`Semaphore`]. Phase A runs IO-bound tasks (git clone,
+//! file copy) with configurable concurrency. Phase B (blocking) runs
+//! CPU-bound work on `spawn_blocking` threads.
+
 use std::future::Future;
 use std::sync::Arc;
 
@@ -8,15 +15,23 @@ use tokio_util::sync::CancellationToken;
 pub use crate::error::ReactorError;
 
 pub const DEFAULT_CONCURRENCY_LIMIT: usize = 10;
+/// Lower bound prevents zero-concurrency deadlock.
 pub const MIN_CONCURRENCY_LIMIT: usize = 1;
+/// Upper bound prevents excessive file-descriptor pressure.
 pub const MAX_CONCURRENCY_LIMIT: usize = 100;
 
+/// Indexed result from a reactor phase, preserving task ordering.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PhaseOutcome<T, E> {
     pub index: usize,
     pub result: Result<T, E>,
 }
 
+/// Bounded-concurrency async task executor.
+///
+/// Wraps a `JoinSet` + `Semaphore` to run up to `concurrency_limit`
+/// tasks in parallel. `Send + Sync` requirement on task closures
+/// enables safe spawning from any async context.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SkillReactor {
     concurrency_limit: usize,
@@ -31,6 +46,12 @@ impl Default for SkillReactor {
 }
 
 impl SkillReactor {
+    /// Create a reactor with the given concurrency limit.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ReactorError::InvalidConcurrency`] when the limit is
+    /// outside `[MIN_CONCURRENCY_LIMIT, MAX_CONCURRENCY_LIMIT]`.
     pub fn new(concurrency_limit: usize) -> Result<Self, ReactorError> {
         if !(MIN_CONCURRENCY_LIMIT..=MAX_CONCURRENCY_LIMIT).contains(&concurrency_limit) {
             return Err(ReactorError::InvalidConcurrency {
@@ -46,6 +67,14 @@ impl SkillReactor {
         self.concurrency_limit
     }
 
+    /// Run IO-bound async tasks with bounded concurrency.
+    ///
+    /// Returns indexed outcomes preserving the original task order.
+    /// Cancelled tasks are not retried.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ReactorError`] on task join failures or panics.
     pub async fn run_phase_a<I, O, E, F, Fut>(
         &self,
         tasks: Vec<I>,
@@ -65,6 +94,12 @@ impl SkillReactor {
         Ok(outcomes)
     }
 
+    /// Like [`run_phase_a`](Self::run_phase_a) but accepts an external
+    /// cancellation token. Returns `(outcomes, was_cancelled)`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ReactorError`] on task join failures or panics.
     pub async fn run_phase_a_with_cancellation<I, O, E, F, Fut>(
         &self,
         tasks: Vec<I>,
@@ -154,6 +189,12 @@ impl SkillReactor {
         Ok(phase_a_outcomes)
     }
 
+    /// Execute a CPU-bound closure on a blocking thread.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`ReactorError::BlockingTaskCancelled`] if the task is
+    /// cancelled, or [`ReactorError::BlockingTaskPanicked`] on panic.
     pub async fn run_blocking<R, E, F>(&self, task_name: &str, operation: F) -> Result<R, E>
     where
         R: Send + 'static,

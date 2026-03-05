@@ -1,3 +1,10 @@
+//! Configuration parsing, validation, and serialization for `skills.toml`.
+//!
+//! Defines the [`Config`] domain model and its TOML deserialization.
+//! [`validate_config`] checks structural invariants (mode compatibility,
+//! path resolution, duplicate detection). [`LoadedConfig`] pairs the
+//! parsed config with non-fatal warnings collected during load.
+
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -298,6 +305,11 @@ pub struct LoadOptions {
     pub strict: bool,
 }
 
+/// A parsed config paired with non-fatal warnings collected during load.
+///
+/// Warnings cover deprecated fields, unresolved paths, or mode-B skill
+/// hints that do not block normal operation but should be surfaced to
+/// the user.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoadedConfig {
     pub config: Config,
@@ -760,6 +772,17 @@ pub fn default_verify_checks_for_mode(install_mode: InstallMode) -> Vec<String> 
     default_verify_checks(install_mode)
 }
 
+/// Validate structural invariants of the parsed config.
+///
+/// Checks version, duplicate skill IDs, empty skill lists, target path
+/// resolution, install mode compatibility, and registry references.
+/// Error codes follow the taxonomy: `INVALID_SKILL_MODE`,
+/// `MISSING_REGISTRIES`, `DUPLICATE_ID`, etc.
+///
+/// # Errors
+///
+/// Returns [`EdenError::Validation`] with a descriptive message for
+/// each detected structural violation.
 pub fn validate_config(config: &Config, config_dir: &Path) -> Result<(), EdenError> {
     if config.version != 1 {
         return Err(EdenError::Validation(format!(

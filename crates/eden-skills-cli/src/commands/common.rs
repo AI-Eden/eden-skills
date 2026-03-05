@@ -1,3 +1,9 @@
+//! Shared utilities for command implementations.
+//!
+//! Provides config I/O helpers, path resolution, git/docker preflight
+//! checks, plan execution, lock file writes, output formatting helpers,
+//! and registry-mode skill resolution used across multiple commands.
+
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::future::Future;
@@ -25,6 +31,11 @@ use owo_colors::OwoColorize;
 
 pub(crate) const REGISTRY_SYNC_MARKER_FILE: &str = ".eden-last-sync";
 
+/// Resolve a possibly-relative or tilde-prefixed config path against `cwd`.
+///
+/// # Errors
+///
+/// Returns [`EdenError::Io`] if the current directory cannot be determined.
 pub(crate) fn resolve_config_path(config_path: &str) -> Result<PathBuf, EdenError> {
     let cwd = std::env::current_dir().map_err(EdenError::Io)?;
     resolve_path_string(config_path, &cwd)
@@ -34,6 +45,15 @@ pub(crate) fn with_hint(message: impl Into<String>, hint: impl Into<String>) -> 
     format!("{}\nhint: {}", message.into(), hint.into())
 }
 
+/// Load and parse `skills.toml`, wrapping common I/O errors with
+/// user-friendly messages and hints (e.g. "Run `eden-skills init`").
+///
+/// In strict mode, config warnings are promoted to errors.
+///
+/// # Errors
+///
+/// Returns [`EdenError::Runtime`] with an abbreviated path when the
+/// file is missing or unreadable, or propagates parse/validation errors.
 pub(crate) fn load_config_with_context(
     config_path: &Path,
     strict: bool,
@@ -65,6 +85,11 @@ pub(crate) fn git_bin() -> String {
         .unwrap_or_else(|| "git".to_string())
 }
 
+/// Verify that `git` is available on `$PATH` before operations that require it.
+///
+/// # Errors
+///
+/// Returns [`EdenError::Runtime`] with an install hint when git is absent.
 pub(crate) fn ensure_git_available() -> Result<(), EdenError> {
     let git = git_bin();
     match Command::new(&git).arg("--version").output() {
@@ -89,6 +114,14 @@ pub(crate) fn ensure_git_available() -> Result<(), EdenError> {
     }
 }
 
+/// Verify that `docker` is on `$PATH` when any target uses a Docker environment.
+///
+/// Skips the check entirely when all targets are local.
+///
+/// # Errors
+///
+/// Returns [`EdenError::Runtime`] with an install hint when docker is
+/// required but absent.
 pub(crate) fn ensure_docker_available_for_targets<'a, I>(targets: I) -> Result<(), EdenError>
 where
     I: IntoIterator<Item = &'a str>,

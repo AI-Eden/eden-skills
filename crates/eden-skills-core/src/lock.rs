@@ -1,3 +1,11 @@
+//! Lock file lifecycle: create, read, diff, and write.
+//!
+//! The lock file (`skills.lock`) records the resolved state of every
+//! installed skill so that `plan` and `apply` can detect drift without
+//! re-scanning the filesystem. The three-way diff algorithm compares
+//! TOML config ∩ lock entries to produce Added/Changed/Unchanged/Removed
+//! partitions.
+
 use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
 
@@ -169,8 +177,13 @@ pub struct LockDiffResult {
 }
 
 /// Compute the three-way diff between desired config and last-known lock state.
+///
 /// When `lock` is `None` (missing/corrupted), all skills are classified as Added
 /// and there are no removals.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] if target path resolution fails for any skill.
 pub fn compute_lock_diff(
     config: &Config,
     lock: &Option<LockFile>,

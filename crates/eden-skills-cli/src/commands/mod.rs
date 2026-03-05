@@ -1,3 +1,9 @@
+//! Command dispatch and shared request types for the eden-skills CLI.
+//!
+//! Each sub-module implements one logical command group. This module
+//! re-exports all public items so callers use `commands::install_async`,
+//! `commands::CommandOptions`, etc. without knowing the internal layout.
+
 pub(crate) mod common;
 mod config_ops;
 mod diagnose;
@@ -17,12 +23,14 @@ pub use update::*;
 
 use eden_skills_core::config::InstallMode;
 
+/// Flags shared by every CLI command: strict mode and JSON output.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct CommandOptions {
     pub strict: bool,
     pub json: bool,
 }
 
+/// Parameters for the `update` command.
 #[derive(Debug, Clone)]
 pub struct UpdateRequest {
     pub config_path: String,
@@ -30,6 +38,7 @@ pub struct UpdateRequest {
     pub options: CommandOptions,
 }
 
+/// Parameters for the `install` command covering URL, registry, and local modes.
 #[derive(Debug, Clone)]
 pub struct InstallRequest {
     pub config_path: String,
@@ -48,6 +57,7 @@ pub struct InstallRequest {
     pub options: CommandOptions,
 }
 
+/// Parameters for the `add` command that inserts a skill entry into config.
 #[derive(Debug, Clone)]
 pub struct AddRequest {
     pub config_path: String,
@@ -63,6 +73,7 @@ pub struct AddRequest {
     pub options: CommandOptions,
 }
 
+/// Parameters for the `set` command that modifies an existing skill entry.
 #[derive(Debug, Clone)]
 pub struct SetRequest {
     pub config_path: String,

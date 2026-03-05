@@ -43,3 +43,15 @@
    - Changes: `update.rs` now renders registry sync results as `Registry | Status | Detail` table with action-prefix header and failed-count timing footer, while preserving JSON contract
    - Compatibility updates: refreshed `list_command.rs` and `phase2_commands.rs` assertions for new human output while keeping existing behavior and side-effect guarantees intact
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (293 total tests)
+6. Batch 6 (WP-3b — Doc Comments) is complete with quality gate pass:
+   - Requirements: `CST-004`, `CST-005`, `CST-006`, `CST-007`, `CST-008`
+   - Scenarios: `TM-P28-003`, `TM-P28-034`, `TM-P28-035`, `TM-P28-036`
+   - Additions: `//!` module docs on all 9 CLI `commands/` sub-modules, CLI `lib.rs`, and 8 core modules (`reactor.rs`, `lock.rs`, `adapter.rs`, `source_format.rs`, `discovery.rs`, `config.rs`, `plan.rs`, `error.rs`)
+   - Additions: `//!` crate-level doc on core `lib.rs`
+   - Additions: `///` doc comments with `# Errors` on all public command functions (`install_async`, `apply_async`, `repair_async`, `doctor`, `plan`, `init`, `list`, `add`, `set`, `config_export`, `config_import`, `remove_many_async`, `update_async`, `remove`, `remove_async`, `apply`, `repair`)
+   - Additions: `///` doc comments on shared utilities in `common.rs` (`resolve_config_path`, `load_config_with_context`, `ensure_git_available`, `ensure_docker_available_for_targets`)
+   - Additions: `///` doc comments on core public types and functions (`SkillReactor`, `run_phase_a`, `run_blocking`, `compute_lock_diff`, `TargetAdapter`, `LocalAdapter`, `DockerAdapter`, `detect_install_source`, `discover_skills`, `validate_config`, `LoadedConfig`, `build_plan`, `Action`, `EdenError`, `ReactorError`, `AdapterError`, `RegistryError`)
+   - Additions: `//!` module doc and `///` on all public items in `ui.rs` (`UiContext`, `UiSpinner`, `ColorWhen`, `StatusSymbol`, `configure_color_output`, `color_output_enabled`, `table()`, `spinner()`, `abbreviate_home_path`, `abbreviate_repo_url`)
+   - Additions: `///` on `print_error` in `main.rs`
+   - Tests: new `doc_coverage_tests.rs` with 6 tests (TM-P28-003 ×3, TM-P28-034, TM-P28-035, TM-P28-036)
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (299 total tests)

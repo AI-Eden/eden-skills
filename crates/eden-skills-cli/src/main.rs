@@ -14,6 +14,10 @@ async fn main() -> ExitCode {
     }
 }
 
+/// Format and print an [`EdenError`] to stderr.
+///
+/// Splits the error message at the `\nhint: ` convention, abbreviates
+/// home-relative paths, and renders the hint with a dimmed `→` prefix.
 fn print_error(err: &EdenError) {
     let (message, hint) = user_message_and_hint(err);
     let message = abbreviate_message_paths(&message);

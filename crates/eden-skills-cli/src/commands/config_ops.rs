@@ -1,3 +1,9 @@
+//! Configuration management: `init`, `list`, `add`, `set`, `config export`, and `config import`.
+//!
+//! These commands read or mutate `skills.toml` and its companion lock
+//! file. None of them perform source sync, plan execution, or file
+//! installation — they only affect the declarative config layer.
+
 use std::collections::HashSet;
 use std::fs;
 
@@ -17,6 +23,15 @@ use super::common::{
 use super::{AddRequest, CommandOptions, SetRequest};
 use crate::ui::{abbreviate_home_path, abbreviate_repo_url, StatusSymbol, UiContext};
 
+/// Create a new `skills.toml` and companion lock file.
+///
+/// Writes the default config template and an empty lock file.
+/// Fails if the config already exists unless `force` is set.
+///
+/// # Errors
+///
+/// Returns [`EdenError::Conflict`] if the file exists without `force`,
+/// or [`EdenError::Io`] on filesystem write failures.
 pub fn init(config_path: &str, force: bool) -> Result<(), EdenError> {
     let ui = UiContext::from_env(false);
     let config_path = resolve_config_path(config_path)?;
@@ -73,6 +88,14 @@ pub(crate) fn default_config_template() -> String {
     .join("\n")
 }
 
+/// List all configured skills and their targets.
+///
+/// Renders a table (`Skill | Mode | Source | Agents`) in human mode
+/// or a JSON object with a `count` and `skills` array.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on config load or path resolution failures.
 pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
@@ -182,6 +205,15 @@ fn render_skill_agents(skill: &SkillConfig, config_dir: &std::path::Path) -> Str
     rendered
 }
 
+/// Add a new skill entry to `skills.toml`.
+///
+/// Validates that the ID is unique, parses target specs, writes the
+/// updated config, and rebuilds the lock file.
+///
+/// # Errors
+///
+/// Returns [`EdenError::Conflict`] for duplicate IDs, [`EdenError::Validation`]
+/// for invalid target specs, or [`EdenError::Io`] on write failures.
 pub fn add(req: AddRequest) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
@@ -243,6 +275,16 @@ pub fn add(req: AddRequest) -> Result<(), EdenError> {
     Ok(())
 }
 
+/// Modify properties of an existing skill entry in `skills.toml`.
+///
+/// Applies partial updates (repo, ref, subpath, mode, targets, verify)
+/// to the named skill. At least one mutation must be specified.
+///
+/// # Errors
+///
+/// Returns [`EdenError::InvalidArguments`] when no mutations are given,
+/// [`EdenError::Conflict`] when the skill ID is not found, or
+/// [`EdenError::Io`] on write failures.
 pub fn set(req: SetRequest) -> Result<(), EdenError> {
     let has_any_mutation = req.repo.is_some()
         || req.r#ref.is_some()
@@ -319,6 +361,11 @@ pub fn set(req: SetRequest) -> Result<(), EdenError> {
     Ok(())
 }
 
+/// Export the current configuration to stdout as TOML or JSON.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on config load or serialization failures.
 pub fn config_export(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
@@ -346,6 +393,15 @@ pub fn config_export(config_path: &str, options: CommandOptions) -> Result<(), E
     Ok(())
 }
 
+/// Import configuration from another file, merging skills into the
+/// current config while preserving existing entries.
+///
+/// In dry-run mode, previews the merge without writing changes.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on source or target config load failures,
+/// validation errors in the merged config, or filesystem write errors.
 pub fn config_import(
     from_path: &str,
     config_path: &str,

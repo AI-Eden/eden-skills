@@ -87,3 +87,23 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 293
+  batch_6_doc_comments:
+    status: completed
+    completed_at: "2026-03-05"
+    requirements: CST-004, CST-005, CST-006, CST-007, CST-008
+    scenarios: TM-P28-003, TM-P28-034, TM-P28-035, TM-P28-036
+    notes:
+      - added //! module docs to all 9 commands/ sub-modules per SPEC_CODE_STRUCTURE.md 3.2
+      - added /// doc comments with # Errors to all public command functions (install_async, apply_async, repair_async, doctor, plan, init, list, add, set, config_export, config_import, remove_many_async, update_async, remove, remove_async, apply, repair)
+      - added /// doc comments to shared utilities in common.rs (resolve_config_path, load_config_with_context, ensure_git_available, ensure_docker_available_for_targets)
+      - added //! crate doc to core lib.rs and //! module docs to 8 core modules (reactor, lock, adapter, source_format, discovery, config, plan, error)
+      - added /// doc comments to core public types and functions (SkillReactor, run_phase_a, run_blocking, compute_lock_diff, read_lock_file, TargetAdapter, LocalAdapter, DockerAdapter, detect_install_source, discover_skills, validate_config, LoadedConfig, build_plan, Action, EdenError, ReactorError, AdapterError, RegistryError)
+      - added //! module doc and /// on all public items in ui.rs (UiContext, UiSpinner, ColorWhen, StatusSymbol, configure_color_output, color_output_enabled, table, spinner, abbreviate_home_path, abbreviate_repo_url)
+      - added //! crate doc to CLI lib.rs and /// on print_error in main.rs
+      - added doc_coverage_tests.rs with 6 tests verifying //! and /// presence
+      - followed Rust Best Practices skill Chapter 8 guidance throughout
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 299

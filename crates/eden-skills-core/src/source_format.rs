@@ -1,3 +1,10 @@
+//! Source format detection and URL parsing pipeline.
+//!
+//! Determines whether a user-supplied source string is a registry skill
+//! name, a GitHub URL (HTTPS / SSH / tree), or a local filesystem path.
+//! Precedence: local path → GitHub tree URL → full URL → SSH URL →
+//! GitHub shorthand (`owner/repo`) → registry name.
+
 use std::path::Path;
 
 use crate::error::EdenError;
@@ -27,6 +34,14 @@ pub enum DetectedInstallSource {
     RegistryName(String),
 }
 
+/// Detect the install source format from a user-supplied string.
+///
+/// Applies format checks in precedence order: local path, GitHub tree
+/// URL, full URL, SSH URL, GitHub shorthand, and finally registry name.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] if path resolution fails for local sources.
 pub fn detect_install_source(input: &str, cwd: &Path) -> Result<DetectedInstallSource, EdenError> {
     if looks_like_local_path(input) {
         let resolved = resolve_path_string(input, cwd)?;

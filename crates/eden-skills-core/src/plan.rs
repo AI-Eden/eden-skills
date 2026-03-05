@@ -1,3 +1,9 @@
+//! Reconciliation plan computation.
+//!
+//! Compares declared skill targets against the current filesystem state
+//! to produce a list of [`PlanItem`]s, each carrying an [`Action`]:
+//! `Create`, `Update`, `Noop`, `Conflict`, or `Remove`.
+
 use std::fs;
 use std::io::ErrorKind;
 use std::io::Read;
@@ -9,6 +15,7 @@ use crate::config::{Config, InstallMode};
 use crate::error::EdenError;
 use crate::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
 
+/// The reconciliation action determined for a single skill target.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Action {
@@ -29,6 +36,15 @@ pub struct PlanItem {
     pub reasons: Vec<String>,
 }
 
+/// Build a reconciliation plan by comparing config targets to filesystem state.
+///
+/// For each skill × target pair, determines whether the target needs to
+/// be created, updated, left alone (noop), or flagged as a conflict.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on path resolution or I/O failures during
+/// filesystem inspection.
 pub fn build_plan(config: &Config, config_dir: &Path) -> Result<Vec<PlanItem>, EdenError> {
     let storage_root = resolve_path_string(&config.storage_root, config_dir)?;
     let mut items = Vec::new();

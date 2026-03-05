@@ -1,3 +1,9 @@
+//! Health diagnostics via the `doctor` command.
+//!
+//! Collects findings from plan conflicts, verification issues, safety
+//! reports, adapter health checks, and stale registry markers. Renders
+//! results as severity-tagged cards in human mode or as a JSON array.
+
 use std::fs;
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
@@ -29,6 +35,15 @@ pub(crate) struct DoctorFinding {
     pub(crate) remediation: String,
 }
 
+/// Diagnose configuration and installation health.
+///
+/// Collects findings from plan conflicts, verification issues, safety
+/// reports, Phase 2 adapter health, and stale registry markers. Outputs
+/// severity-tagged cards (human) or a JSON array (`--json`).
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on config load failure or plan build errors.
 pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();

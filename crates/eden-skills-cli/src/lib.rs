@@ -1,3 +1,10 @@
+//! eden-skills CLI binary crate.
+//!
+//! Parses command-line arguments via `clap`, configures color output,
+//! and dispatches to the appropriate command in [`commands`]. The
+//! [`ui`] module provides terminal-aware rendering primitives used by
+//! every command's human-mode output path.
+
 pub mod commands;
 pub mod ui;
 

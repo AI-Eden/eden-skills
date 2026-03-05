@@ -1,3 +1,9 @@
+//! Registry refresh via the `update` command.
+//!
+//! Resolves configured registries, clones or fetches each in parallel
+//! using the reactor, and records sync markers. Results are rendered as
+//! a table with per-registry status and a timing footer.
+
 use std::fs;
 use std::path::PathBuf;
 use std::process::Command;
@@ -51,6 +57,16 @@ struct RegistrySyncResult {
     detail: Option<String>,
 }
 
+/// Refresh all configured registries to their latest versions.
+///
+/// Resolves registry specs from the config, clones new registries or
+/// fetches updates for existing ones using reactor-based concurrency,
+/// and writes sync marker timestamps. Results are displayed as a table.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on config load failure, git unavailability,
+/// or reactor initialization errors.
 pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
     let ui = UiContext::from_env(req.options.json);
     let config_path_buf = resolve_config_path(&req.config_path)?;

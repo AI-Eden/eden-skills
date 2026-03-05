@@ -1,3 +1,10 @@
+//! State reconciliation: `apply` and `repair` command implementations.
+//!
+//! Both commands follow the same lifecycle: source sync → safety analysis →
+//! orphan removal → plan execution → verification → lock file write.
+//! `repair` additionally force-reinstalls every target regardless of drift
+//! status, ensuring convergence from any starting state.
+
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -27,10 +34,25 @@ use super::common::{
 use super::CommandOptions;
 use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
 
+/// Synchronous wrapper around [`apply_async`] using a single-threaded runtime.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] if any phase of the apply lifecycle fails.
 pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     block_on_command_future(apply_async(config_path, options, None))
 }
 
+/// Reconcile installed state with the declared configuration.
+///
+/// Executes the full apply lifecycle: source sync → safety analysis →
+/// orphan removal → plan execution → verification → lock write.
+/// Only targets that have drifted from the plan are reinstalled.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on config load failure, source sync errors,
+/// adapter I/O errors, or verification failures in strict mode.
 pub async fn apply_async(
     config_path: &str,
     options: CommandOptions,
@@ -180,10 +202,24 @@ pub async fn apply_async(
     Ok(())
 }
 
+/// Synchronous wrapper around [`repair_async`] using a single-threaded runtime.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] if any phase of the repair lifecycle fails.
 pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
     block_on_command_future(repair_async(config_path, options, None))
 }
 
+/// Force-reinstall every target to converge from any starting state.
+///
+/// Follows the same lifecycle as [`apply_async`] but reinstalls all
+/// targets regardless of drift status, ensuring a clean slate.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on config load failure, source sync errors,
+/// adapter I/O errors, or verification failures in strict mode.
 pub async fn repair_async(
     config_path: &str,
     options: CommandOptions,

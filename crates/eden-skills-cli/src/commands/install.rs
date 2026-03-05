@@ -1,3 +1,10 @@
+//! Skill installation from URLs, local paths, and registries.
+//!
+//! Dispatches to one of three install modes based on source format
+//! detection: registry name lookup, remote URL (GitHub / SSH / HTTPS),
+//! or local directory path. Each mode handles discovery, user selection,
+//! config mutation, source sync, and lock file updates.
+
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -59,6 +66,16 @@ impl InstallExecutionSummary {
     }
 }
 
+/// Install skills from a URL, local path, or registry name.
+///
+/// Detects the source format, discovers available skills, applies user
+/// selections, syncs sources, writes config and lock, and installs
+/// targets via the appropriate adapter.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] on config I/O failures, invalid source format,
+/// git clone failures, adapter errors, or user cancellation.
 pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();

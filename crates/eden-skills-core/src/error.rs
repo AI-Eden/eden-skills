@@ -1,5 +1,16 @@
+//! Error types for the eden-skills domain layer.
+//!
+//! [`EdenError`] is the top-level error returned by all public APIs.
+//! Domain-specific errors ([`ReactorError`], [`AdapterError`],
+//! [`RegistryError`]) carry richer context and convert into
+//! `EdenError::Runtime` at API boundaries.
+
 use thiserror::Error;
 
+/// Top-level error type for all eden-skills operations.
+///
+/// Each variant maps to a CLI exit code: `InvalidArguments`/`Validation` → 2,
+/// `Conflict` → 3, `Runtime`/`Io` → 1.
 #[derive(Debug, Error)]
 pub enum EdenError {
     #[error("invalid arguments: {0}")]
@@ -14,6 +25,10 @@ pub enum EdenError {
     Io(#[from] std::io::Error),
 }
 
+/// Errors arising from the concurrent task reactor.
+///
+/// Covers invalid concurrency bounds, runtime init failures,
+/// task join/cancellation issues, and phase execution errors.
 #[derive(Debug, Error)]
 pub enum ReactorError {
     #[error("reactor concurrency must be between {min} and {max}, got {provided}")]
@@ -40,6 +55,10 @@ pub enum ReactorError {
     Io(#[from] std::io::Error),
 }
 
+/// Errors arising from target adapters (local filesystem, Docker).
+///
+/// Covers configuration errors (invalid environment string),
+/// runtime failures during install/uninstall, and I/O errors.
 #[derive(Debug, Error)]
 pub enum AdapterError {
     #[error("adapter configuration error: {detail}")]
@@ -50,6 +69,10 @@ pub enum AdapterError {
     Io(#[from] std::io::Error),
 }
 
+/// Errors arising from registry resolution and configuration.
+///
+/// Covers invalid registry specs, skill resolution failures,
+/// and I/O errors during registry access.
 #[derive(Debug, Error)]
 pub enum RegistryError {
     #[error("registry configuration error: {detail}")]

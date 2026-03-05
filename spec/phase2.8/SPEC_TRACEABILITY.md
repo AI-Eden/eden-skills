@@ -48,22 +48,22 @@ Builder execution.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 |---|---|---|---|---|---|
-| CST-001 | `SPEC_CODE_STRUCTURE.md` 2.1 | `commands.rs` MUST be decomposed into sub-modules | | TM-P28-001 | pending |
-| CST-002 | `SPEC_CODE_STRUCTURE.md` 2.3 | Decomposition MUST NOT change behavior | | TM-P28-001, TM-P28-002 | pending |
-| CST-003 | `SPEC_CODE_STRUCTURE.md` 2.4 | Public API MUST remain unchanged | | TM-P28-002 | pending |
-| CST-004 | `SPEC_CODE_STRUCTURE.md` 3.2 | CLI `commands/` modules MUST have `//!` docs | | TM-P28-003, TM-P28-034 | pending |
-| CST-005 | `SPEC_CODE_STRUCTURE.md` 3.2 | Public command functions MUST have `///` docs | | TM-P28-034 | pending |
-| CST-006 | `SPEC_CODE_STRUCTURE.md` 3.3 | Core modules MUST have `//!` docs | | TM-P28-035 | pending |
-| CST-007 | `SPEC_CODE_STRUCTURE.md` 3.3 | Core public functions MUST have `///` docs | | TM-P28-035 | pending |
-| CST-008 | `SPEC_CODE_STRUCTURE.md` 3.2 | `ui.rs` MUST have docs on all public items | | TM-P28-036 | pending |
+| CST-001 | `SPEC_CODE_STRUCTURE.md` 2.1 | `commands.rs` MUST be decomposed into sub-modules | `crates/eden-skills-cli/src/commands/` (mod.rs, install.rs, reconcile.rs, diagnose.rs, plan_cmd.rs, config_ops.rs, remove.rs, update.rs, common.rs) | TM-P28-001 | done |
+| CST-002 | `SPEC_CODE_STRUCTURE.md` 2.3 | Decomposition MUST NOT change behavior | All 253 original tests pass without modification | TM-P28-001, TM-P28-002 | done |
+| CST-003 | `SPEC_CODE_STRUCTURE.md` 2.4 | Public API MUST remain unchanged | `mod.rs` re-exports preserve `eden_skills_cli::commands::*` paths | TM-P28-002 | done |
+| CST-004 | `SPEC_CODE_STRUCTURE.md` 3.2 | CLI `commands/` modules MUST have `//!` docs | All 9 `commands/*.rs` files have `//!` module docs | TM-P28-003, TM-P28-034 | done |
+| CST-005 | `SPEC_CODE_STRUCTURE.md` 3.2 | Public command functions MUST have `///` docs | `install_async`, `apply_async`, `repair_async`, `doctor`, `plan`, `init`, `list`, `add`, `set`, `config_export`, `config_import`, `remove_many_async`, `update_async` all have `///` + `# Errors` | TM-P28-034 | done |
+| CST-006 | `SPEC_CODE_STRUCTURE.md` 3.3 | Core modules MUST have `//!` docs | `reactor.rs`, `lock.rs`, `adapter.rs`, `source_format.rs`, `discovery.rs`, `config.rs`, `plan.rs`, `error.rs` all have `//!` module docs | TM-P28-035 | done |
+| CST-007 | `SPEC_CODE_STRUCTURE.md` 3.3 | Core public functions MUST have `///` docs | `SkillReactor`, `run_phase_a`, `run_blocking`, `compute_lock_diff`, `read_lock_file`, `TargetAdapter`, `LocalAdapter`, `DockerAdapter`, `detect_install_source`, `discover_skills`, `validate_config`, `LoadedConfig`, `build_plan`, `Action`, `EdenError`, `ReactorError`, `AdapterError`, `RegistryError` all documented | TM-P28-035 | done |
+| CST-008 | `SPEC_CODE_STRUCTURE.md` 3.2 | `ui.rs` MUST have docs on all public items | `//!` module doc, `///` on `UiContext`, `UiSpinner`, `ColorWhen`, `StatusSymbol`, `configure_color_output`, `color_output_enabled`, `table()`, `spinner()`, `abbreviate_home_path`, `abbreviate_repo_url` | TM-P28-036 | done |
 
 ## 4. Test Matrix Coverage
 
 | SCENARIO_ID | Source | Scenario | Automated Test | Status |
 |---|---|---|---|---|
-| TM-P28-001 | `SPEC_TEST_MATRIX.md` 2 | Commands module split regression | | pending |
-| TM-P28-002 | `SPEC_TEST_MATRIX.md` 2 | Public API unchanged | | pending |
-| TM-P28-003 | `SPEC_TEST_MATRIX.md` 2 | Module doc comments present | | pending |
+| TM-P28-001 | `SPEC_TEST_MATRIX.md` 2 | Commands module split regression | All 253 original tests pass after decomposition | done |
+| TM-P28-002 | `SPEC_TEST_MATRIX.md` 2 | Public API unchanged | `lib.rs` and test imports compile without changes | done |
+| TM-P28-003 | `SPEC_TEST_MATRIX.md` 2 | Module doc comments present | `doc_coverage_tests::tm_p28_003_commands_modules_have_module_docs`, `doc_coverage_tests::tm_p28_003_ui_has_module_doc`, `doc_coverage_tests::tm_p28_003_core_lib_has_crate_doc` | done |
 | TM-P28-004 | `SPEC_TEST_MATRIX.md` 3 | comfy-table dependency present | `table_infra_tests::comfy_table_dependency_is_declared_in_cli_cargo_toml` | done |
 | TM-P28-005 | `SPEC_TEST_MATRIX.md` 3 | List renders as table | `output_upgrade_b_tests::tm_p28_005_list_renders_as_table` | done |
 | TM-P28-006 | `SPEC_TEST_MATRIX.md` 3 | List table non-TTY degradation | `output_upgrade_b_tests::tm_p28_006_list_table_non_tty_degradation` | done |
@@ -94,9 +94,9 @@ Builder execution.
 | TM-P28-031 | `SPEC_TEST_MATRIX.md` 6 | JSON mode never renders tables | `output_upgrade_b_tests::tm_p28_031_json_mode_never_renders_tables` | done |
 | TM-P28-032 | `SPEC_TEST_MATRIX.md` 7 | Home path abbreviated | `table_infra_tests::abbreviate_home_path_replaces_home_prefix_and_preserves_non_home_paths` | done |
 | TM-P28-033 | `SPEC_TEST_MATRIX.md` 7 | Repo URL abbreviated | `table_infra_tests::abbreviate_repo_url_extracts_github_owner_and_repo` | done |
-| TM-P28-034 | `SPEC_TEST_MATRIX.md` 8 | CLI module docs | | pending |
-| TM-P28-035 | `SPEC_TEST_MATRIX.md` 8 | Core module docs | | pending |
-| TM-P28-036 | `SPEC_TEST_MATRIX.md` 8 | UiContext documented | | pending |
+| TM-P28-034 | `SPEC_TEST_MATRIX.md` 8 | CLI module docs | `doc_coverage_tests::tm_p28_034_public_command_functions_have_doc_comments` | done |
+| TM-P28-035 | `SPEC_TEST_MATRIX.md` 8 | Core module docs | `doc_coverage_tests::tm_p28_035_core_modules_have_module_docs` | done |
+| TM-P28-036 | `SPEC_TEST_MATRIX.md` 8 | UiContext documented | `doc_coverage_tests::tm_p28_036_ui_public_items_have_doc_comments` | done |
 | TM-P28-037 | `SPEC_TEST_MATRIX.md` 9 | Full regression | | pending |
 | TM-P28-038 | `SPEC_TEST_MATRIX.md` 9 | JSON regression | | pending |
 | TM-P28-039 | `SPEC_TEST_MATRIX.md` 9 | Exit code regression | | pending |

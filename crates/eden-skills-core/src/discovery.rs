@@ -1,3 +1,9 @@
+//! SKILL.md discovery within repository trees.
+//!
+//! Searches well-known parent directories and then performs recursive
+//! depth-limited traversal (max depth 6, max results 256) to find skill
+//! manifests. `.git` directories are excluded from traversal.
+
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -53,6 +59,14 @@ pub struct DiscoveredSkill {
     pub subpath: String,
 }
 
+/// Discover skills by locating `SKILL.md` files under `root`.
+///
+/// Checks well-known parent directories first, then falls back to
+/// recursive traversal up to depth 6 with a 256-result cap.
+///
+/// # Errors
+///
+/// Returns [`EdenError::Io`] on filesystem read failures.
 pub fn discover_skills(root: &Path) -> Result<Vec<DiscoveredSkill>, EdenError> {
     let mut discovered = Vec::new();
 

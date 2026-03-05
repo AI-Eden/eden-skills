@@ -1,3 +1,11 @@
+//! Target adapter abstraction for local and Docker environments.
+//!
+//! [`TargetAdapter`] defines the install/uninstall/health-check interface.
+//! [`LocalAdapter`] operates on the host filesystem (symlink or copy).
+//! [`DockerAdapter`] proxies operations into a running Docker container
+//! via `docker exec` / `docker cp`. Both are `Send + Sync` to enable
+//! concurrent spawning from the reactor.
+
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 
@@ -46,6 +54,10 @@ pub fn create_adapter(environment: &str) -> Result<Box<dyn TargetAdapter>, Adapt
     }
 }
 
+/// Abstract interface for skill installation targets.
+///
+/// `Send + Sync` bounds are required so the reactor can spawn adapter
+/// calls across threads.
 #[async_trait]
 pub trait TargetAdapter: Send + Sync {
     fn adapter_type(&self) -> &str;
@@ -66,6 +78,7 @@ pub trait TargetAdapter: Send + Sync {
     async fn exec(&self, cmd: &str) -> Result<String, AdapterError>;
 }
 
+/// Adapter that installs skills on the host filesystem via symlink or copy.
 #[derive(Debug, Clone, Copy, Default)]
 pub struct LocalAdapter;
 
@@ -146,6 +159,7 @@ impl TargetAdapter for LocalAdapter {
     }
 }
 
+/// Adapter that proxies skill operations into a Docker container via `docker cp` / `docker exec`.
 #[derive(Debug, Clone)]
 pub struct DockerAdapter {
     container_name: String,

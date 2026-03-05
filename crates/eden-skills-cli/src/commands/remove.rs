@@ -1,3 +1,9 @@
+//! Skill removal: `remove` and batch `remove_many_async`.
+//!
+//! Validates requested IDs against the config, prompts for interactive
+//! confirmation (when applicable), uninstalls targets via the adapter,
+//! removes config entries, and updates the lock file atomically.
+
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
@@ -20,11 +26,21 @@ use super::common::{
 };
 use super::CommandOptions;
 
+/// Remove a single skill, skipping interactive confirmation.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] if the skill ID is not found or uninstall fails.
 pub fn remove(config_path: &str, skill_id: &str, options: CommandOptions) -> Result<(), EdenError> {
     let skill_ids = vec![skill_id.to_string()];
     block_on_command_future(remove_many_async(config_path, &skill_ids, true, options))
 }
 
+/// Async variant of [`remove`] for a single skill.
+///
+/// # Errors
+///
+/// Returns [`EdenError`] if the skill ID is not found or uninstall fails.
 pub async fn remove_async(
     config_path: &str,
     skill_id: &str,
@@ -34,6 +50,17 @@ pub async fn remove_async(
     remove_many_async(config_path, &skill_ids, true, options).await
 }
 
+/// Remove one or more skills by ID with optional interactive confirmation.
+///
+/// Validates all IDs against the config atomically, prompts the user
+/// when `skip_confirmation` is false, uninstalls targets via adapters,
+/// removes config entries, and updates the lock file.
+///
+/// # Errors
+///
+/// Returns [`EdenError::Conflict`] for unknown skill IDs,
+/// [`EdenError::Runtime`] on adapter failures, or [`EdenError::Io`]
+/// on config/lock write errors.
 pub async fn remove_many_async(
     config_path: &str,
     skill_ids: &[String],
