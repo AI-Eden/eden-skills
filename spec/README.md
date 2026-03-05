@@ -46,11 +46,20 @@ spec/
 │   ├── SPEC_REMOVE_ENH.md
 │   ├── SPEC_TEST_MATRIX.md
 │   └── SPEC_TRACEABILITY.md
-└── phase2.8/              (Phase 2.8: TUI Deep Optimization & Code Maintainability)
+├── phase2.8/              (Phase 2.8: TUI Deep Optimization & Code Maintainability)
+│   ├── README.md
+│   ├── SPEC_TABLE_RENDERING.md
+│   ├── SPEC_OUTPUT_UPGRADE.md
+│   ├── SPEC_CODE_STRUCTURE.md
+│   ├── SPEC_TEST_MATRIX.md
+│   └── SPEC_TRACEABILITY.md
+└── phase2.9/              (Phase 2.9: UX Polish, Update Semantics & Output Consistency)
     ├── README.md
-    ├── SPEC_TABLE_RENDERING.md
-    ├── SPEC_OUTPUT_UPGRADE.md
-    ├── SPEC_CODE_STRUCTURE.md
+    ├── SPEC_TABLE_FIX.md
+    ├── SPEC_UPDATE_EXT.md
+    ├── SPEC_INSTALL_UX.md
+    ├── SPEC_OUTPUT_CONSISTENCY.md
+    ├── SPEC_NEWLINE_POLICY.md
     ├── SPEC_TEST_MATRIX.md
     └── SPEC_TRACEABILITY.md
 ```
@@ -117,6 +126,20 @@ with comprehensive doc comments.
 - `phase2.8/SPEC_CODE_STRUCTURE.md`: `commands.rs` module decomposition, doc comment coverage for CLI and Core crates (CST-001~008)
 - `phase2.8/SPEC_TEST_MATRIX.md`: Phase 2.8 acceptance test scenarios (TM-P28-001~040)
 - `phase2.8/SPEC_TRACEABILITY.md`: Phase 2.8 requirement-to-implementation mapping
+
+## Phase 2.9: UX Polish, Update Semantics & Output Consistency
+
+Phase 2.9 fixes table rendering, extends `update` to cover URL-installed
+skills, overhauls install UX with card previews and tree results,
+unifies remaining command output, and normalizes newline behavior.
+
+- `phase2.9/SPEC_TABLE_FIX.md`: `DynamicFullWidth` migration, column constraint policy (TFX-001~003)
+- `phase2.9/SPEC_UPDATE_EXT.md`: `update` dual-layer refresh, Mode A skill source fetch, `--apply` flag (UPD-001~008)
+- `phase2.9/SPEC_INSTALL_UX.md`: card-style discovery preview, step-style sync progress, tree-style install results (IUX-001~008)
+- `phase2.9/SPEC_OUTPUT_CONSISTENCY.md`: `add`/`set`/`config import`/`remove` output upgrade, path coloring, UiContext gaps (OCN-001~010)
+- `phase2.9/SPEC_NEWLINE_POLICY.md`: trailing newline elimination, section spacing, error format fix (NLP-001~006)
+- `phase2.9/SPEC_TEST_MATRIX.md`: Phase 2.9 acceptance test scenarios (TM-P29-001~040)
+- `phase2.9/SPEC_TRACEABILITY.md`: Phase 2.9 requirement-to-implementation mapping
 
 ## Rule of Authority
 
