@@ -33,3 +33,13 @@
    - Changes: `install.rs` now emits numbered `Found` discovery summaries, per-target `Install  ✓ skill → path (mode)` lines, and final `N skills installed to M agents, K conflicts` summary output
    - Compatibility updates: refreshed legacy doctor text assertion in `doctor_output.rs` to match card-based human output while keeping `doctor --json` contract unchanged
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (283 total tests)
+5. Batch 5 (WP-2 part 3 — Category B Table-Based New Designs) is complete with quality gate pass:
+   - Requirements: `TBL-003`, `TBL-004`, `TBL-005`, `TBL-006`, `TBL-007`, `OUP-008`, `OUP-009`, `OUP-010`, `OUP-011`, `OUP-012`
+   - Scenarios: `TM-P28-005`, `TM-P28-006`, `TM-P28-007`, `TM-P28-008`, `TM-P28-009`, `TM-P28-010`, `TM-P28-011`, `TM-P28-029`, `TM-P28-030`, `TM-P28-031`
+   - Additions: new `output_upgrade_b_tests.rs` with TM-aligned assertions for list/install/plan/update table output and non-TTY, `--color never`, and `--json` table-exclusion guarantees
+   - Changes: `config_ops.rs` `list` now emits action-prefixed `Skills` header + `Skill | Mode | Source | Agents` table, with source repo abbreviation and metadata-only suffix handling
+   - Changes: `install.rs` now renders dry-run targets as `Agent | Path | Mode` table under a metadata header and renders `install --list` as numbered `# | Name | Description` table with >8 truncation footer
+   - Changes: `plan_cmd.rs` now switches to table mode (`Action | Skill | Target | Mode`) when action count exceeds 5 and preserves text mode for 5 or fewer actions
+   - Changes: `update.rs` now renders registry sync results as `Registry | Status | Detail` table with action-prefix header and failed-count timing footer, while preserving JSON contract
+   - Compatibility updates: refreshed `list_command.rs` and `phase2_commands.rs` assertions for new human output while keeping existing behavior and side-effect guarantees intact
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (293 total tests)

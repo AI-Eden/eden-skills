@@ -74,8 +74,16 @@ path = "{target_root}"
     );
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("registry sync:"),
-        "expected registry sync summary, got: {stdout}"
+        stdout.contains("Update") && stdout.contains("registries synced"),
+        "expected update header summary, got: {stdout}"
+    );
+    assert!(
+        stdout.contains("Registry") && stdout.contains("Status") && stdout.contains("Detail"),
+        "expected update results table headers, got: {stdout}"
+    );
+    assert!(
+        !stdout.contains("registry sync:"),
+        "legacy update summary format should be removed, got: {stdout}"
     );
     assert!(storage_root.join("registries/official/.git").exists());
     assert!(storage_root.join("registries/forge/.git").exists());
@@ -476,8 +484,19 @@ path = "{target_root}"
     );
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("dry-run"),
-        "expected dry-run marker in output, stdout={stdout}"
+        stdout.contains("Dry Run")
+            && stdout.contains("Skill:")
+            && stdout.contains("Version:")
+            && stdout.contains("Source:"),
+        "expected structured dry-run metadata header, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("Agent") && stdout.contains("Path") && stdout.contains("Mode"),
+        "expected dry-run targets table headers, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("target agent="),
+        "legacy dry-run key=value target format should be removed, stdout={stdout}"
     );
     assert!(
         stdout.contains(&as_file_url(&skill_repo)),

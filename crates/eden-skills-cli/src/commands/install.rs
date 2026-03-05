@@ -13,9 +13,7 @@ use eden_skills_core::config::{
 use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::discovery::{discover_skills, DiscoveredSkill};
 use eden_skills_core::error::EdenError;
-use eden_skills_core::paths::{
-    colocated_agent_display_label, normalize_lexical, resolve_path_string, resolve_target_path,
-};
+use eden_skills_core::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action};
 use eden_skills_core::source::sync_sources_async;
 use eden_skills_core::source_format::{
@@ -23,7 +21,7 @@ use eden_skills_core::source_format::{
     UrlInstallSource,
 };
 
-use crate::ui::{StatusSymbol, UiContext};
+use crate::ui::{abbreviate_home_path, abbreviate_repo_url, StatusSymbol, UiContext};
 use crate::DEFAULT_CONFIG_PATH;
 
 use super::common::{
@@ -163,6 +161,7 @@ async fn install_registry_mode_async(
 
     if req.dry_run {
         print_install_dry_run(
+            ui,
             req.options.json,
             &single_skill_config,
             skill_name,
@@ -254,7 +253,7 @@ async fn install_remote_url_mode_async(
     }
 
     if req.list {
-        print_discovered_skills(&discovered, &req.source);
+        print_discovered_skills(ui, &discovered);
         return Ok(());
     }
 
@@ -313,6 +312,7 @@ async fn install_remote_url_mode_async(
     if req.dry_run {
         if let Some(skill_id) = selected_ids.first() {
             print_install_dry_run(
+                ui,
                 req.options.json,
                 &selected_config,
                 skill_id,
@@ -390,7 +390,7 @@ async fn install_local_url_mode_async(
     }
 
     if req.list {
-        print_discovered_skills(&discovered, &req.source);
+        print_discovered_skills(ui, &discovered);
         return Ok(());
     }
 
@@ -453,6 +453,7 @@ async fn install_local_url_mode_async(
     if req.dry_run {
         if let Some(skill_id) = selected_ids.first() {
             print_install_dry_run(
+                ui,
                 req.options.json,
                 &selected_config,
                 skill_id,
@@ -718,18 +719,42 @@ fn prompt_skill_names() -> Result<Vec<String>, EdenError> {
         .collect::<Vec<_>>())
 }
 
-fn print_discovered_skills(skills: &[DiscoveredSkill], source: &str) {
-    println!("Skills in {source}:");
+fn print_discovered_skills(ui: &UiContext, skills: &[DiscoveredSkill]) {
+    const MAX_DISPLAY: usize = 8;
+
+    println!(
+        "{}  {} skills in repository:",
+        ui.action_prefix("Found"),
+        skills.len()
+    );
     if skills.is_empty() {
+        println!();
         println!("  (no SKILL.md discovered)");
         return;
     }
-    for skill in skills {
-        if skill.description.is_empty() {
-            println!("  {}", skill.name);
-        } else {
-            println!("  {} — {}", skill.name, skill.description);
-        }
+
+    println!();
+
+    let display_skills = if skills.len() > MAX_DISPLAY {
+        &skills[..MAX_DISPLAY]
+    } else {
+        skills
+    };
+    let mut table = ui.table(&["#", "Name", "Description"]);
+    for (index, skill) in display_skills.iter().enumerate() {
+        table.add_row(vec![
+            (index + 1).to_string(),
+            skill.name.clone(),
+            skill.description.clone(),
+        ]);
+    }
+    println!("{table}");
+
+    if skills.len() > MAX_DISPLAY {
+        println!(
+            "  ... and {} more (use --list to see all)",
+            skills.len() - MAX_DISPLAY
+        );
     }
 }
 
@@ -828,6 +853,7 @@ fn select_single_skill_config(config: &Config, skill_id: &str) -> Result<Config,
 }
 
 fn print_install_dry_run(
+    ui: &UiContext,
     json_mode: bool,
     single_skill_config: &Config,
     skill_id: &str,
@@ -869,25 +895,30 @@ fn print_install_dry_run(
             .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
         println!("{encoded}");
     } else {
+        let source_repo_display =
+            abbreviate_home_path(&abbreviate_repo_url(&resolved_skill.source.repo));
+        println!("{}  install preview", ui.action_prefix("Dry Run"));
+        println!();
+        println!("  Skill:   {skill_id}");
+        println!("  Version: {version_or_ref}");
         println!(
-            "install dry-run: skill={} version={} repo={} ref={} subpath={}",
-            skill_id,
-            version_or_ref,
-            resolved_skill.source.repo,
-            resolved_skill.source.r#ref,
-            resolved_skill.source.subpath
+            "  Source:  {} ({})",
+            source_repo_display, resolved_skill.source.subpath
         );
+        println!();
+
+        let mut table = ui.table(&["Agent", "Path", "Mode"]);
         for target in &resolved_skill.targets {
             let resolved_path = resolve_target_path(target, config_dir)
                 .map(|path| path.display().to_string())
                 .unwrap_or_else(|err| format!("ERROR: {err}"));
-            println!(
-                "  target agent={} environment={} path={}",
-                colocated_agent_display_label(&target.agent),
-                target.environment,
-                resolved_path
-            );
+            table.add_row(vec![
+                agent_kind_label(&target.agent).to_string(),
+                abbreviate_home_path(&resolved_path),
+                resolved_skill.install.mode.as_str().to_string(),
+            ]);
         }
+        println!("{table}");
     }
     Ok(())
 }

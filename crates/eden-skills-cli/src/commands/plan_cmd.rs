@@ -36,6 +36,7 @@ pub fn plan(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
 }
 
 pub(crate) fn print_plan_text(ui: &UiContext, items: &[PlanItem]) {
+    const TABLE_THRESHOLD: usize = 5;
     let has_pending_action = items
         .iter()
         .any(|item| !matches!(item.action, Action::Noop));
@@ -50,6 +51,11 @@ pub(crate) fn print_plan_text(ui: &UiContext, items: &[PlanItem]) {
     println!("{}  {} actions", ui.action_prefix("Plan"), items.len());
     println!();
 
+    if items.len() > TABLE_THRESHOLD {
+        print_plan_table(ui, items);
+        return;
+    }
+
     for item in items {
         println!(
             "  {}  {} → {} ({})",
@@ -60,6 +66,40 @@ pub(crate) fn print_plan_text(ui: &UiContext, items: &[PlanItem]) {
         );
         for reason in &item.reasons {
             println!("           reason: {reason}");
+        }
+    }
+}
+
+fn print_plan_table(ui: &UiContext, items: &[PlanItem]) {
+    let mut table = ui.table(&["Action", "Skill", "Target", "Mode"]);
+    for item in items {
+        table.add_row(vec![
+            style_plan_action_cell(ui, item.action),
+            item.skill_id.clone(),
+            abbreviate_home_path(&item.target_path),
+            item.install_mode.as_str().to_string(),
+        ]);
+    }
+    println!("{table}");
+
+    let conflicts = items
+        .iter()
+        .filter(|item| matches!(item.action, Action::Conflict) && !item.reasons.is_empty())
+        .collect::<Vec<_>>();
+    if conflicts.is_empty() {
+        return;
+    }
+
+    println!();
+    println!("  Conflicts:");
+    for item in conflicts {
+        println!(
+            "    {} → {}",
+            item.skill_id,
+            abbreviate_home_path(&item.target_path)
+        );
+        for reason in &item.reasons {
+            println!("      reason: {reason}");
         }
     }
 }
@@ -92,6 +132,20 @@ fn style_plan_action_label(ui: &UiContext, action: Action) -> String {
         Action::Noop => padded.dimmed().to_string(),
         Action::Conflict => padded.yellow().to_string(),
         Action::Remove => padded.red().to_string(),
+    }
+}
+
+fn style_plan_action_cell(ui: &UiContext, action: Action) -> String {
+    let label = action_label(action).to_string();
+    if !ui.colors_enabled() {
+        return label;
+    }
+    match action {
+        Action::Create => label.green().to_string(),
+        Action::Update => label.cyan().to_string(),
+        Action::Noop => label.dimmed().to_string(),
+        Action::Conflict => label.yellow().to_string(),
+        Action::Remove => label.red().to_string(),
     }
 }
 

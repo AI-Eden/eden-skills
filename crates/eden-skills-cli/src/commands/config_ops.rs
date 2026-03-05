@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 
 use eden_skills_core::config::SkillConfig;
@@ -6,17 +7,15 @@ use eden_skills_core::config::{
 };
 use eden_skills_core::error::EdenError;
 use eden_skills_core::lock::{lock_path_for_config, write_lock_file, LockFile};
-use eden_skills_core::paths::{
-    colocated_agent_display_label, resolve_path_string, resolve_target_path,
-};
+use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
 use owo_colors::OwoColorize;
 
 use super::common::{
     agent_kind_label, load_config_with_context, normalized_config_toml, parse_target_specs,
-    read_existing_registries, resolve_config_path, write_normalized_config,
+    print_warning, read_existing_registries, resolve_config_path, write_normalized_config,
 };
 use super::{AddRequest, CommandOptions, SetRequest};
-use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
+use crate::ui::{abbreviate_home_path, abbreviate_repo_url, StatusSymbol, UiContext};
 
 pub fn init(config_path: &str, force: bool) -> Result<(), EdenError> {
     let ui = UiContext::from_env(false);
@@ -78,8 +77,9 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, options.strict)?;
+    let ui = UiContext::from_env(options.json);
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        print_warning(&ui, &warning);
     }
 
     let config_dir = config_dir_from_path(config_path);
@@ -125,34 +125,61 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
         return Ok(());
     }
 
-    println!("list: {} skill(s)", skills.len());
+    println!(
+        "{}  {} configured",
+        ui.action_prefix("Skills"),
+        skills.len()
+    );
+    if skills.is_empty() {
+        return Ok(());
+    }
+    println!();
+
+    let mut table = ui.table(&["Skill", "Mode", "Source", "Agents"]);
     for skill in skills {
-        println!(
-            "skill id={} mode={} repo={} ref={} subpath={}",
-            skill.id,
-            skill.install.mode.as_str(),
-            skill.source.repo,
-            skill.source.r#ref,
-            skill.source.subpath
-        );
-        println!(
-            "  verify enabled={} checks={}",
-            skill.verify.enabled,
-            skill.verify.checks.join(",")
-        );
-        for target in &skill.targets {
-            let resolved = resolve_target_path(target, &config_dir)
-                .map(|p| p.display().to_string())
-                .unwrap_or_else(|err| format!("ERROR: {err}"));
-            println!(
-                "  target agent={} path={}",
-                colocated_agent_display_label(&target.agent),
-                resolved
-            );
+        table.add_row(vec![
+            skill.id.clone(),
+            skill.install.mode.as_str().to_string(),
+            abbreviate_repo_url(&skill.source.repo),
+            render_skill_agents(skill, &config_dir),
+        ]);
+    }
+    println!("{table}");
+
+    Ok(())
+}
+
+fn render_skill_agents(skill: &SkillConfig, config_dir: &std::path::Path) -> String {
+    let mut seen = HashSet::new();
+    let mut labels = Vec::new();
+    for target in &skill.targets {
+        let label = if target.agent.as_str() == "custom" {
+            let resolved = resolve_target_path(target, config_dir)
+                .map(|path| abbreviate_home_path(&path.display().to_string()))
+                .unwrap_or_else(|_| {
+                    target
+                        .path
+                        .as_ref()
+                        .map_or_else(|| "unknown".to_string(), ToString::to_string)
+                });
+            format!("custom:{resolved}")
+        } else {
+            agent_kind_label(&target.agent).to_string()
+        };
+        if seen.insert(label.clone()) {
+            labels.push(label);
         }
     }
 
-    Ok(())
+    let mut rendered = labels.join(", ");
+    if skill.safety.no_exec_metadata_only {
+        if rendered.is_empty() {
+            rendered = "(metadata-only)".to_string();
+        } else {
+            rendered.push_str(" (metadata-only)");
+        }
+    }
+    rendered
 }
 
 pub fn add(req: AddRequest) -> Result<(), EdenError> {

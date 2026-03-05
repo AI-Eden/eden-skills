@@ -70,3 +70,20 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 283
+  batch_5_output_upgrade_category_b_tables:
+    status: completed
+    completed_at: "2026-03-05"
+    requirements: TBL-003, TBL-004, TBL-005, TBL-006, TBL-007, OUP-008, OUP-009, OUP-010, OUP-011, OUP-012
+    scenarios: TM-P28-005, TM-P28-006, TM-P28-007, TM-P28-008, TM-P28-009, TM-P28-010, TM-P28-011, TM-P28-029, TM-P28-030, TM-P28-031
+    notes:
+      - added output_upgrade_b_tests.rs with TM-aligned coverage for list/install/plan/update table output and non-TTY/color/json table constraints
+      - upgraded list output in config_ops.rs to UiContext-driven `Skills` header plus `Skill | Mode | Source | Agents` table with source/path abbreviation and metadata-only suffix support
+      - upgraded install dry-run and install --list output in install.rs to table-based human format (`Agent | Path | Mode` and `# | Name | Description`) with >8 discovery truncation footer
+      - added plan table threshold branch in plan_cmd.rs so plans with more than 5 actions render `Action | Skill | Target | Mode` table while <=5 remains text format
+      - upgraded update output in update.rs to action-prefixed registry results table (`Registry | Status | Detail`) plus final failed-count timing footer and styled warning reuse
+      - refreshed legacy assertions in list_command.rs and phase2_commands.rs for new list/update/dry-run human output contracts
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 293

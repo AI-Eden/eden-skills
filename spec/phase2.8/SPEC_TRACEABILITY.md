@@ -13,11 +13,11 @@ Builder execution.
 |---|---|---|---|---|---|
 | TBL-001 | `SPEC_TABLE_RENDERING.md` 2.1 | `comfy-table` MUST be added as dependency | `crates/eden-skills-cli/Cargo.toml` (`comfy-table = "7"`) | `table_infra_tests::comfy_table_dependency_is_declared_in_cli_cargo_toml` (TM-P28-004) | done |
 | TBL-002 | `SPEC_TABLE_RENDERING.md` 3.1 | `UiContext` MUST provide `table()` factory | `crates/eden-skills-cli/src/ui.rs` (`UiContext::table`, `abbreviate_home_path`, `abbreviate_repo_url`) | `table_infra_tests::ui_context_table_uses_utf8_borders_and_bold_headers_on_tty`, `table_infra_tests::ui_context_table_uses_ascii_borders_and_wraps_to_80_on_non_tty`, `table_infra_tests::abbreviate_home_path_replaces_home_prefix_and_preserves_non_home_paths` (TM-P28-032), `table_infra_tests::abbreviate_repo_url_extracts_github_owner_and_repo` (TM-P28-033) | done |
-| TBL-003 | `SPEC_TABLE_RENDERING.md` 5.1 | `list` MUST render as table | | TM-P28-005, TM-P28-006, TM-P28-007 | pending |
-| TBL-004 | `SPEC_TABLE_RENDERING.md` 5.2 | `install --dry-run` targets MUST render as table | | TM-P28-008 | pending |
-| TBL-005 | `SPEC_TABLE_RENDERING.md` 5.3 | `install --list` MUST render as numbered table | | TM-P28-009 | pending |
-| TBL-006 | `SPEC_TABLE_RENDERING.md` 5.4 | `plan` > 5 actions MUST render as table | | TM-P28-010 | pending |
-| TBL-007 | `SPEC_TABLE_RENDERING.md` 5.5 | `update` MUST render results as table | | TM-P28-011 | pending |
+| TBL-003 | `SPEC_TABLE_RENDERING.md` 5.1 | `list` MUST render as table | `crates/eden-skills-cli/src/commands/config_ops.rs` (`list`, `render_skill_agents`) | `output_upgrade_b_tests::tm_p28_005_list_renders_as_table`, `output_upgrade_b_tests::tm_p28_006_list_table_non_tty_degradation`, `output_upgrade_b_tests::tm_p28_007_list_table_json_unchanged`, `list_command::list_text_prints_inventory` | done |
+| TBL-004 | `SPEC_TABLE_RENDERING.md` 5.2 | `install --dry-run` targets MUST render as table | `crates/eden-skills-cli/src/commands/install.rs` (`print_install_dry_run`, dry-run branches in `install_registry_mode_async` / `install_remote_url_mode_async` / `install_local_url_mode_async`) | `output_upgrade_b_tests::tm_p28_008_install_dry_run_renders_targets_table`, `phase2_commands::install_dry_run_displays_resolution_without_side_effects` | done |
+| TBL-005 | `SPEC_TABLE_RENDERING.md` 5.3 | `install --list` MUST render as numbered table | `crates/eden-skills-cli/src/commands/install.rs` (`print_discovered_skills`) | `output_upgrade_b_tests::tm_p28_009_install_list_renders_numbered_table` | done |
+| TBL-006 | `SPEC_TABLE_RENDERING.md` 5.4 | `plan` > 5 actions MUST render as table | `crates/eden-skills-cli/src/commands/plan_cmd.rs` (`print_plan_text`, `print_plan_table`, `style_plan_action_cell`) | `output_upgrade_b_tests::tm_p28_010_plan_table_threshold`, `output_upgrade_b_tests::tm_p28_029_non_tty_tables_use_ascii_borders` | done |
+| TBL-007 | `SPEC_TABLE_RENDERING.md` 5.5 | `update` MUST render results as table | `crates/eden-skills-cli/src/commands/update.rs` (`update_async`, `format_registry_status`) | `output_upgrade_b_tests::tm_p28_011_update_renders_registry_table`, `phase2_commands::update_clones_configured_registries` | done |
 
 ## 2. Output Upgrade Requirements
 
@@ -30,11 +30,11 @@ Builder execution.
 | OUP-005 | `SPEC_OUTPUT_UPGRADE.md` 4.4 | `init` MUST show `✓` and Next steps | `crates/eden-skills-cli/src/commands/config_ops.rs` (`init`, `print_init_next_step`) | `output_upgrade_a2_tests::tm_p28_023_init_next_steps` | done |
 | OUP-006 | `SPEC_OUTPUT_UPGRADE.md` 4.5 | `install` URL-mode MUST emit per-skill lines | `crates/eden-skills-cli/src/commands/install.rs` (`install_remote_url_mode_async`, `install_local_url_mode_async`, `execute_install_plan`, `install_local_source_skill`, `print_install_result_lines`) | `output_upgrade_a2_tests::tm_p28_024_install_per_skill_results` | done |
 | OUP-007 | `SPEC_OUTPUT_UPGRADE.md` 4.6 | `install` discovery MUST use numbered list | `crates/eden-skills-cli/src/commands/install.rs` (`resolve_local_install_selection`, `print_discovery_summary`) | `output_upgrade_a2_tests::tm_p28_025_install_discovery_numbered` | done |
-| OUP-008 | `SPEC_OUTPUT_UPGRADE.md` 4.7 | `list` MUST render as table | | TM-P28-005 | pending |
-| OUP-009 | `SPEC_OUTPUT_UPGRADE.md` 4.9 | `install --dry-run` MUST render targets table | | TM-P28-008 | pending |
-| OUP-010 | `SPEC_OUTPUT_UPGRADE.md` 4.7 | `install --list` MUST render numbered table | | TM-P28-009 | pending |
-| OUP-011 | `SPEC_OUTPUT_UPGRADE.md` 4.3 | `plan` > 5 actions MUST render as table | | TM-P28-010 | pending |
-| OUP-012 | `SPEC_OUTPUT_UPGRADE.md` 4.8 | `update` MUST render registry table | | TM-P28-011 | pending |
+| OUP-008 | `SPEC_OUTPUT_UPGRADE.md` 4.7 | `list` MUST render as table | `crates/eden-skills-cli/src/commands/config_ops.rs` (`list`, `render_skill_agents`) | `output_upgrade_b_tests::tm_p28_005_list_renders_as_table`, `list_command::list_text_prints_inventory` | done |
+| OUP-009 | `SPEC_OUTPUT_UPGRADE.md` 4.9 | `install --dry-run` MUST render targets table | `crates/eden-skills-cli/src/commands/install.rs` (`print_install_dry_run`) | `output_upgrade_b_tests::tm_p28_008_install_dry_run_renders_targets_table`, `phase2_commands::install_dry_run_displays_resolution_without_side_effects` | done |
+| OUP-010 | `SPEC_OUTPUT_UPGRADE.md` 4.7 | `install --list` MUST render numbered table | `crates/eden-skills-cli/src/commands/install.rs` (`print_discovered_skills`) | `output_upgrade_b_tests::tm_p28_009_install_list_renders_numbered_table` | done |
+| OUP-011 | `SPEC_OUTPUT_UPGRADE.md` 4.3 | `plan` > 5 actions MUST render as table | `crates/eden-skills-cli/src/commands/plan_cmd.rs` (`print_plan_text`, `print_plan_table`) | `output_upgrade_b_tests::tm_p28_010_plan_table_threshold` | done |
+| OUP-012 | `SPEC_OUTPUT_UPGRADE.md` 4.8 | `update` MUST render registry table | `crates/eden-skills-cli/src/commands/update.rs` (`update_async`, `format_registry_status`) | `output_upgrade_b_tests::tm_p28_011_update_renders_registry_table`, `phase2_commands::update_clones_configured_registries` | done |
 | OUP-013 | `SPEC_OUTPUT_UPGRADE.md` 5.1 | Error hint MUST use `→` not `hint:` | `crates/eden-skills-cli/src/main.rs` (`print_error`) | `output_upgrade_a1_tests::tm_p28_026_error_hint_uses_arrow`, `output_polish_tests::error_output_uses_error_prefix_and_hint_for_missing_config`, `output_polish_tests::remove_unknown_skill_includes_available_skills_hint` | done |
 | OUP-014 | `SPEC_OUTPUT_UPGRADE.md` 5.3 | Error paths MUST be abbreviated with `~` | `crates/eden-skills-cli/src/commands/common.rs` (`load_config_with_context`), `crates/eden-skills-cli/src/main.rs` (`abbreviate_message_paths`) | `output_upgrade_a1_tests::tm_p28_027_error_path_is_abbreviated` | done |
 | OUP-015 | `SPEC_OUTPUT_UPGRADE.md` 2.1 | All commands MUST use `UiContext` for human output | `crates/eden-skills-cli/src/commands/reconcile.rs` (`apply_async`, `repair_async`), `crates/eden-skills-cli/src/commands/plan_cmd.rs` (`plan`), `crates/eden-skills-cli/src/commands/common.rs` (`print_warning`) | `output_upgrade_a1_tests::tm_p28_012_apply_source_sync_is_styled`, `output_upgrade_a1_tests::tm_p28_017_repair_output_matches_apply_format`, `output_upgrade_a1_tests::tm_p28_021_plan_header_and_colored_actions`, `output_upgrade_a1_tests::tm_p28_022_plan_empty_state` | done |
@@ -65,13 +65,13 @@ Builder execution.
 | TM-P28-002 | `SPEC_TEST_MATRIX.md` 2 | Public API unchanged | | pending |
 | TM-P28-003 | `SPEC_TEST_MATRIX.md` 2 | Module doc comments present | | pending |
 | TM-P28-004 | `SPEC_TEST_MATRIX.md` 3 | comfy-table dependency present | `table_infra_tests::comfy_table_dependency_is_declared_in_cli_cargo_toml` | done |
-| TM-P28-005 | `SPEC_TEST_MATRIX.md` 3 | List renders as table | | pending |
-| TM-P28-006 | `SPEC_TEST_MATRIX.md` 3 | List table non-TTY degradation | | pending |
-| TM-P28-007 | `SPEC_TEST_MATRIX.md` 3 | List table JSON unchanged | | pending |
-| TM-P28-008 | `SPEC_TEST_MATRIX.md` 3 | Install dry-run renders targets table | | pending |
-| TM-P28-009 | `SPEC_TEST_MATRIX.md` 3 | Install list renders numbered table | | pending |
-| TM-P28-010 | `SPEC_TEST_MATRIX.md` 3 | Plan table threshold | | pending |
-| TM-P28-011 | `SPEC_TEST_MATRIX.md` 3 | Update renders registry table | | pending |
+| TM-P28-005 | `SPEC_TEST_MATRIX.md` 3 | List renders as table | `output_upgrade_b_tests::tm_p28_005_list_renders_as_table` | done |
+| TM-P28-006 | `SPEC_TEST_MATRIX.md` 3 | List table non-TTY degradation | `output_upgrade_b_tests::tm_p28_006_list_table_non_tty_degradation` | done |
+| TM-P28-007 | `SPEC_TEST_MATRIX.md` 3 | List table JSON unchanged | `output_upgrade_b_tests::tm_p28_007_list_table_json_unchanged` | done |
+| TM-P28-008 | `SPEC_TEST_MATRIX.md` 3 | Install dry-run renders targets table | `output_upgrade_b_tests::tm_p28_008_install_dry_run_renders_targets_table` | done |
+| TM-P28-009 | `SPEC_TEST_MATRIX.md` 3 | Install list renders numbered table | `output_upgrade_b_tests::tm_p28_009_install_list_renders_numbered_table` | done |
+| TM-P28-010 | `SPEC_TEST_MATRIX.md` 3 | Plan table threshold | `output_upgrade_b_tests::tm_p28_010_plan_table_threshold` | done |
+| TM-P28-011 | `SPEC_TEST_MATRIX.md` 3 | Update renders registry table | `output_upgrade_b_tests::tm_p28_011_update_renders_registry_table` | done |
 | TM-P28-012 | `SPEC_TEST_MATRIX.md` 4 | Apply source sync styled | `output_upgrade_a1_tests::tm_p28_012_apply_source_sync_is_styled` | done |
 | TM-P28-013 | `SPEC_TEST_MATRIX.md` 4 | Apply safety summary styled | `output_upgrade_a1_tests::tm_p28_013_apply_safety_summary_is_styled` | done |
 | TM-P28-014 | `SPEC_TEST_MATRIX.md` 4 | Apply per-skill install lines | `output_upgrade_a1_tests::tm_p28_014_apply_per_skill_install_lines` | done |
@@ -89,9 +89,9 @@ Builder execution.
 | TM-P28-026 | `SPEC_TEST_MATRIX.md` 5 | Error hint uses arrow | `output_upgrade_a1_tests::tm_p28_026_error_hint_uses_arrow` | done |
 | TM-P28-027 | `SPEC_TEST_MATRIX.md` 5 | Error path abbreviated | `output_upgrade_a1_tests::tm_p28_027_error_path_is_abbreviated` | done |
 | TM-P28-028 | `SPEC_TEST_MATRIX.md` 5 | Warning format styled | `output_upgrade_a1_tests::tm_p28_028_warning_format_is_styled` | done |
-| TM-P28-029 | `SPEC_TEST_MATRIX.md` 6 | Non-TTY tables use ASCII borders | | pending |
-| TM-P28-030 | `SPEC_TEST_MATRIX.md` 6 | Color never disables table styling | | pending |
-| TM-P28-031 | `SPEC_TEST_MATRIX.md` 6 | JSON mode never renders tables | | pending |
+| TM-P28-029 | `SPEC_TEST_MATRIX.md` 6 | Non-TTY tables use ASCII borders | `output_upgrade_b_tests::tm_p28_029_non_tty_tables_use_ascii_borders` | done |
+| TM-P28-030 | `SPEC_TEST_MATRIX.md` 6 | Color never disables table styling | `output_upgrade_b_tests::tm_p28_030_color_never_disables_table_styling` | done |
+| TM-P28-031 | `SPEC_TEST_MATRIX.md` 6 | JSON mode never renders tables | `output_upgrade_b_tests::tm_p28_031_json_mode_never_renders_tables` | done |
 | TM-P28-032 | `SPEC_TEST_MATRIX.md` 7 | Home path abbreviated | `table_infra_tests::abbreviate_home_path_replaces_home_prefix_and_preserves_non_home_paths` | done |
 | TM-P28-033 | `SPEC_TEST_MATRIX.md` 7 | Repo URL abbreviated | `table_infra_tests::abbreviate_repo_url_extracts_github_owner_and_repo` | done |
 | TM-P28-034 | `SPEC_TEST_MATRIX.md` 8 | CLI module docs | | pending |

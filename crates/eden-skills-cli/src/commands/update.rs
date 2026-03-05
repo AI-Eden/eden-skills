@@ -8,12 +8,14 @@ use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::resolve_path_string;
 use eden_skills_core::reactor::SkillReactor;
 use eden_skills_core::registry::{parse_registry_specs_from_toml, sort_registry_specs_by_priority};
+use owo_colors::OwoColorize;
 
 use super::common::{
     ensure_git_available, load_config_with_context, read_head_sha, resolve_config_path,
     resolve_effective_reactor_concurrency, run_git_command, REGISTRY_SYNC_MARKER_FILE,
 };
 use super::UpdateRequest;
+use crate::ui::{StatusSymbol, UiContext};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum RegistrySyncStatus {
@@ -50,11 +52,12 @@ struct RegistrySyncResult {
 }
 
 pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
+    let ui = UiContext::from_env(req.options.json);
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        super::common::print_warning(&ui, &warning);
     }
 
     let raw_toml = fs::read_to_string(config_path)?;
@@ -62,7 +65,7 @@ pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
         &parse_registry_specs_from_toml(&raw_toml).map_err(EdenError::from)?,
     );
     if registry_specs.is_empty() {
-        eprintln!("warning: no registries configured; skipping update");
+        super::common::print_warning(&ui, "no registries configured; skipping update");
         return Ok(());
     }
     ensure_git_available()?;
@@ -131,26 +134,61 @@ pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
             .map_err(|err| EdenError::Runtime(format!("failed to encode update json: {err}")))?;
         println!("{encoded}");
     } else {
-        let status_fragments = results
-            .iter()
-            .map(|result| format!("{}={}", result.name, result.status.as_str()))
-            .collect::<Vec<_>>()
-            .join(" ");
-        let elapsed_seconds = elapsed_ms as f64 / 1000.0;
         println!(
-            "registry sync: {status_fragments} ({failed_count} failed) [{elapsed_seconds:.1}s]"
+            "{}  {} registries synced",
+            ui.action_prefix("Update"),
+            results.len()
+        );
+        println!();
+
+        let mut table = ui.table(&["Registry", "Status", "Detail"]);
+        for result in &results {
+            table.add_row(vec![
+                result.name.clone(),
+                format_registry_status(&ui, &result.status),
+                result.detail.clone().unwrap_or_default(),
+            ]);
+        }
+        println!("{table}");
+
+        let elapsed_seconds = elapsed_ms as f64 / 1000.0;
+        let summary_symbol = if failed_count == 0 {
+            StatusSymbol::Success
+        } else {
+            StatusSymbol::Failure
+        };
+        println!();
+        println!(
+            "  {} {} failed [{elapsed_seconds:.1}s]",
+            ui.status_symbol(summary_symbol),
+            failed_count
         );
         for result in results
             .iter()
             .filter(|result| matches!(result.status, RegistrySyncStatus::Failed))
         {
             if let Some(detail) = &result.detail {
-                eprintln!("warning: registry `{}` failed: {detail}", result.name);
+                super::common::print_warning(
+                    &ui,
+                    &format!("registry `{}` failed: {detail}", result.name),
+                );
             }
         }
     }
 
     Ok(())
+}
+
+fn format_registry_status(ui: &UiContext, status: &RegistrySyncStatus) -> String {
+    let label = status.as_str().to_string();
+    if !ui.colors_enabled() {
+        return label;
+    }
+    match status {
+        RegistrySyncStatus::Cloned | RegistrySyncStatus::Updated => label.green().to_string(),
+        RegistrySyncStatus::Skipped => label.dimmed().to_string(),
+        RegistrySyncStatus::Failed => label.red().to_string(),
+    }
 }
 
 async fn sync_registry_task(

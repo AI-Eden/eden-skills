@@ -48,8 +48,20 @@ path = "./targets"
     );
 
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("skill id=demo"), "stdout={stdout}");
-    assert!(stdout.contains("mode=symlink"), "stdout={stdout}");
+    assert!(
+        stdout.contains("Skills") && stdout.contains("configured"),
+        "stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("Skill")
+            && stdout.contains("Mode")
+            && stdout.contains("Source")
+            && stdout.contains("Agents"),
+        "stdout={stdout}"
+    );
+    assert!(stdout.contains("demo"), "stdout={stdout}");
+    assert!(stdout.contains("symlink"), "stdout={stdout}");
+    assert!(!stdout.contains("skill id="), "stdout={stdout}");
 }
 
 #[test]
