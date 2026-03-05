@@ -9,7 +9,7 @@ resolver = "2"
 [workspace.package]
 edition = "2021"
 license = "MIT"
-version = "0.1.75"
+version = "0.1.8"
 repository = "https://github.com/AI-Eden/eden-skills"
 homepage = "https://github.com/AI-Eden/eden-skills"
 categories = []
