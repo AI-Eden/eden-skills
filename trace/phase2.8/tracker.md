@@ -55,3 +55,16 @@
    - Additions: `///` on `print_error` in `main.rs`
    - Tests: new `doc_coverage_tests.rs` with 6 tests (TM-P28-003 ×3, TM-P28-034, TM-P28-035, TM-P28-036)
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (299 total tests)
+7. Batch 7 (Regression & Closeout) is complete with quality gate pass:
+   - Scenarios: `TM-P28-037`, `TM-P28-038`, `TM-P28-039`, `TM-P28-040`
+   - Full regression: 299 tests pass across all Phase 1/2/2.5/2.7/2.8 suites — no test failures
+   - JSON regression: all `--json` test assertions unmodified (`doctor_json_contract`, `plan_json_contract`, `install_json_output_keeps_contract`, `list_table_json_unchanged`, `json_mode_never_renders_tables`)
+   - Exit code regression: `exit_code_matrix` all 11 tests pass — exit codes 0/1/2/3 semantics unchanged
+   - No hardcoded ANSI regression: `rg '\u{1b}\[' crates/` — zero matches in source code
+   - Documentation updated:
+     - `README.md`: Phase 2.8 added to Current Status section
+     - `docs/01-quickstart.md`: apply output example updated to new styled format (`Syncing`/`Safety`/`Install`/`Summary`/`Verification`); doctor output example updated to `Doctor   ✓ no issues detected`
+     - `docs/05-safety-strict-and-exit-codes.md`: error hint format updated to `→` arrow style; path abbreviation documented
+     - `docs/README.md`: Phase 2.8 spec references added (Table Rendering, Output Upgrade, Code Structure)
+   - Traceability: `SPEC_TRACEABILITY.md` updated with TM-P28-037~040 results
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (299 total tests)

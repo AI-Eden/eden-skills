@@ -96,7 +96,8 @@ Non-zero exits can be directly consumed by pipeline gates.
 Phase 2.7 adds explicit output controls and error formatting that are useful in automation:
 
 - `--color auto|always|never` controls ANSI output policy
-- runtime errors use a structured `error:` prefix and a follow-up hint line when actionable guidance exists
+- Runtime errors use a structured `error:` prefix with a `→` arrow hint (dimmed) when actionable guidance exists
+- File paths in error messages are abbreviated with `~` when under `$HOME`
 
 Examples:
 

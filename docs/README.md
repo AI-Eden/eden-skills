@@ -37,6 +37,9 @@ For normative behavior, refer to the spec files:
 - [Phase 2.7 Help Contract](../spec/phase2.7/SPEC_HELP_SYSTEM.md)
 - [Phase 2.7 Output Contract](../spec/phase2.7/SPEC_OUTPUT_POLISH.md)
 - [Phase 2.7 Remove Contract](../spec/phase2.7/SPEC_REMOVE_ENH.md)
+- [Phase 2.8 Table Rendering Contract](../spec/phase2.8/SPEC_TABLE_RENDERING.md)
+- [Phase 2.8 Output Upgrade Contract](../spec/phase2.8/SPEC_OUTPUT_UPGRADE.md)
+- [Phase 2.8 Code Structure Contract](../spec/phase2.8/SPEC_CODE_STRUCTURE.md)
 
 For current implementation state:
 

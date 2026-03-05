@@ -33,7 +33,7 @@ eden-skills doctor
 Expected `doctor` output when everything is healthy:
 
 ```
-doctor: no issues detected
+Doctor   ✓ no issues detected
 ```
 
 If `doctor` reports a broken link, run:
@@ -111,9 +111,11 @@ eden-skills apply
 Expected output:
 
 ```
-source sync: cloned=1 updated=0 skipped=0 failed=0
-apply summary: create=1 update=0 noop=0 conflict=0
-apply verification: ok
+Syncing   1 cloned, 0 updated, 0 skipped, 0 failed
+Safety    1 permissive, 0 non-permissive, 0 unknown
+Install   ✓ frontend-design → ~/.claude/skills/frontend-design (symlink)
+Summary   ✓ 1 created, 0 updated, 0 noop, 0 conflicts
+✓ Verification passed
 ```
 
 `apply` also writes `skills.lock` to track installed commit SHAs and target paths.

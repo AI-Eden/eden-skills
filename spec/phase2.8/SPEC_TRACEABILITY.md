@@ -97,7 +97,7 @@ Builder execution.
 | TM-P28-034 | `SPEC_TEST_MATRIX.md` 8 | CLI module docs | `doc_coverage_tests::tm_p28_034_public_command_functions_have_doc_comments` | done |
 | TM-P28-035 | `SPEC_TEST_MATRIX.md` 8 | Core module docs | `doc_coverage_tests::tm_p28_035_core_modules_have_module_docs` | done |
 | TM-P28-036 | `SPEC_TEST_MATRIX.md` 8 | UiContext documented | `doc_coverage_tests::tm_p28_036_ui_public_items_have_doc_comments` | done |
-| TM-P28-037 | `SPEC_TEST_MATRIX.md` 9 | Full regression | | pending |
-| TM-P28-038 | `SPEC_TEST_MATRIX.md` 9 | JSON regression | | pending |
-| TM-P28-039 | `SPEC_TEST_MATRIX.md` 9 | Exit code regression | | pending |
-| TM-P28-040 | `SPEC_TEST_MATRIX.md` 9 | No hardcoded ANSI regression | | pending |
+| TM-P28-037 | `SPEC_TEST_MATRIX.md` 9 | Full regression | `cargo test --workspace` — 299 tests pass across all Phase 1/2/2.5/2.7/2.8 suites | done |
+| TM-P28-038 | `SPEC_TEST_MATRIX.md` 9 | JSON regression | All `--json` test assertions unmodified: `doctor_json_contract`, `plan_json_contract`, `install_json_output_keeps_contract`, `list_table_json_unchanged`, `json_mode_never_renders_tables` | done |
+| TM-P28-039 | `SPEC_TEST_MATRIX.md` 9 | Exit code regression | `exit_code_matrix` — all 11 tests pass, exit codes 0/1/2/3 semantics unchanged | done |
+| TM-P28-040 | `SPEC_TEST_MATRIX.md` 9 | No hardcoded ANSI regression | `rg '\u{1b}\[' crates/` — zero matches in source code | done |

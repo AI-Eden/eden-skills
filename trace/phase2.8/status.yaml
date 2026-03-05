@@ -107,3 +107,23 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 299
+  batch_7_regression_closeout:
+    status: completed
+    completed_at: "2026-03-05"
+    requirements: []
+    scenarios: TM-P28-037, TM-P28-038, TM-P28-039, TM-P28-040
+    notes:
+      - full regression passed — 299 tests across all Phase 1/2/2.5/2.7/2.8 suites
+      - JSON regression passed — all --json test assertions unmodified (doctor_json_contract, plan_json_contract, install_json, list_json, json_mode_never_renders_tables)
+      - exit code regression passed — exit_code_matrix all 11 tests pass with 0/1/2/3 semantics unchanged
+      - no hardcoded ANSI regression passed — zero \u{1b}[ matches in source code
+      - updated SPEC_TRACEABILITY.md with TM-P28-037~040 results
+      - updated README.md with Phase 2.8 completion status
+      - updated docs/01-quickstart.md with new apply/doctor output examples
+      - updated docs/05-safety-strict-and-exit-codes.md with arrow hint and path abbreviation
+      - updated docs/README.md with Phase 2.8 spec references
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 299
