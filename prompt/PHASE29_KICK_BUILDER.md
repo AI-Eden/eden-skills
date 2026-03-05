@@ -306,24 +306,57 @@ If a handoff prompt is present, it follows this structure:
 
   [Handoff] Phase 2.9, resuming after Batch N.
   - Completed: Batch 1 ... Batch N. All tests green. Test count: XXX.
-  - Current state: (notable state changes since start)
-  - Next: Start Batch N+1.
-  - Known issues: (none / list)
+  - Current state: (brief description of key changes made so far)
+  - Files changed in last batch: (list of modified/created files)
+  - Next: Start Batch N+1. First action: (specific first step).
+  - Known issues: (none / list of spec ambiguities or deferred items)
+
+Example — handoff after Batch 2:
+
+  [Handoff] Phase 2.9, resuming after Batch 2.
+  - Completed: Batch 1 (table DynamicFullWidth + newline fixes),
+    Batch 2 (output consistency + styled_path). All tests green.
+    Test count: 312.
+  - Current state: UiContext::table() uses DynamicFullWidth with
+    UpperBoundary constraints on all tables. print_error() only emits
+    blank line when hint exists. styled_path() added. add/set/import
+    output upgraded. remove candidates use table. All warnings go
+    through print_warning().
+  - Files changed in last batch: ui.rs, config_ops.rs, remove.rs,
+    common.rs, output_consistency_tests.rs.
+  - Next: Start Batch 3. First action: read SPEC_INSTALL_UX.md
+    Sections 2 and 4, then write failing test for card-style discovery
+    preview format.
+  - Known issues: none.
+
+Per-batch handoff state guidance (what to include in "Current state"):
+  After B1: table arrangement mode, column constraints applied, newline
+            fixes in main.rs/lib.rs, which commands audited for trailing
+            blank lines.
+  After B2: styled_path() availability, which commands upgraded
+            (add/set/import/remove), warning path unification status.
+  After B3: discovery function merged (single function name), tree
+            renderer function name and location, card format verified.
+  After B4: progress bar integration in install sync loop, tree display
+            ported to reconcile.rs, summary line format.
+  After B5: --apply flag wired, Mode A refresh logic location, skill
+            status table format, JSON schema extension.
 
 When you see a handoff prompt:
 1. Do NOT re-execute completed batches.
 2. Start from the batch indicated in "Next:".
 3. Run Pre-Flight Check to verify file state is consistent.
-4. Read the source files changed in the most recent completed batch to
+4. Read the source files listed in "Files changed in last batch" to
    understand the current codebase state.
 5. Proceed with the indicated batch.
 
 When the user tells you the session is getting long and asks for a handoff
 prompt, produce one following the structure above. Be precise about:
-- Which batches are complete.
+- Which batches are complete and what each batch accomplished.
 - Current test count (from the last `cargo test --workspace` run).
 - Any spec ambiguities or known issues discovered.
-- The exact next batch number and its first action.
+- The exact next batch number, its first action, and which spec
+  sections to read first.
 
 [Starting Batch]
 Start with Batch 1 (Foundation: Table Fix + Newline Policy). These are
