@@ -1,0 +1,49 @@
+     Running tests\phase2_commands.rs (target\debug\deps\phase2_commands-386bf0229187c632.exe)
+
+running 10 tests
+test apply_concurrency_flag_overrides_config_value_for_validation ... ok
+test install_dry_run_displays_resolution_without_side_effects ... FAILED
+test install_fails_with_update_hint_when_registry_cache_missing ... ok
+test install_resolves_skill_from_registry_and_persists_mode_b_entry ... ok
+test apply_and_repair_accept_concurrency_flag ... ok
+test apply_and_repair_resolve_mode_b_skills_before_source_sync ... ok
+test windows_style_file_url_is_toml_safe_in_test_configs ... ok
+test install_warns_when_registry_manifest_is_missing ... ok
+test tm_p29_026_apply_and_repair_use_tree_style_install_lines ... ok
+test update_clones_configured_registries ... ok
+
+failures:
+
+---- install_dry_run_displays_resolution_without_side_effects stdout ----
+
+thread 'install_dry_run_displays_resolution_without_side_effects' (936) panicked at crates\eden-skills-cli\tests\phase2_commands.rs:631:5:
+expected resolved repo in output, stdout= Dry Run  install preview
+
+  Skill / Version / Source
+
+    +---+---------------+---------+------------------------------------------------+
+    | # | Skill         | Version | Source                                         |
+    +==============================================================================+
+    | 1 | google-search | main    | file:///C:/Users/RUNNER~1/AppData/Local/Temp/. |
+    |   |               |         | tmpyGAGzV/google-search-origin (skill)         |
+    +---+---------------+---------+------------------------------------------------+
+
+  Install Targets
+
+    +-------------+------------------+--------+
+    | Agent       | Path             | Mode   |
+    +=========================================+
+    | claude-code | ~/.claude/skills | symlin |
+    |             |                  | k      |
+    +-------------+------------------+--------+
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    install_dry_run_displays_resolution_without_side_effects
+
+test result: FAILED. 9 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.92s
+
+error: test failed, to rerun pass `-p eden-skills --test phase2_commands`
+Error: Process completed with exit code 1.

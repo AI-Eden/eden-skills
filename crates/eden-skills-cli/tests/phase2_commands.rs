@@ -628,9 +628,14 @@ path = "{target_root}"
         !stdout.contains("target agent="),
         "legacy dry-run key=value target format should be removed, stdout={stdout}"
     );
+    let resolved_repo = as_file_url(&skill_repo);
+    let compact_stdout = stdout
+        .chars()
+        .filter(|ch| !ch.is_ascii_whitespace() && *ch != '|')
+        .collect::<String>();
     assert!(
-        stdout.contains(&as_file_url(&skill_repo)),
-        "expected resolved repo in output, stdout={stdout}"
+        compact_stdout.contains(&resolved_repo),
+        "expected resolved repo in output (repo={resolved_repo}), stdout={stdout}"
     );
 
     let after_config = fs::read_to_string(&config_path).expect("read config after dry-run");
