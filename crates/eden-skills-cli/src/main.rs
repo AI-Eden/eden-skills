@@ -91,6 +91,10 @@ fn install_sigint_cursor_restore_handler() {
             let _ = stderr.write_all(b"\n");
             let _ = stderr.flush();
             restore_terminal_cursor();
+            if eden_skills_cli::signal::prompt_interruptible() {
+                eden_skills_cli::signal::request_prompt_interrupt();
+                return;
+            }
             std::process::exit(130);
         });
     });

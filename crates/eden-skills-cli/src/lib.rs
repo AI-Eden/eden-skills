@@ -6,6 +6,7 @@
 //! every command's human-mode output path.
 
 pub mod commands;
+pub mod signal;
 pub mod ui;
 
 use clap::{Args, Parser, Subcommand};

@@ -352,6 +352,127 @@ path = "{target_root}"
 }
 
 #[test]
+fn tm_p29_026_apply_and_repair_use_tree_style_install_lines() {
+    let temp = tempdir().expect("tempdir");
+    let skill_repo = init_git_repo(
+        temp.path(),
+        "phase1-origin-tree",
+        &[("skill/README.md", "phase1-skill")],
+    );
+
+    let storage_root = temp.path().join("storage");
+    let target_root_a = temp.path().join("agent-target-a");
+    let target_root_b = temp.path().join("agent-target-b");
+    let config_path = temp.path().join("skills.toml");
+    fs::write(
+        &config_path,
+        format!(
+            r#"
+version = 1
+
+[storage]
+root = "{storage_root}"
+
+[[skills]]
+id = "phase1-skill"
+
+[skills.source]
+repo = "{skill_url}"
+subpath = "skill"
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "custom"
+path = "{target_root_a}"
+
+[[skills.targets]]
+agent = "custom"
+path = "{target_root_b}"
+"#,
+            storage_root = toml_escape_path(&storage_root),
+            skill_url = as_file_url(&skill_repo),
+            target_root_a = toml_escape_path(&target_root_a),
+            target_root_b = toml_escape_path(&target_root_b),
+        ),
+    )
+    .expect("write config");
+
+    let apply_output = eden_command(temp.path())
+        .args(["--color", "never", "apply", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run apply");
+    assert_eq!(
+        apply_output.status.code(),
+        Some(0),
+        "apply should succeed, stderr={}",
+        String::from_utf8_lossy(&apply_output.stderr)
+    );
+    let apply_stdout = String::from_utf8_lossy(&apply_output.stdout);
+    assert!(
+        apply_stdout.contains("Install"),
+        "apply output should include Install prefix, stdout={apply_stdout}"
+    );
+    assert!(
+        apply_stdout.contains("✓ phase1-skill"),
+        "apply output should include grouped skill header, stdout={apply_stdout}"
+    );
+    assert!(
+        apply_stdout.contains("├─") && apply_stdout.contains("└─"),
+        "apply output should include tree connectors, stdout={apply_stdout}"
+    );
+    assert!(
+        apply_stdout.contains("(symlink)"),
+        "apply output should include mode label in tree lines, stdout={apply_stdout}"
+    );
+    assert!(
+        !apply_stdout.contains("→"),
+        "legacy arrow line format should be removed from apply output, stdout={apply_stdout}"
+    );
+
+    let target_skill = target_root_a.join("phase1-skill");
+    remove_symlink(&target_skill).expect("remove target symlink");
+    let broken = temp.path().join("broken-link-target-tree");
+    create_symlink(&broken, &target_skill).expect("create broken symlink");
+
+    let repair_output = eden_command(temp.path())
+        .args(["--color", "never", "repair", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run repair");
+    assert_eq!(
+        repair_output.status.code(),
+        Some(0),
+        "repair should succeed, stderr={}",
+        String::from_utf8_lossy(&repair_output.stderr)
+    );
+    let repair_stdout = String::from_utf8_lossy(&repair_output.stdout);
+    assert!(
+        repair_stdout.contains("Install"),
+        "repair output should include Install prefix, stdout={repair_stdout}"
+    );
+    assert!(
+        repair_stdout.contains("✓ phase1-skill"),
+        "repair output should include grouped skill header, stdout={repair_stdout}"
+    );
+    assert!(
+        repair_stdout.contains("└─"),
+        "repair output should include tree-style target connector lines, stdout={repair_stdout}"
+    );
+    assert!(
+        repair_stdout.contains("(symlink)"),
+        "repair output should include mode label in tree lines, stdout={repair_stdout}"
+    );
+    assert!(
+        !repair_stdout.contains("→"),
+        "legacy arrow line format should be removed from repair output, stdout={repair_stdout}"
+    );
+}
+
+#[test]
 fn apply_concurrency_flag_overrides_config_value_for_validation() {
     let temp = tempdir().expect("tempdir");
     let skill_repo = init_git_repo(

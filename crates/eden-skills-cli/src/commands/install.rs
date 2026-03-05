@@ -28,6 +28,7 @@ use eden_skills_core::source_format::{
     derive_skill_id_from_source_repo, detect_install_source, DetectedInstallSource,
     UrlInstallSource,
 };
+use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use owo_colors::OwoColorize;
 
 use crate::ui::{abbreviate_home_path, abbreviate_repo_url, StatusSymbol, UiContext};
@@ -35,9 +36,9 @@ use crate::DEFAULT_CONFIG_PATH;
 
 use super::common::{
     agent_kind_label, apply_plan_item, copy_recursively, ensure_git_available, ensure_parent_dir,
-    load_config_with_context, parse_target_specs, print_source_sync_summary, print_warning,
-    remove_path, resolve_config_path, resolve_registry_mode_skills_for_execution, run_git_command,
-    source_sync_failure_error, write_lock_for_config, write_normalized_config,
+    load_config_with_context, parse_target_specs, print_source_sync_step_summary_human,
+    print_warning, remove_path, resolve_config_path, resolve_registry_mode_skills_for_execution,
+    run_git_command, source_sync_failure_error, write_lock_for_config, write_normalized_config,
 };
 use super::config_ops::default_config_template;
 use super::InstallRequest;
@@ -59,6 +60,81 @@ struct InstallTargetLine {
     skill_id: String,
     target_path: String,
     mode: String,
+}
+
+struct SourceSyncProgress {
+    progress_bar: Option<ProgressBar>,
+    total_steps: usize,
+    synced: usize,
+    failed: usize,
+    emit_test_step_lines: bool,
+}
+
+impl SourceSyncProgress {
+    fn new(ui: &UiContext, total_steps: usize) -> Self {
+        let progress_bar = if ui.spinner_enabled() && total_steps > 0 {
+            let bar = ProgressBar::with_draw_target(
+                Some(total_steps as u64),
+                ProgressDrawTarget::stderr(),
+            );
+            let style = ProgressStyle::with_template("  {prefix} [{pos}/{len}] {msg}")
+                .unwrap_or_else(|_| ProgressStyle::default_bar());
+            bar.set_style(style);
+            bar.set_prefix(ui.action_prefix("Syncing"));
+            Some(bar)
+        } else {
+            None
+        };
+
+        Self {
+            progress_bar,
+            total_steps,
+            synced: 0,
+            failed: 0,
+            emit_test_step_lines: std::env::var("EDEN_SKILLS_FORCE_TTY")
+                .ok()
+                .is_some_and(|value| value == "1"),
+        }
+    }
+
+    fn start_step(&self, skill_id: &str) {
+        if let Some(bar) = &self.progress_bar {
+            bar.set_message(format!("{skill_id}…"));
+        }
+    }
+
+    fn record_step(
+        &mut self,
+        ui: &UiContext,
+        zero_based_step: usize,
+        skill_id: &str,
+        failed: bool,
+    ) {
+        if failed {
+            self.failed += 1;
+        } else {
+            self.synced += 1;
+        }
+        if self.emit_test_step_lines {
+            println!(
+                "  {} [{}/{}] {}…",
+                ui.action_prefix("Syncing"),
+                zero_based_step + 1,
+                self.total_steps,
+                skill_id
+            );
+        }
+        if let Some(bar) = &self.progress_bar {
+            bar.set_position((zero_based_step + 1) as u64);
+        }
+    }
+
+    fn finish(self, ui: &UiContext) {
+        if let Some(bar) = self.progress_bar {
+            bar.finish_and_clear();
+        }
+        print_source_sync_step_summary_human(ui, self.synced, self.failed);
+    }
 }
 
 impl InstallExecutionSummary {
@@ -198,9 +274,12 @@ async fn install_registry_mode_async(
     write_normalized_config(config_path, &config)?;
 
     ensure_git_available()?;
+    let mut sync_progress = SourceSyncProgress::new(ui, 1);
+    sync_progress.start_step(skill_name);
     let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
+    sync_progress.record_step(ui, 0, skill_name, sync_summary.failed > 0);
     if !req.options.json {
-        print_source_sync_summary(&sync_summary);
+        sync_progress.finish(ui);
     }
     if let Some(err) = source_sync_failure_error(&sync_summary) {
         return Err(err);
@@ -355,18 +434,26 @@ async fn install_remote_url_mode_async(
     write_normalized_config(config_path, &config)?;
 
     let mut execution_summary = InstallExecutionSummary::default();
-    for skill_id in &selected_ids {
+    let mut sync_progress = SourceSyncProgress::new(ui, selected_ids.len());
+    let mut sync_error: Option<EdenError> = None;
+    for (index, skill_id) in selected_ids.iter().enumerate() {
+        sync_progress.start_step(skill_id);
         let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
         let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
-        if !req.options.json {
-            print_source_sync_summary(&sync_summary);
-        }
+        sync_progress.record_step(ui, index, skill_id, sync_summary.failed > 0);
         if let Some(err) = source_sync_failure_error(&sync_summary) {
-            return Err(err);
+            sync_error = Some(err);
+            break;
         }
         let skill_summary =
             execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
         execution_summary.merge(skill_summary);
+    }
+    if !req.options.json {
+        sync_progress.finish(ui);
+    }
+    if let Some(err) = sync_error {
+        return Err(err);
     }
 
     let full_loaded = load_config_with_context(config_path, false)?;
@@ -751,18 +838,32 @@ fn prompt_install_all(skill_count: usize) -> Result<PromptOutcome<bool>, EdenErr
         )));
     }
 
+    let _interrupt_guard = crate::signal::PromptInterruptGuard::new();
     match Confirm::new()
         .with_prompt(format!("Install all {skill_count} skills?"))
         .default(true)
         .interact()
     {
-        Ok(value) => Ok(PromptOutcome::Value(value)),
+        Ok(value) => {
+            if crate::signal::take_prompt_interrupt() {
+                Ok(PromptOutcome::Cancelled)
+            } else {
+                Ok(PromptOutcome::Value(value))
+            }
+        }
         Err(dialoguer::Error::IO(err)) if err.kind() == std::io::ErrorKind::Interrupted => {
+            let _ = crate::signal::take_prompt_interrupt();
             Ok(PromptOutcome::Cancelled)
         }
-        Err(err) => Err(EdenError::Runtime(format!(
-            "interactive prompt failed: {err}"
-        ))),
+        Err(err) => {
+            if crate::signal::take_prompt_interrupt() {
+                Ok(PromptOutcome::Cancelled)
+            } else {
+                Err(EdenError::Runtime(format!(
+                    "interactive prompt failed: {err}"
+                )))
+            }
+        }
     }
 }
 
@@ -778,15 +879,25 @@ fn prompt_skill_names() -> Result<PromptOutcome<Vec<String>>, EdenError> {
         ));
     }
 
+    let _interrupt_guard = crate::signal::PromptInterruptGuard::new();
     let input: String = match Input::new()
         .with_prompt("Enter skill names to install (space-separated)")
         .interact_text()
     {
-        Ok(value) => value,
+        Ok(value) => {
+            if crate::signal::take_prompt_interrupt() {
+                return Ok(PromptOutcome::Cancelled);
+            }
+            value
+        }
         Err(dialoguer::Error::IO(err)) if err.kind() == std::io::ErrorKind::Interrupted => {
+            let _ = crate::signal::take_prompt_interrupt();
             return Ok(PromptOutcome::Cancelled);
         }
         Err(err) => {
+            if crate::signal::take_prompt_interrupt() {
+                return Ok(PromptOutcome::Cancelled);
+            }
             return Err(EdenError::Runtime(format!(
                 "interactive prompt failed: {err}"
             )));

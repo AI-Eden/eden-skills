@@ -79,20 +79,24 @@ pub async fn remove_many_async(
 
     let config_dir = config_dir_from_path(config_path);
     let mut config = loaded.config;
-    let removal_ids = resolve_remove_ids(&config, skill_ids, &ui)?;
+    let removal_ids = match resolve_remove_ids(&config, skill_ids, &ui)? {
+        RemoveSelection::Cancelled => {
+            print_remove_cancelled(&ui);
+            return Ok(());
+        }
+        RemoveSelection::SkillIds(ids) => ids,
+    };
     if removal_ids.is_empty() {
         return Ok(());
     }
     validate_remove_ids(&config, &removal_ids, skill_ids.len() == 1)?;
 
-    if !confirm_remove_execution(&removal_ids, skip_confirmation, &ui)? {
-        if !options.json {
-            println!(
-                "  {} Remove cancelled",
-                ui.status_symbol(StatusSymbol::Skipped)
-            );
+    match confirm_remove_execution(&removal_ids, skip_confirmation, &ui)? {
+        PromptOutcome::Cancelled | PromptOutcome::Value(false) => {
+            print_remove_cancelled(&ui);
+            return Ok(());
         }
-        return Ok(());
+        PromptOutcome::Value(true) => {}
     }
 
     let mut removed = Vec::with_capacity(removal_ids.len());
@@ -138,20 +142,30 @@ pub async fn remove_many_async(
     Ok(())
 }
 
+enum RemoveSelection {
+    SkillIds(Vec<String>),
+    Cancelled,
+}
+
+enum PromptOutcome<T> {
+    Value(T),
+    Cancelled,
+}
+
 fn resolve_remove_ids(
     config: &Config,
     skill_ids: &[String],
     ui: &UiContext,
-) -> Result<Vec<String>, EdenError> {
+) -> Result<RemoveSelection, EdenError> {
     if !skill_ids.is_empty() {
-        return Ok(unique_ids(skill_ids));
+        return Ok(RemoveSelection::SkillIds(unique_ids(skill_ids)));
     }
 
     if config.skills.is_empty() {
         println!("  Skills   0 configured");
         println!();
         println!("  Nothing to remove.");
-        return Ok(Vec::new());
+        return Ok(RemoveSelection::SkillIds(Vec::new()));
     }
 
     if !ui.interactive_enabled() {
@@ -162,7 +176,10 @@ fn resolve_remove_ids(
     }
 
     print_remove_candidates(config, ui);
-    let selection = prompt_remove_selection()?;
+    let selection = match prompt_remove_selection()? {
+        PromptOutcome::Cancelled => return Ok(RemoveSelection::Cancelled),
+        PromptOutcome::Value(selection) => selection,
+    };
     let selected = parse_remove_selection(config, &selection)?;
     if selected.is_empty() {
         return Err(EdenError::InvalidArguments(with_hint(
@@ -170,7 +187,7 @@ fn resolve_remove_ids(
             "Usage: eden-skills remove <SKILL_ID>...",
         )));
     }
-    Ok(selected)
+    Ok(RemoveSelection::SkillIds(selected))
 }
 
 fn validate_remove_ids(
@@ -216,21 +233,49 @@ fn confirm_remove_execution(
     removal_ids: &[String],
     skip_confirmation: bool,
     ui: &UiContext,
-) -> Result<bool, EdenError> {
+) -> Result<PromptOutcome<bool>, EdenError> {
     if skip_confirmation || !ui.interactive_enabled() {
-        return Ok(true);
+        return Ok(PromptOutcome::Value(true));
     }
 
     if let Ok(response) = std::env::var("EDEN_SKILLS_TEST_CONFIRM") {
         let normalized = response.trim().to_ascii_lowercase();
-        return Ok(matches!(normalized.as_str(), "y" | "yes" | "true"));
+        if normalized == "interrupt" {
+            return Ok(PromptOutcome::Cancelled);
+        }
+        return Ok(PromptOutcome::Value(matches!(
+            normalized.as_str(),
+            "y" | "yes" | "true"
+        )));
     }
 
-    Confirm::new()
+    let _interrupt_guard = crate::signal::PromptInterruptGuard::new();
+    match Confirm::new()
         .with_prompt(format!("Remove {}?", removal_ids.join(", ")))
         .default(false)
         .interact()
-        .map_err(|err| EdenError::Runtime(format!("interactive prompt failed: {err}")))
+    {
+        Ok(value) => {
+            if crate::signal::take_prompt_interrupt() {
+                Ok(PromptOutcome::Cancelled)
+            } else {
+                Ok(PromptOutcome::Value(value))
+            }
+        }
+        Err(dialoguer::Error::IO(err)) if err.kind() == std::io::ErrorKind::Interrupted => {
+            let _ = crate::signal::take_prompt_interrupt();
+            Ok(PromptOutcome::Cancelled)
+        }
+        Err(err) => {
+            if crate::signal::take_prompt_interrupt() {
+                Ok(PromptOutcome::Cancelled)
+            } else {
+                Err(EdenError::Runtime(format!(
+                    "interactive prompt failed: {err}"
+                )))
+            }
+        }
+    }
 }
 
 fn print_remove_summary(ui: &UiContext, removed: &[String]) {
@@ -277,16 +322,50 @@ fn print_remove_candidates(config: &Config, ui: &UiContext) {
     println!("  Enter skill numbers or names to remove (space-separated):");
 }
 
-fn prompt_remove_selection() -> Result<String, EdenError> {
+fn prompt_remove_selection() -> Result<PromptOutcome<String>, EdenError> {
     if let Ok(raw) = std::env::var("EDEN_SKILLS_TEST_REMOVE_INPUT") {
-        return Ok(raw);
+        if raw.trim().eq_ignore_ascii_case("interrupt") {
+            return Ok(PromptOutcome::Cancelled);
+        }
+        return Ok(PromptOutcome::Value(raw));
     }
 
-    Input::new()
+    let _interrupt_guard = crate::signal::PromptInterruptGuard::new();
+    match Input::new()
         .with_prompt(">")
         .allow_empty(false)
         .interact_text()
-        .map_err(|err| EdenError::Runtime(format!("interactive prompt failed: {err}")))
+    {
+        Ok(selection) => {
+            if crate::signal::take_prompt_interrupt() {
+                Ok(PromptOutcome::Cancelled)
+            } else {
+                Ok(PromptOutcome::Value(selection))
+            }
+        }
+        Err(dialoguer::Error::IO(err)) if err.kind() == std::io::ErrorKind::Interrupted => {
+            let _ = crate::signal::take_prompt_interrupt();
+            Ok(PromptOutcome::Cancelled)
+        }
+        Err(err) => {
+            if crate::signal::take_prompt_interrupt() {
+                Ok(PromptOutcome::Cancelled)
+            } else {
+                Err(EdenError::Runtime(format!(
+                    "interactive prompt failed: {err}"
+                )))
+            }
+        }
+    }
+}
+
+fn print_remove_cancelled(ui: &UiContext) {
+    if !ui.json_mode() {
+        println!(
+            "  {} Remove cancelled",
+            ui.status_symbol(StatusSymbol::Skipped)
+        );
+    }
 }
 
 fn style_skill_id(ui: &UiContext, skill_id: &str) -> String {

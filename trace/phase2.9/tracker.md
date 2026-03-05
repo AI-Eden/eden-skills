@@ -11,7 +11,7 @@ Started: 2026-03-05
 | 1 | Foundation: Table Fix + Newline Policy | WP-1 + WP-5 | TFX-001~003, NLP-001~006 | completed |
 | 2 | Output Consistency | WP-4 | OCN-001~010 | completed |
 | 3 | Install UX: Card Preview + Tree Display | WP-3 pt1 | IUX-001~003, IUX-006~007, IUX-009 | completed |
-| 4 | Install UX: Step Progress + Apply/Repair Integration | WP-3 pt2 | IUX-004~005, IUX-008 | pending |
+| 4 | Install UX: Step Progress + Apply/Repair Integration | WP-3 pt2 | IUX-004~005, IUX-008 | completed |
 | 5 | Update Extension | WP-2 | UPD-001~008 | pending |
 | 6 | Regression + Closeout | — | TM regression | pending |
 
@@ -101,3 +101,36 @@ Started: 2026-03-05
 - Manual scenarios:
   - `TM-P29-025` remains pending for terminal visual verification of tree connector/path/mode coloring.
   - SIGINT cursor-restore path remains pending for terminal manual verification.
+
+### Batch 4 — Install UX: Step Progress + Apply/Repair Integration (Completed 2026-03-06)
+
+- Requirements in scope: `IUX-004`, `IUX-005`, `IUX-008`
+- Completed in this pass:
+  - Added install source-sync step progress runner (`SourceSyncProgress`) for URL/registry install flows with TTY step markers (`[pos/len]`) and per-step message updates.
+  - Replaced install source-sync key-value output with compact completion summary line: `Syncing  N synced, M failed`.
+  - Added shared summary helper `print_source_sync_step_summary_human()` in `commands/common.rs`.
+  - Updated install sync loops to aggregate synced/failed counts and emit one summary line per install run (TTY and non-TTY human mode).
+  - Ported `apply`/`repair` install output from flat arrow lines to grouped tree output in `reconcile.rs`:
+    - skill header once (`✓ skill-id`)
+    - target children as `├─` / `└─`
+    - dimmed connectors/mode labels and styled paths preserved.
+  - Added/updated tests:
+    - `tm_p29_020_source_sync_shows_step_style_progress_in_tty`
+    - `tm_p29_021_source_sync_prints_summary_line_after_completion`
+    - `tm_p29_022_non_tty_source_sync_skips_progress_bar_and_keeps_summary`
+    - `tm_p29_026_apply_and_repair_use_tree_style_install_lines`
+    - Updated regression expectation: `tm_p28_014_apply_per_skill_install_lines`
+  - Follow-up hardening:
+    - Added cooperative SIGINT prompt handling (`signal::PromptInterruptGuard`) so Ctrl+C during interactive prompt reads is deferred to command-level cancellation handling.
+    - Aligned `remove` interruption semantics with `install` for both confirmation and selection prompts.
+    - Added interruption regression tests:
+      - `remove_confirm_interrupt_is_handled_as_graceful_cancellation`
+      - `remove_selection_interrupt_is_handled_as_graceful_cancellation`
+- Validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace` ✅
+  - Test inventory: `331`
+- Manual scenarios still pending:
+  - `TM-P29-004`, `TM-P29-005`, `TM-P29-025`, `TM-P29-034`
+  - SIGINT cursor-restore behavior in a real terminal session

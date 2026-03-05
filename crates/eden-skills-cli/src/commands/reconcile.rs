@@ -35,6 +35,13 @@ use super::common::{
 use super::CommandOptions;
 use crate::ui::{StatusSymbol, UiContext};
 
+#[derive(Debug)]
+struct AppliedInstallTargetLine {
+    skill_id: String,
+    target_path: String,
+    mode: String,
+}
+
 /// Synchronous wrapper around [`apply_async`] using a single-threaded runtime.
 ///
 /// # Errors
@@ -107,7 +114,8 @@ pub async fn apply_async(
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
     let plan = build_plan(&execution_config, &config_dir)?;
-    let mut install_prefix_emitted = false;
+    let mut applied_targets: Vec<AppliedInstallTargetLine> = Vec::new();
+    let mut skipped_skill_ids: Vec<String> = Vec::new();
 
     let mut created = 0usize;
     let mut updated = 0usize;
@@ -118,40 +126,36 @@ pub async fn apply_async(
         match item.action {
             Action::Create => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
+                    push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
                 apply_plan_item(item)?;
                 created += 1;
-                print_install_applied_line(
-                    &ui,
-                    &mut install_prefix_emitted,
-                    &item.skill_id,
-                    &item.target_path,
-                    item.install_mode.as_str(),
-                );
+                applied_targets.push(AppliedInstallTargetLine {
+                    skill_id: item.skill_id.clone(),
+                    target_path: item.target_path.clone(),
+                    mode: item.install_mode.as_str().to_string(),
+                });
             }
             Action::Update => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
+                    push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
                 apply_plan_item(item)?;
                 updated += 1;
-                print_install_applied_line(
-                    &ui,
-                    &mut install_prefix_emitted,
-                    &item.skill_id,
-                    &item.target_path,
-                    item.install_mode.as_str(),
-                );
+                applied_targets.push(AppliedInstallTargetLine {
+                    skill_id: item.skill_id.clone(),
+                    target_path: item.target_path.clone(),
+                    mode: item.install_mode.as_str().to_string(),
+                });
             }
             Action::Noop => {
                 noops += 1;
             }
             Action::Conflict => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
+                    push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
                 conflicts += 1;
@@ -159,6 +163,7 @@ pub async fn apply_async(
             Action::Remove => {}
         }
     }
+    print_install_result_lines(&ui, &applied_targets, &skipped_skill_ids);
 
     println!(
         "{}  {} {} created, {} updated, {} noop, {} conflicts, {} removed",
@@ -257,7 +262,8 @@ pub async fn repair_async(
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
     let plan = build_plan(&execution_config, &config_dir)?;
-    let mut install_prefix_emitted = false;
+    let mut applied_targets: Vec<AppliedInstallTargetLine> = Vec::new();
+    let mut skipped_skill_ids: Vec<String> = Vec::new();
 
     let mut created = 0usize;
     let mut updated = 0usize;
@@ -268,37 +274,33 @@ pub async fn repair_async(
         match item.action {
             Action::Create => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
+                    push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
                 apply_plan_item(item)?;
                 created += 1;
-                print_install_applied_line(
-                    &ui,
-                    &mut install_prefix_emitted,
-                    &item.skill_id,
-                    &item.target_path,
-                    item.install_mode.as_str(),
-                );
+                applied_targets.push(AppliedInstallTargetLine {
+                    skill_id: item.skill_id.clone(),
+                    target_path: item.target_path.clone(),
+                    mode: item.install_mode.as_str().to_string(),
+                });
             }
             Action::Update => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
+                    push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
                 apply_plan_item(item)?;
                 updated += 1;
-                print_install_applied_line(
-                    &ui,
-                    &mut install_prefix_emitted,
-                    &item.skill_id,
-                    &item.target_path,
-                    item.install_mode.as_str(),
-                );
+                applied_targets.push(AppliedInstallTargetLine {
+                    skill_id: item.skill_id.clone(),
+                    target_path: item.target_path.clone(),
+                    mode: item.install_mode.as_str().to_string(),
+                });
             }
             Action::Conflict => {
                 if no_exec_skill_ids.contains(item.skill_id.as_str()) {
-                    print_install_skipped_line(&ui, &mut install_prefix_emitted, &item.skill_id);
+                    push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
                 conflicts += 1;
@@ -309,6 +311,7 @@ pub async fn repair_async(
             Action::Remove => {}
         }
     }
+    print_install_result_lines(&ui, &applied_targets, &skipped_skill_ids);
 
     println!(
         "{}  {} {} created, {} updated, {} noop, {} conflicts, {} removed",
@@ -436,41 +439,79 @@ fn remove_from_known_local_agent_targets(
     Ok(())
 }
 
-fn print_install_applied_line(
-    ui: &UiContext,
-    install_prefix_emitted: &mut bool,
-    skill_id: &str,
-    target_path: &str,
-    mode: &str,
-) {
-    let prefix = if *install_prefix_emitted {
-        "          ".to_string()
-    } else {
-        *install_prefix_emitted = true;
-        format!("{}  ", ui.action_prefix("Install"))
-    };
-    println!(
-        "{prefix}{} {} {} {} {}",
-        ui.status_symbol(StatusSymbol::Success),
-        style_skill_id(ui, skill_id),
-        style_arrow(ui),
-        ui.styled_path(target_path),
-        style_mode_label(ui, mode),
-    );
+fn push_skipped_skill(skipped_skill_ids: &mut Vec<String>, skill_id: &str) {
+    if !skipped_skill_ids
+        .iter()
+        .any(|existing| existing == skill_id)
+    {
+        skipped_skill_ids.push(skill_id.to_string());
+    }
 }
 
-fn print_install_skipped_line(ui: &UiContext, install_prefix_emitted: &mut bool, skill_id: &str) {
-    let prefix = if *install_prefix_emitted {
-        "          ".to_string()
-    } else {
-        *install_prefix_emitted = true;
-        format!("{}  ", ui.action_prefix("Install"))
-    };
-    println!(
-        "{prefix}{} {} (skipped: metadata-only)",
-        ui.status_symbol(StatusSymbol::Skipped),
-        style_skill_id(ui, skill_id),
-    );
+fn print_install_result_lines(
+    ui: &UiContext,
+    applied_targets: &[AppliedInstallTargetLine],
+    skipped_skill_ids: &[String],
+) {
+    if applied_targets.is_empty() && skipped_skill_ids.is_empty() {
+        return;
+    }
+
+    let mut install_prefix_emitted = false;
+    for (skill_id, targets) in group_install_targets(applied_targets) {
+        let prefix = if install_prefix_emitted {
+            "          ".to_string()
+        } else {
+            install_prefix_emitted = true;
+            format!("{}  ", ui.action_prefix("Install"))
+        };
+        println!(
+            "{prefix}{} {}",
+            ui.status_symbol(StatusSymbol::Success),
+            style_skill_id(ui, &skill_id),
+        );
+        for (index, target) in targets.iter().enumerate() {
+            let connector = if index + 1 == targets.len() {
+                "└─"
+            } else {
+                "├─"
+            };
+            println!(
+                "             {} {} {}",
+                style_tree_connector(ui, connector),
+                ui.styled_path(&target.target_path),
+                style_mode_label(ui, &target.mode)
+            );
+        }
+    }
+
+    for skill_id in skipped_skill_ids {
+        let prefix = if install_prefix_emitted {
+            "          ".to_string()
+        } else {
+            install_prefix_emitted = true;
+            format!("{}  ", ui.action_prefix("Install"))
+        };
+        println!(
+            "{prefix}{} {} (skipped: metadata-only)",
+            ui.status_symbol(StatusSymbol::Skipped),
+            style_skill_id(ui, skill_id),
+        );
+    }
+}
+
+fn group_install_targets(
+    targets: &[AppliedInstallTargetLine],
+) -> Vec<(String, Vec<&AppliedInstallTargetLine>)> {
+    let mut groups: Vec<(String, Vec<&AppliedInstallTargetLine>)> = Vec::new();
+    for target in targets {
+        if let Some(group) = groups.last_mut().filter(|(id, _)| id == &target.skill_id) {
+            group.1.push(target);
+        } else {
+            groups.push((target.skill_id.clone(), vec![target]));
+        }
+    }
+    groups
 }
 
 fn print_remove_lines(ui: &UiContext, removed_skill_ids: &[String]) {
@@ -515,11 +556,10 @@ fn style_mode_label(ui: &UiContext, mode: &str) -> String {
     }
 }
 
-fn style_arrow(ui: &UiContext) -> String {
-    let arrow = "→";
+fn style_tree_connector(ui: &UiContext, connector: &str) -> String {
     if ui.colors_enabled() {
-        arrow.dimmed().to_string()
+        connector.dimmed().to_string()
     } else {
-        arrow.to_string()
+        connector.to_string()
     }
 }

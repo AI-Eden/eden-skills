@@ -61,20 +61,24 @@ fn tm_p28_014_apply_per_skill_install_lines() {
         "expected Install action section, stdout={stdout}"
     );
     assert!(
-        stdout.contains("✓ alpha-skill →"),
-        "expected per-target install line for alpha-skill, stdout={stdout}"
+        stdout.contains("✓ alpha-skill"),
+        "expected grouped install header for alpha-skill, stdout={stdout}"
     );
     assert!(
-        stdout.contains("✓ beta-skill →"),
-        "expected per-target install line for beta-skill, stdout={stdout}"
+        stdout.contains("✓ beta-skill"),
+        "expected grouped install header for beta-skill, stdout={stdout}"
     );
     assert!(
-        stdout.matches("→").count() >= 4,
-        "expected at least 4 target install arrows (2 skills x 2 targets), stdout={stdout}"
+        stdout.matches("├─").count() >= 2 && stdout.matches("└─").count() >= 2,
+        "expected tree-style per-target lines for both skills, stdout={stdout}"
     );
     assert!(
         stdout.contains("(symlink)"),
         "expected install mode marker on per-target lines, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("→"),
+        "legacy arrow line format should be removed from apply install output, stdout={stdout}"
     );
 }
 

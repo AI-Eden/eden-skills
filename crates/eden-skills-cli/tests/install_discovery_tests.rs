@@ -831,6 +831,132 @@ fn tm_p29_019_discovery_preview_truncates_to_eight_in_interactive_mode() {
 }
 
 #[test]
+fn tm_p29_020_source_sync_shows_step_style_progress_in_tty() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = init_git_skill_repo(temp.path(), "remote-progress-tty", &["skill-a", "skill-b"]);
+    let source = as_file_url(&repo_dir);
+    let config_path = temp.path().join("skills.toml");
+
+    let output = eden_command(&home_dir)
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .args([
+            "--color",
+            "never",
+            "install",
+            &source,
+            "--all",
+            "--target",
+            "claude-code",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let combined = combined_output_text(&output);
+    assert!(
+        combined.contains("Syncing"),
+        "sync output should include Syncing progress prefix, output={combined}"
+    );
+    assert!(
+        combined.contains("[1/2]") || combined.contains("[2/2]"),
+        "TTY sync output should include step-style [pos/len] markers, output={combined}"
+    );
+}
+
+#[test]
+fn tm_p29_021_source_sync_prints_summary_line_after_completion() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = init_git_skill_repo(temp.path(), "remote-sync-summary-tty", &["skill-a"]);
+    let source = as_file_url(&repo_dir);
+    let config_path = temp.path().join("skills.toml");
+
+    let output = eden_command(&home_dir)
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .args([
+            "--color",
+            "never",
+            "install",
+            &source,
+            "--all",
+            "--target",
+            "claude-code",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Syncing") && stdout.contains("synced") && stdout.contains("failed"),
+        "sync output should include completion summary line, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("source sync:"),
+        "legacy source sync key-value line should be removed, stdout={stdout}"
+    );
+}
+
+#[test]
+fn tm_p29_022_non_tty_source_sync_skips_progress_bar_and_keeps_summary() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = init_git_skill_repo(temp.path(), "remote-sync-summary-non-tty", &["skill-a"]);
+    let source = as_file_url(&repo_dir);
+    let config_path = temp.path().join("skills.toml");
+
+    let output = eden_command(&home_dir)
+        .env_remove("EDEN_SKILLS_FORCE_TTY")
+        .args([
+            "--color",
+            "never",
+            "install",
+            &source,
+            "--all",
+            "--target",
+            "claude-code",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let combined = combined_output_text(&output);
+    assert!(
+        stdout.contains("Syncing") && stdout.contains("synced") && stdout.contains("failed"),
+        "non-TTY sync should still print compact summary line, stdout={stdout}"
+    );
+    assert!(
+        !combined.contains("[1/1]"),
+        "non-TTY sync should not render step progress markers, output={combined}"
+    );
+}
+
+#[test]
 fn tm_p29_023_install_results_use_tree_display_with_connectors() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
@@ -1298,6 +1424,14 @@ fn as_file_url(path: &Path) -> String {
         normalized.insert(0, '/');
     }
     format!("file://{normalized}")
+}
+
+fn combined_output_text(output: &std::process::Output) -> String {
+    format!(
+        "{}\n{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
+    )
 }
 
 fn extract_discovery_preview_block(stdout: &str) -> String {

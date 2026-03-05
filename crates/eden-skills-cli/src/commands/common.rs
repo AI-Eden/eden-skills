@@ -286,10 +286,12 @@ pub(crate) fn unique_ids(ids: &[String]) -> Vec<String> {
     unique
 }
 
-pub(crate) fn print_source_sync_summary(summary: &SyncSummary) {
+pub(crate) fn print_source_sync_step_summary_human(ui: &UiContext, synced: usize, failed: usize) {
     println!(
-        "source sync: cloned={} updated={} skipped={} failed={}",
-        summary.cloned, summary.updated, summary.skipped, summary.failed
+        "{}  {} synced, {} failed",
+        ui.action_prefix("Syncing"),
+        style_count(ui, synced, CountStyle::GreenIfNonZero),
+        style_count(ui, failed, CountStyle::RedIfNonZero),
     );
 }
 

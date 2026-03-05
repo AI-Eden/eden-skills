@@ -176,6 +176,70 @@ fn remove_yes_flag_skips_confirmation_prompt() {
 }
 
 #[test]
+fn remove_confirm_interrupt_is_handled_as_graceful_cancellation() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let config_path = temp.path().join("skills.toml");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("targets");
+    write_config(&config_path, &storage_root, &target_root, &["interrupt-me"]);
+
+    let output = eden_command(&home_dir)
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .env("EDEN_SKILLS_TEST_CONFIRM", "interrupt")
+        .args(["remove", "interrupt-me", "--color", "never", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run remove with interrupted confirmation");
+    assert_success(&output);
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("  · Remove cancelled"),
+        "interrupted confirmation should emit cancellation line, stdout={stdout}"
+    );
+    let remaining = read_skill_ids(&config_path);
+    assert_eq!(
+        remaining,
+        vec!["interrupt-me".to_string()],
+        "interrupted confirmation should keep config unchanged"
+    );
+}
+
+#[test]
+fn remove_selection_interrupt_is_handled_as_graceful_cancellation() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let config_path = temp.path().join("skills.toml");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("targets");
+    write_config(&config_path, &storage_root, &target_root, &["a", "b"]);
+
+    let output = eden_command(&home_dir)
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "interrupt")
+        .args(["remove", "--color", "never", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run interactive remove with interrupted selection");
+    assert_success(&output);
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("  · Remove cancelled"),
+        "interrupted selection should emit cancellation line, stdout={stdout}"
+    );
+    let remaining = read_skill_ids(&config_path);
+    assert_eq!(
+        remaining,
+        vec!["a".to_string(), "b".to_string()],
+        "interrupted selection should keep config unchanged"
+    );
+}
+
+#[test]
 fn install_yes_flag_skips_prompts_for_multi_skill_repo() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");

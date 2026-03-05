@@ -64,7 +64,7 @@ batches:
     name: "Install UX: Step Progress + Apply/Repair Integration"
     work_packages: [WP-3-pt2]
     requirements: [IUX-004, IUX-005, IUX-008]
-    status: pending
+    status: completed
   batch5:
     name: "Update Extension"
     work_packages: [WP-2]
@@ -142,3 +142,23 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 325
+  batch_4_install_ux_step_progress_apply_repair_integration:
+    status: completed
+    started_at: "2026-03-06"
+    completed_at: "2026-03-06"
+    requirements: IUX-004, IUX-005, IUX-008
+    scenarios: TM-P29-020, TM-P29-021, TM-P29-022, TM-P29-026
+    notes:
+      - replaced install URL-mode source-sync key-value lines with step-progress rendering via `SourceSyncProgress` (`[pos/len]` in TTY) and compact sync summary output
+      - added compact sync summary helper `print_source_sync_step_summary_human()` and used it for both TTY and non-TTY install source-sync completion output
+      - updated install source-sync loops to aggregate synced/failed counts and emit one final `Syncing  N synced, M failed` line per install run
+      - ported apply/repair install result rendering from flat arrow lines to grouped tree output (`✓ skill` headers with `├─` / `└─` target lines) in `reconcile.rs`
+      - added TM-P29-020/021/022 tests in `install_discovery_tests.rs` and TM-P29-026 test in `phase2_commands.rs`
+      - updated legacy output assertion in `output_upgrade_a1_tests.rs` (`tm_p28_014_apply_per_skill_install_lines`) to match tree-style apply output
+      - added cooperative SIGINT prompt handling (`signal::PromptInterruptGuard`) so Ctrl+C during interactive `install`/`remove` prompts is converted to command-level cancellation instead of immediate process exit
+      - aligned `remove` prompt interruption handling with `install` (confirmation/input interruptions now emit `· Remove cancelled`) and added regression tests in `remove_enhanced_tests.rs`
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 331
