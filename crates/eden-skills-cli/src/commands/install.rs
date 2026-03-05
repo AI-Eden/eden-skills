@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -27,8 +28,8 @@ use crate::DEFAULT_CONFIG_PATH;
 
 use super::common::{
     agent_kind_label, apply_plan_item, copy_recursively, ensure_git_available, ensure_parent_dir,
-    load_config_with_context, parse_target_specs, print_source_sync_summary, remove_path,
-    resolve_config_path, resolve_registry_mode_skills_for_execution, run_git_command,
+    load_config_with_context, parse_target_specs, print_source_sync_summary, print_warning,
+    remove_path, resolve_config_path, resolve_registry_mode_skills_for_execution, run_git_command,
     source_sync_failure_error, write_lock_for_config, write_normalized_config,
 };
 use super::config_ops::default_config_template;
@@ -38,6 +39,26 @@ use super::InstallRequest;
 struct DefaultInstallModeDecision {
     mode: InstallMode,
     warn_windows_hardcopy_fallback: bool,
+}
+
+#[derive(Debug, Default)]
+struct InstallExecutionSummary {
+    installed_targets: Vec<InstallTargetLine>,
+    conflicts: usize,
+}
+
+#[derive(Debug)]
+struct InstallTargetLine {
+    skill_id: String,
+    target_path: String,
+    mode: String,
+}
+
+impl InstallExecutionSummary {
+    fn merge(&mut self, mut other: InstallExecutionSummary) {
+        self.conflicts += other.conflicts;
+        self.installed_targets.append(&mut other.installed_targets);
+    }
 }
 
 pub async fn install_async(req: InstallRequest) -> Result<(), EdenError> {
@@ -91,14 +112,15 @@ fn ensure_install_config_exists(
 
     fs::write(config_path, default_config_template())?;
     if !ui.json_mode() {
+        let display_path = crate::ui::abbreviate_home_path(&config_path.display().to_string());
         if ui.symbols_enabled() {
             println!(
                 "{} Created config at {}",
                 ui.status_symbol(StatusSymbol::Success),
-                config_path.display()
+                display_path
             );
         } else {
-            println!("Created config at {}", config_path.display());
+            println!("Created config at {display_path}");
         }
     }
     Ok(())
@@ -118,7 +140,7 @@ async fn install_registry_mode_async(
 
     let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        print_warning(ui, &warning);
     }
     let config_dir = config_dir_from_path(config_path);
 
@@ -161,12 +183,23 @@ async fn install_registry_mode_async(
         return Err(err);
     }
 
-    execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
+    let execution_summary =
+        execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
 
     let full_loaded = load_config_with_context(config_path, false)?;
     write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
 
-    print_install_success(req.options.json, skill_name, &requested_constraint, ui)?;
+    if req.options.json {
+        print_install_success_json(skill_name, &requested_constraint)?;
+    } else {
+        print_install_result_lines(ui, &execution_summary.installed_targets);
+        print_install_result_summary(
+            ui,
+            1,
+            unique_agent_count(&single_skill_config),
+            execution_summary.conflicts,
+        );
+    }
     Ok(())
 }
 
@@ -217,7 +250,7 @@ async fn install_remote_url_mode_async(
             }
         };
     if discovered.is_empty() {
-        eprintln!("warning: No SKILL.md found; installing directory as-is.");
+        print_warning(ui, "No SKILL.md found; installing directory as-is.");
     }
 
     if req.list {
@@ -244,18 +277,12 @@ async fn install_remote_url_mode_async(
         });
     }
 
-    let selected = resolve_local_install_selection(
-        &discovered,
-        req.all,
-        &req.skill,
-        req.yes,
-        ui.interactive_enabled(),
-    )?;
-    let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
+    let selected = resolve_local_install_selection(&discovered, req.all, &req.skill, req.yes, ui)?;
+    let resolved_targets = resolve_url_mode_install_targets(&req.target, ui)?;
 
     let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        print_warning(ui, &warning);
     }
     let config_dir = config_dir_from_path(config_path);
     let mut config = loaded.config;
@@ -298,6 +325,7 @@ async fn install_remote_url_mode_async(
 
     write_normalized_config(config_path, &config)?;
 
+    let mut execution_summary = InstallExecutionSummary::default();
     for skill_id in &selected_ids {
         let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
         let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
@@ -307,7 +335,9 @@ async fn install_remote_url_mode_async(
         if let Some(err) = source_sync_failure_error(&sync_summary) {
             return Err(err);
         }
-        execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
+        let skill_summary =
+            execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
+        execution_summary.merge(skill_summary);
     }
 
     let full_loaded = load_config_with_context(config_path, false)?;
@@ -321,14 +351,14 @@ async fn install_remote_url_mode_async(
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
         println!("{encoded}");
-    } else if ui.symbols_enabled() {
-        println!(
-            "{} install: {} skill(s) status=installed",
-            ui.status_symbol(StatusSymbol::Success),
-            selected_ids.len()
-        );
     } else {
-        println!("install: {} skill(s) status=installed", selected_ids.len());
+        print_install_result_lines(ui, &execution_summary.installed_targets);
+        print_install_result_summary(
+            ui,
+            selected_ids.len(),
+            unique_agent_count(&selected_config),
+            execution_summary.conflicts,
+        );
     }
 
     Ok(())
@@ -356,7 +386,7 @@ async fn install_local_url_mode_async(
 
     let mut discovered = discover_skills(&discovery_root)?;
     if discovered.is_empty() {
-        eprintln!("warning: No SKILL.md found; installing directory as-is.");
+        print_warning(ui, "No SKILL.md found; installing directory as-is.");
     }
 
     if req.list {
@@ -383,18 +413,12 @@ async fn install_local_url_mode_async(
         });
     }
 
-    let selected = resolve_local_install_selection(
-        &discovered,
-        req.all,
-        &req.skill,
-        req.yes,
-        ui.interactive_enabled(),
-    )?;
-    let resolved_targets = resolve_url_mode_install_targets(&req.target)?;
+    let selected = resolve_local_install_selection(&discovered, req.all, &req.skill, req.yes, ui)?;
+    let resolved_targets = resolve_url_mode_install_targets(&req.target, ui)?;
 
     let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        print_warning(ui, &warning);
     }
     let mut config = loaded.config;
     let source_ref = req
@@ -441,9 +465,11 @@ async fn install_local_url_mode_async(
 
     write_normalized_config(config_path, &config)?;
 
+    let mut execution_summary = InstallExecutionSummary::default();
     for skill_id in &selected_ids {
         let single = select_single_skill_config(&selected_config, skill_id)?;
-        install_local_source_skill(&single, &config_dir, req.options.strict)?;
+        let skill_summary = install_local_source_skill(&single, &config_dir, req.options.strict)?;
+        execution_summary.merge(skill_summary);
     }
 
     let full_loaded = load_config_with_context(config_path, false)?;
@@ -457,14 +483,14 @@ async fn install_local_url_mode_async(
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
         println!("{encoded}");
-    } else if ui.symbols_enabled() {
-        println!(
-            "{} install: {} skill(s) status=installed",
-            ui.status_symbol(StatusSymbol::Success),
-            selected_ids.len()
-        );
     } else {
-        println!("install: {} skill(s) status=installed", selected_ids.len());
+        print_install_result_lines(ui, &execution_summary.installed_targets);
+        print_install_result_summary(
+            ui,
+            selected_ids.len(),
+            unique_agent_count(&selected_config),
+            execution_summary.conflicts,
+        );
     }
 
     Ok(())
@@ -593,7 +619,7 @@ fn resolve_local_install_selection(
     all: bool,
     named: &[String],
     yes: bool,
-    is_tty: bool,
+    ui: &UiContext,
 ) -> Result<Vec<DiscoveredSkill>, EdenError> {
     if all || yes {
         return Ok(discovered.to_vec());
@@ -607,11 +633,11 @@ fn resolve_local_install_selection(
         return Ok(vec![discovered[0].clone()]);
     }
 
-    if !is_tty {
+    if !ui.interactive_enabled() {
         return Ok(discovered.to_vec());
     }
 
-    print_discovery_summary(discovered);
+    print_discovery_summary(ui, discovered);
     let install_all = prompt_install_all(discovered.len())?;
     if install_all {
         return Ok(discovered.to_vec());
@@ -707,28 +733,44 @@ fn print_discovered_skills(skills: &[DiscoveredSkill], source: &str) {
     }
 }
 
-fn print_discovery_summary(skills: &[DiscoveredSkill]) {
+fn print_discovery_summary(ui: &UiContext, skills: &[DiscoveredSkill]) {
     const MAX_DISPLAY: usize = 8;
     if skills.len() > MAX_DISPLAY {
         println!(
-            "Found {} skills in repository (showing first {}):",
+            "{}  {} skills in repository (showing first {}):",
+            ui.action_prefix("Found"),
             skills.len(),
             MAX_DISPLAY
         );
     } else {
-        println!("Found {} skills in repository:", skills.len());
+        println!(
+            "{}  {} skills in repository:",
+            ui.action_prefix("Found"),
+            skills.len()
+        );
     }
+    println!();
 
     let display_skills = if skills.len() > MAX_DISPLAY {
         &skills[..MAX_DISPLAY]
     } else {
         skills
     };
-    for skill in display_skills {
+    let width = display_skills
+        .iter()
+        .map(|skill| skill.name.chars().count())
+        .max()
+        .unwrap_or(0);
+    for (index, skill) in display_skills.iter().enumerate() {
         if skill.description.is_empty() {
-            println!("  {}", skill.name);
+            println!("    {}. {}", index + 1, skill.name);
         } else {
-            println!("  {} — {}", skill.name, skill.description);
+            println!(
+                "    {}. {:<width$} — {}",
+                index + 1,
+                skill.name,
+                skill.description
+            );
         }
     }
 
@@ -854,29 +896,37 @@ fn execute_install_plan(
     single_skill_config: &Config,
     config_dir: &Path,
     strict: bool,
-) -> Result<(), EdenError> {
+) -> Result<InstallExecutionSummary, EdenError> {
     let plan = build_plan(single_skill_config, config_dir)?;
-    let mut conflicts = 0usize;
+    let mut summary = InstallExecutionSummary::default();
     for item in &plan {
         match item.action {
-            Action::Create | Action::Update => apply_plan_item(item)?,
-            Action::Conflict => conflicts += 1,
+            Action::Create | Action::Update => {
+                apply_plan_item(item)?;
+                summary.installed_targets.push(InstallTargetLine {
+                    skill_id: item.skill_id.clone(),
+                    target_path: item.target_path.clone(),
+                    mode: item.install_mode.as_str().to_string(),
+                });
+            }
+            Action::Conflict => summary.conflicts += 1,
             Action::Noop | Action::Remove => {}
         }
     }
-    if strict && conflicts > 0 {
+    if strict && summary.conflicts > 0 {
         return Err(EdenError::Conflict(format!(
-            "strict mode blocked install: {conflicts} conflict entries"
+            "strict mode blocked install: {} conflict entries",
+            summary.conflicts
         )));
     }
-    Ok(())
+    Ok(summary)
 }
 
 fn install_local_source_skill(
     single_skill_config: &Config,
     config_dir: &Path,
     strict: bool,
-) -> Result<(), EdenError> {
+) -> Result<InstallExecutionSummary, EdenError> {
     let skill = single_skill_config
         .skills
         .first()
@@ -895,7 +945,7 @@ fn install_local_source_skill(
         )));
     }
 
-    let mut conflicts = 0usize;
+    let mut summary = InstallExecutionSummary::default();
     for target in &skill.targets {
         let target_root = resolve_target_path(target, config_dir)?;
         let target_path = normalize_lexical(&target_root.join(&skill.id));
@@ -904,14 +954,14 @@ fn install_local_source_skill(
                 if matches!(skill.install.mode, InstallMode::Symlink)
                     && !metadata.file_type().is_symlink() =>
             {
-                conflicts += 1;
+                summary.conflicts += 1;
                 continue;
             }
             Ok(metadata)
                 if matches!(skill.install.mode, InstallMode::Copy)
                     && metadata.file_type().is_symlink() =>
             {
-                conflicts += 1;
+                summary.conflicts += 1;
                 continue;
             }
             Ok(_) => {}
@@ -928,15 +978,21 @@ fn install_local_source_skill(
             reasons: vec![],
         };
         apply_plan_item(&item)?;
+        summary.installed_targets.push(InstallTargetLine {
+            skill_id: skill.id.clone(),
+            target_path: target_path.display().to_string(),
+            mode: skill.install.mode.as_str().to_string(),
+        });
     }
 
-    if strict && conflicts > 0 {
+    if strict && summary.conflicts > 0 {
         return Err(EdenError::Conflict(format!(
-            "strict mode blocked install: {conflicts} conflict entries"
+            "strict mode blocked install: {} conflict entries",
+            summary.conflicts
         )));
     }
 
-    Ok(())
+    Ok(summary)
 }
 
 fn stage_local_source_into_storage(
@@ -958,30 +1014,15 @@ fn stage_local_source_into_storage(
     Ok(())
 }
 
-fn print_install_success(
-    json_mode: bool,
-    skill_id: &str,
-    version_or_ref: &str,
-    ui: &UiContext,
-) -> Result<(), EdenError> {
-    if json_mode {
-        let payload = serde_json::json!({
-            "skill": skill_id,
-            "version": version_or_ref,
-            "status": "installed",
-        });
-        let encoded = serde_json::to_string_pretty(&payload)
-            .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
-        println!("{encoded}");
-    } else if ui.symbols_enabled() {
-        println!(
-            "{} install: skill={} status=installed",
-            ui.status_symbol(StatusSymbol::Success),
-            skill_id
-        );
-    } else {
-        println!("install: skill={} status=installed", skill_id);
-    }
+fn print_install_success_json(skill_id: &str, version_or_ref: &str) -> Result<(), EdenError> {
+    let payload = serde_json::json!({
+        "skill": skill_id,
+        "version": version_or_ref,
+        "status": "installed",
+    });
+    let encoded = serde_json::to_string_pretty(&payload)
+        .map_err(|err| EdenError::Runtime(format!("failed to encode install json: {err}")))?;
+    println!("{encoded}");
     Ok(())
 }
 
@@ -1160,8 +1201,9 @@ fn forced_windows_symlink_support_for_tests() -> Option<bool> {
 
 fn warn_windows_hardcopy_fallback_if_needed(ui: &UiContext, decision: DefaultInstallModeDecision) {
     if decision.warn_windows_hardcopy_fallback && !ui.json_mode() {
-        eprintln!(
-            "warning: Windows symlink permission is unavailable; falling back to hardcopy mode; this may slow down installs."
+        print_warning(
+            ui,
+            "Windows symlink permission is unavailable; falling back to hardcopy mode; this may slow down installs.",
         );
     }
 }
@@ -1188,6 +1230,7 @@ fn windows_supports_symlink_creation() -> bool {
 
 fn resolve_url_mode_install_targets(
     target_specs: &[String],
+    ui: &UiContext,
 ) -> Result<Vec<TargetConfig>, EdenError> {
     if !target_specs.is_empty() {
         return parse_target_specs(target_specs);
@@ -1198,8 +1241,55 @@ fn resolve_url_mode_install_targets(
         return Ok(detected);
     }
 
-    eprintln!("No installed agents detected; defaulting to claude-code (~/.claude/skills/)");
+    print_warning(
+        ui,
+        "No installed agents detected; defaulting to claude-code (~/.claude/skills/)",
+    );
     Ok(vec![default_install_target()])
+}
+
+fn unique_agent_count(config: &Config) -> usize {
+    let mut agents = HashSet::new();
+    for skill in &config.skills {
+        for target in &skill.targets {
+            agents.insert(agent_kind_label(&target.agent));
+        }
+    }
+    agents.len()
+}
+
+fn print_install_result_lines(ui: &UiContext, installed_targets: &[InstallTargetLine]) {
+    let mut install_prefix_emitted = false;
+    for target in installed_targets {
+        let prefix = if install_prefix_emitted {
+            "          ".to_string()
+        } else {
+            install_prefix_emitted = true;
+            format!("{}  ", ui.action_prefix("Install"))
+        };
+        println!(
+            "{prefix}{} {} → {} ({})",
+            ui.status_symbol(StatusSymbol::Success),
+            target.skill_id,
+            crate::ui::abbreviate_home_path(&target.target_path),
+            target.mode
+        );
+    }
+}
+
+fn print_install_result_summary(
+    ui: &UiContext,
+    skill_count: usize,
+    agent_count: usize,
+    conflict_count: usize,
+) {
+    println!(
+        "  {} {} skills installed to {} agents, {} conflicts",
+        ui.status_symbol(StatusSymbol::Success),
+        skill_count,
+        agent_count,
+        conflict_count
+    );
 }
 
 fn parse_install_target_spec(spec: &str) -> Result<TargetConfig, EdenError> {

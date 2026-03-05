@@ -9,14 +9,17 @@ use eden_skills_core::lock::{lock_path_for_config, write_lock_file, LockFile};
 use eden_skills_core::paths::{
     colocated_agent_display_label, resolve_path_string, resolve_target_path,
 };
+use owo_colors::OwoColorize;
 
 use super::common::{
     agent_kind_label, load_config_with_context, normalized_config_toml, parse_target_specs,
     read_existing_registries, resolve_config_path, write_normalized_config,
 };
 use super::{AddRequest, CommandOptions, SetRequest};
+use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
 
 pub fn init(config_path: &str, force: bool) -> Result<(), EdenError> {
+    let ui = UiContext::from_env(false);
     let config_path = resolve_config_path(config_path)?;
     if config_path.exists() && !force {
         return Err(EdenError::Conflict(format!(
@@ -34,8 +37,30 @@ pub fn init(config_path: &str, force: bool) -> Result<(), EdenError> {
     let lock_path = lock_path_for_config(&config_path);
     write_lock_file(&lock_path, &LockFile::empty())?;
 
-    println!("init: wrote {}", config_path.display());
+    let display_path = abbreviate_home_path(&config_path.display().to_string());
+    println!(
+        "  {} Created config at {display_path}",
+        ui.status_symbol(StatusSymbol::Success)
+    );
+    println!();
+    println!("  Next steps:");
+    print_init_next_step(
+        &ui,
+        "eden-skills install <owner/repo>",
+        "Install skills from GitHub",
+    );
+    print_init_next_step(&ui, "eden-skills list", "Show configured skills");
+    print_init_next_step(&ui, "eden-skills doctor", "Check installation health");
     Ok(())
+}
+
+fn print_init_next_step(ui: &UiContext, command: &str, description: &str) {
+    let padded_command = format!("{command:<34}");
+    if ui.colors_enabled() {
+        println!("    {padded_command} {}", description.dimmed());
+    } else {
+        println!("    {padded_command} {description}");
+    }
 }
 
 pub(crate) fn default_config_template() -> String {

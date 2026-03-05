@@ -9,11 +9,13 @@ use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::registry::{parse_registry_specs_from_toml, sort_registry_specs_by_priority};
 use eden_skills_core::safety::{analyze_skills, LicenseStatus, SkillSafetyReport};
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
+use owo_colors::OwoColorize;
 
 use super::common::{
     doctor_docker_bin, load_config_with_context, resolve_config_path, REGISTRY_SYNC_MARKER_FILE,
 };
 use super::CommandOptions;
+use crate::ui::{StatusSymbol, UiContext};
 
 const REGISTRY_STALE_THRESHOLD_SECS: u64 = 7 * 24 * 60 * 60;
 
@@ -31,6 +33,7 @@ pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, options.strict)?;
+    let ui = UiContext::from_env(options.json);
     let config_dir = config_dir_from_path(config_path);
     let plan = build_plan(&loaded.config, &config_dir)?;
     let verify_issues = verify_config_state(&loaded.config, &config_dir)?;
@@ -42,18 +45,13 @@ pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
         &config_dir,
     )?);
 
-    if findings.is_empty() {
-        println!("doctor: no issues detected");
-        return Ok(());
-    }
-
     if options.json {
         print_doctor_json(&findings)?;
     } else {
-        print_doctor_text(&findings);
+        print_doctor_text(&ui, &findings);
     }
 
-    if options.strict {
+    if options.strict && !findings.is_empty() {
         return Err(EdenError::Conflict(format!(
             "doctor found {} issue(s) in strict mode",
             findings.len()
@@ -448,18 +446,73 @@ fn map_verify_issue(issue: &VerifyIssue) -> (&'static str, &'static str, &'stati
     }
 }
 
-fn print_doctor_text(findings: &[DoctorFinding]) {
-    println!("doctor: detected {} issue(s)", findings.len());
-    for finding in findings {
+fn print_doctor_text(ui: &UiContext, findings: &[DoctorFinding]) {
+    if findings.is_empty() {
         println!(
-            "  code={} severity={} skill={} target={} message={} remediation={}",
+            "{}  {} no issues detected",
+            ui.action_prefix("Doctor"),
+            ui.status_symbol(StatusSymbol::Success)
+        );
+        return;
+    }
+
+    let issue_label = if findings.len() == 1 {
+        "issue"
+    } else {
+        "issues"
+    };
+    println!(
+        "{}  {} {issue_label} detected",
+        ui.action_prefix("Doctor"),
+        findings.len()
+    );
+    println!();
+
+    if findings.len() > 3 {
+        let mut table = ui.table(&["Sev", "Code", "Skill"]);
+        for finding in findings {
+            table.add_row(vec![
+                doctor_severity_symbol(ui, &finding.severity),
+                finding.code.clone(),
+                finding.skill_id.clone(),
+            ]);
+        }
+        println!("{table}");
+        println!();
+    }
+
+    for (index, finding) in findings.iter().enumerate() {
+        println!(
+            "  {} [{}] {}",
+            doctor_severity_symbol(ui, &finding.severity),
             finding.code,
-            finding.severity,
-            finding.skill_id,
-            finding.target_path,
-            finding.message,
+            finding.skill_id
+        );
+        println!("    {}", finding.message);
+        println!(
+            "    {} {}",
+            doctor_remediation_prefix(ui),
             finding.remediation
         );
+        if index + 1 < findings.len() {
+            println!();
+        }
+    }
+}
+
+fn doctor_severity_symbol(ui: &UiContext, severity: &str) -> String {
+    match severity {
+        "warning" => ui.status_symbol(StatusSymbol::Warning),
+        _ => ui.status_symbol(StatusSymbol::Failure),
+    }
+}
+
+fn doctor_remediation_prefix(ui: &UiContext) -> String {
+    let arrow = "→";
+    if ui.colors_enabled() {
+        arrow.dimmed().to_string()
+    } else {
+        arrow.to_string()
     }
 }
 

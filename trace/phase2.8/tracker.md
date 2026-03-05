@@ -24,3 +24,12 @@
    - Changes: `main.rs` and `common.rs` now align error/warning output with arrow hints and two-space indented styled warnings, plus home-path abbreviation in user-facing config path errors
    - Compatibility updates: refreshed string assertions in `output_polish_tests.rs`, `exit_code_matrix.rs`, and `phase25_schema_tests.rs` for the new human-output format
    - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (277 total tests)
+4. Batch 4 (WP-2 part 2 — Category A-2 User-Facing Commands) is complete with quality gate pass:
+   - Requirements: `OUP-003`, `OUP-005`, `OUP-006`, `OUP-007`, `OUP-018`, `OUP-020`
+   - Scenarios: `TM-P28-018`, `TM-P28-019`, `TM-P28-020`, `TM-P28-023`, `TM-P28-024`, `TM-P28-025`
+   - Additions: new `output_upgrade_a2_tests.rs` with TM-aligned assertions for doctor styled header/cards/conditional summary table, init next-steps guidance block, and install per-target/discovery output
+   - Changes: `diagnose.rs` now emits UiContext-based `Doctor` header, severity-symbol findings cards, dimmed `→` remediation lines, and a conditional `Sev | Code | Skill` summary table for 4+ findings
+   - Changes: `config_ops.rs` now emits `✓ Created config at ~/.eden-skills/skills.toml` style output plus a 3-line `Next steps:` block with dimmed command descriptions
+   - Changes: `install.rs` now emits numbered `Found` discovery summaries, per-target `Install  ✓ skill → path (mode)` lines, and final `N skills installed to M agents, K conflicts` summary output
+   - Compatibility updates: refreshed legacy doctor text assertion in `doctor_output.rs` to match card-based human output while keeping `doctor --json` contract unchanged
+   - Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace` (283 total tests)

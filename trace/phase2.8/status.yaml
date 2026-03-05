@@ -54,3 +54,19 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 277
+  batch_4_output_upgrade_category_a2:
+    status: completed
+    completed_at: "2026-03-05"
+    requirements: OUP-003, OUP-005, OUP-006, OUP-007, OUP-018, OUP-020
+    scenarios: TM-P28-018, TM-P28-019, TM-P28-020, TM-P28-023, TM-P28-024, TM-P28-025
+    notes:
+      - added output_upgrade_a2_tests.rs with TM-aligned assertions for doctor cards/header/summary table, init next-steps block, and install per-target/discovery output
+      - upgraded doctor human output in diagnose.rs to UiContext action-prefix header, severity cards, dimmed arrow remediation, and conditional summary table when findings exceed 3
+      - upgraded init output in config_ops.rs to show abbreviated-path success symbol and a 3-line Next steps guidance block with dimmed descriptions
+      - upgraded install human output in install.rs to emit numbered Found discovery summary, per-target Install lines with unicode arrow paths, and final skills/agents/conflicts summary counts
+      - aligned install warning paths to common styled warning formatter and refreshed legacy doctor text assertion in doctor_output.rs
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 283

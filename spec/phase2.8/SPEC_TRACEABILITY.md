@@ -25,11 +25,11 @@ Builder execution.
 |---|---|---|---|---|---|
 | OUP-001 | `SPEC_OUTPUT_UPGRADE.md` 4.1 | `apply` human-mode MUST match spec | `crates/eden-skills-cli/src/commands/reconcile.rs` (`apply_async`, `print_install_applied_line`, `print_install_skipped_line`, `print_remove_lines`), `crates/eden-skills-cli/src/commands/common.rs` (`print_source_sync_summary_human`, `print_safety_summary_human`, `style_count_for_action`) | `output_upgrade_a1_tests::tm_p28_012_apply_source_sync_is_styled`, `output_upgrade_a1_tests::tm_p28_013_apply_safety_summary_is_styled`, `output_upgrade_a1_tests::tm_p28_014_apply_per_skill_install_lines`, `output_upgrade_a1_tests::tm_p28_015_apply_summary_is_styled`, `output_upgrade_a1_tests::tm_p28_016_apply_verification_is_styled` | done |
 | OUP-002 | `SPEC_OUTPUT_UPGRADE.md` 4.1 | `repair` human-mode MUST match spec | `crates/eden-skills-cli/src/commands/reconcile.rs` (`repair_async`, styled install/summary/verification output) | `output_upgrade_a1_tests::tm_p28_017_repair_output_matches_apply_format` | done |
-| OUP-003 | `SPEC_OUTPUT_UPGRADE.md` 4.2 | `doctor` MUST show finding cards | | TM-P28-018, TM-P28-019 | pending |
+| OUP-003 | `SPEC_OUTPUT_UPGRADE.md` 4.2 | `doctor` MUST show finding cards | `crates/eden-skills-cli/src/commands/diagnose.rs` (`doctor`, `print_doctor_text`, `doctor_severity_symbol`, `doctor_remediation_prefix`) | `output_upgrade_a2_tests::tm_p28_018_doctor_header_styled`, `output_upgrade_a2_tests::tm_p28_019_doctor_findings_cards` | done |
 | OUP-004 | `SPEC_OUTPUT_UPGRADE.md` 4.3 | `plan` MUST show header and colored actions | `crates/eden-skills-cli/src/commands/plan_cmd.rs` (`plan`, `print_plan_text`, `style_plan_action_label`) | `output_upgrade_a1_tests::tm_p28_021_plan_header_and_colored_actions`, `output_upgrade_a1_tests::tm_p28_022_plan_empty_state` | done |
-| OUP-005 | `SPEC_OUTPUT_UPGRADE.md` 4.4 | `init` MUST show `✓` and Next steps | | TM-P28-023 | pending |
-| OUP-006 | `SPEC_OUTPUT_UPGRADE.md` 4.5 | `install` URL-mode MUST emit per-skill lines | | TM-P28-024 | pending |
-| OUP-007 | `SPEC_OUTPUT_UPGRADE.md` 4.6 | `install` discovery MUST use numbered list | | TM-P28-025 | pending |
+| OUP-005 | `SPEC_OUTPUT_UPGRADE.md` 4.4 | `init` MUST show `✓` and Next steps | `crates/eden-skills-cli/src/commands/config_ops.rs` (`init`, `print_init_next_step`) | `output_upgrade_a2_tests::tm_p28_023_init_next_steps` | done |
+| OUP-006 | `SPEC_OUTPUT_UPGRADE.md` 4.5 | `install` URL-mode MUST emit per-skill lines | `crates/eden-skills-cli/src/commands/install.rs` (`install_remote_url_mode_async`, `install_local_url_mode_async`, `execute_install_plan`, `install_local_source_skill`, `print_install_result_lines`) | `output_upgrade_a2_tests::tm_p28_024_install_per_skill_results` | done |
+| OUP-007 | `SPEC_OUTPUT_UPGRADE.md` 4.6 | `install` discovery MUST use numbered list | `crates/eden-skills-cli/src/commands/install.rs` (`resolve_local_install_selection`, `print_discovery_summary`) | `output_upgrade_a2_tests::tm_p28_025_install_discovery_numbered` | done |
 | OUP-008 | `SPEC_OUTPUT_UPGRADE.md` 4.7 | `list` MUST render as table | | TM-P28-005 | pending |
 | OUP-009 | `SPEC_OUTPUT_UPGRADE.md` 4.9 | `install --dry-run` MUST render targets table | | TM-P28-008 | pending |
 | OUP-010 | `SPEC_OUTPUT_UPGRADE.md` 4.7 | `install --list` MUST render numbered table | | TM-P28-009 | pending |
@@ -40,9 +40,9 @@ Builder execution.
 | OUP-015 | `SPEC_OUTPUT_UPGRADE.md` 2.1 | All commands MUST use `UiContext` for human output | `crates/eden-skills-cli/src/commands/reconcile.rs` (`apply_async`, `repair_async`), `crates/eden-skills-cli/src/commands/plan_cmd.rs` (`plan`), `crates/eden-skills-cli/src/commands/common.rs` (`print_warning`) | `output_upgrade_a1_tests::tm_p28_012_apply_source_sync_is_styled`, `output_upgrade_a1_tests::tm_p28_017_repair_output_matches_apply_format`, `output_upgrade_a1_tests::tm_p28_021_plan_header_and_colored_actions`, `output_upgrade_a1_tests::tm_p28_022_plan_empty_state` | done |
 | OUP-016 | `SPEC_OUTPUT_UPGRADE.md` 3 | Action colors MUST follow palette | `crates/eden-skills-cli/src/commands/plan_cmd.rs` (`style_plan_action_label`), `crates/eden-skills-cli/src/commands/common.rs` (`style_count_for_action`) | `output_upgrade_a1_tests::tm_p28_021_plan_header_and_colored_actions` | done |
 | OUP-017 | `SPEC_OUTPUT_UPGRADE.md` 6 | Warnings MUST use yellow bold with indent | `crates/eden-skills-cli/src/commands/common.rs` (`print_warning`), `crates/eden-skills-cli/src/commands/plan_cmd.rs`, `crates/eden-skills-cli/src/commands/reconcile.rs` | `output_upgrade_a1_tests::tm_p28_028_warning_format_is_styled` | done |
-| OUP-018 | `SPEC_OUTPUT_UPGRADE.md` 4.5 | Install summary MUST include skill/agent/conflict count | | TM-P28-024 | pending |
+| OUP-018 | `SPEC_OUTPUT_UPGRADE.md` 4.5 | Install summary MUST include skill/agent/conflict count | `crates/eden-skills-cli/src/commands/install.rs` (`print_install_result_summary`, `unique_agent_count`) | `output_upgrade_a2_tests::tm_p28_024_install_per_skill_results` | done |
 | OUP-019 | `SPEC_OUTPUT_UPGRADE.md` 4.1 | Apply/repair MUST use action prefixes for sync/safety/summary | `crates/eden-skills-cli/src/commands/common.rs` (`print_source_sync_summary_human`, `print_safety_summary_human`), `crates/eden-skills-cli/src/commands/reconcile.rs` (`Summary` action prefix output) | `output_upgrade_a1_tests::tm_p28_012_apply_source_sync_is_styled`, `output_upgrade_a1_tests::tm_p28_013_apply_safety_summary_is_styled`, `output_upgrade_a1_tests::tm_p28_015_apply_summary_is_styled` | done |
-| OUP-020 | `SPEC_OUTPUT_UPGRADE.md` 4.2 | Doctor summary table MUST show when findings > 3 | | TM-P28-020 | pending |
+| OUP-020 | `SPEC_OUTPUT_UPGRADE.md` 4.2 | Doctor summary table MUST show when findings > 3 | `crates/eden-skills-cli/src/commands/diagnose.rs` (`print_doctor_text` summary table branch via `UiContext::table`) | `output_upgrade_a2_tests::tm_p28_020_doctor_summary_table_conditional` | done |
 
 ## 3. Code Structure Requirements
 
@@ -78,14 +78,14 @@ Builder execution.
 | TM-P28-015 | `SPEC_TEST_MATRIX.md` 4 | Apply summary styled | `output_upgrade_a1_tests::tm_p28_015_apply_summary_is_styled` | done |
 | TM-P28-016 | `SPEC_TEST_MATRIX.md` 4 | Apply verification styled | `output_upgrade_a1_tests::tm_p28_016_apply_verification_is_styled` | done |
 | TM-P28-017 | `SPEC_TEST_MATRIX.md` 4 | Repair output matches apply format | `output_upgrade_a1_tests::tm_p28_017_repair_output_matches_apply_format` | done |
-| TM-P28-018 | `SPEC_TEST_MATRIX.md` 4 | Doctor header styled | | pending |
-| TM-P28-019 | `SPEC_TEST_MATRIX.md` 4 | Doctor findings cards | | pending |
-| TM-P28-020 | `SPEC_TEST_MATRIX.md` 4 | Doctor summary table conditional | | pending |
+| TM-P28-018 | `SPEC_TEST_MATRIX.md` 4 | Doctor header styled | `output_upgrade_a2_tests::tm_p28_018_doctor_header_styled` | done |
+| TM-P28-019 | `SPEC_TEST_MATRIX.md` 4 | Doctor findings cards | `output_upgrade_a2_tests::tm_p28_019_doctor_findings_cards` | done |
+| TM-P28-020 | `SPEC_TEST_MATRIX.md` 4 | Doctor summary table conditional | `output_upgrade_a2_tests::tm_p28_020_doctor_summary_table_conditional` | done |
 | TM-P28-021 | `SPEC_TEST_MATRIX.md` 4 | Plan header and colored actions | `output_upgrade_a1_tests::tm_p28_021_plan_header_and_colored_actions` | done |
 | TM-P28-022 | `SPEC_TEST_MATRIX.md` 4 | Plan empty state | `output_upgrade_a1_tests::tm_p28_022_plan_empty_state` | done |
-| TM-P28-023 | `SPEC_TEST_MATRIX.md` 4 | Init next steps | | pending |
-| TM-P28-024 | `SPEC_TEST_MATRIX.md` 4 | Install per-skill results | | pending |
-| TM-P28-025 | `SPEC_TEST_MATRIX.md` 4 | Install discovery numbered | | pending |
+| TM-P28-023 | `SPEC_TEST_MATRIX.md` 4 | Init next steps | `output_upgrade_a2_tests::tm_p28_023_init_next_steps` | done |
+| TM-P28-024 | `SPEC_TEST_MATRIX.md` 4 | Install per-skill results | `output_upgrade_a2_tests::tm_p28_024_install_per_skill_results` | done |
+| TM-P28-025 | `SPEC_TEST_MATRIX.md` 4 | Install discovery numbered | `output_upgrade_a2_tests::tm_p28_025_install_discovery_numbered` | done |
 | TM-P28-026 | `SPEC_TEST_MATRIX.md` 5 | Error hint uses arrow | `output_upgrade_a1_tests::tm_p28_026_error_hint_uses_arrow` | done |
 | TM-P28-027 | `SPEC_TEST_MATRIX.md` 5 | Error path abbreviated | `output_upgrade_a1_tests::tm_p28_027_error_path_is_abbreviated` | done |
 | TM-P28-028 | `SPEC_TEST_MATRIX.md` 5 | Warning format styled | `output_upgrade_a1_tests::tm_p28_028_warning_format_is_styled` | done |

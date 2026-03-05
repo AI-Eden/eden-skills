@@ -38,16 +38,20 @@ fn doctor_text_output_includes_code_severity_and_remediation() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("code=SOURCE_MISSING"),
-        "stdout should contain issue code, stdout={stdout}"
+        stdout.contains("Doctor") && stdout.contains("issues detected"),
+        "stdout should include styled doctor header, stdout={stdout}"
     );
     assert!(
-        stdout.contains("severity=error"),
-        "stdout should contain severity, stdout={stdout}"
+        stdout.contains("✗ [SOURCE_MISSING]"),
+        "stdout should render finding cards with severity symbol and code, stdout={stdout}"
     );
     assert!(
-        stdout.contains("remediation="),
-        "stdout should contain remediation hint, stdout={stdout}"
+        stdout.contains("    → "),
+        "stdout should contain arrow-prefixed remediation line, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("code=SOURCE_MISSING") && !stdout.contains("severity=error"),
+        "legacy key=value doctor format should be removed, stdout={stdout}"
     );
 }
 
