@@ -1,8 +1,9 @@
 # Phase 2.9 Execution Tracker
 
 Phase: UX Polish, Update Semantics & Output Consistency
-Status: In Progress
+Status: Completed
 Started: 2026-03-05
+Completed: 2026-03-06
 
 ## Batch Plan
 
@@ -13,7 +14,7 @@ Started: 2026-03-05
 | 3 | Install UX: Card Preview + Tree Display | WP-3 pt1 | IUX-001~003, IUX-006~007, IUX-009 | completed |
 | 4 | Install UX: Step Progress + Apply/Repair Integration | WP-3 pt2 | IUX-004~005, IUX-008 | completed |
 | 5 | Update Extension | WP-2 | UPD-001~008 | completed |
-| 6 | Regression + Closeout | — | TM regression | pending |
+| 6 | Regression + Closeout | — | TM regression | completed |
 
 ## Completion Records
 
@@ -165,3 +166,17 @@ Started: 2026-03-05
 - Manual scenarios status (from prior batches):
   - `TM-P29-004`, `TM-P29-005`, `TM-P29-020`, `TM-P29-025`, and `TM-P29-034` completed in post-batch manual verification.
   - SIGINT cursor-restore behavior in real terminal sessions is verified.
+
+### Batch 6 — Regression + Closeout (Completed 2026-03-06)
+
+- Closeout validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace` ✅ (test inventory: `340`)
+  - `rg '\x1b\[' crates/` ✅ (no hardcoded ANSI escape sequence matches)
+- Contract regression checks:
+  - JSON contracts remain unchanged; JSON contract suites continue to pass with no schema regressions.
+  - Exit code semantics remain unchanged (`0`/`1`/`2`/`3`); `exit_code_matrix` and strict-mode command suites stay green.
+- Closeout sync:
+  - `trace/phase2.9/status.yaml` updated to `closeout_completed` with Batch 6 completion record.
+  - `README.md` current-status section updated to include Phase 2.9 completion.

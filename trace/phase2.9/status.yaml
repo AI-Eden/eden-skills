@@ -1,6 +1,7 @@
 phase: phase29_ux_polish_update_output
-status: active_implementation
+status: closeout_completed
 started_at: "2026-03-05"
+completed_at: "2026-03-06"
 
 spec_files:
   - spec/phase2.9/README.md
@@ -75,7 +76,7 @@ batches:
     name: "Regression + Closeout"
     work_packages: []
     requirements: []
-    status: pending
+    status: completed
 
 builder_progress:
   batch_1_foundation_table_fix_newline_policy:
@@ -182,4 +183,23 @@ builder_progress:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
+      current_test_inventory: 340
+  batch_6_regression_closeout:
+    status: completed
+    started_at: "2026-03-06"
+    completed_at: "2026-03-06"
+    requirements: closeout_regression
+    scenarios: TM-P29-001~TM-P29-040 (regression replay)
+    notes:
+      - reran full quality gate for closeout (`cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace`)
+      - regression confirmed 340 passing tests across Phase 1/2/2.5/2.7/2.8/2.9 suites
+      - JSON contracts remain unchanged (existing JSON contract suites pass; update additive `skills` array retained)
+      - exit code semantics remain unchanged (`0/1/2/3`) with exit-code matrix and strict-mode coverage still green
+      - no hardcoded ANSI escape sequences found in source (`rg '\x1b\[' crates/` returned zero matches)
+      - phase closeout documentation synced in phase tracker files and README current status
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      no_hardcoded_ansi_escape_in_source: passed
       current_test_inventory: 340

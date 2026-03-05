@@ -3,7 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.9.
 Use this file to recover accurate context after compression.
 
-**Status:** ACTIVE — Batch 1 through Batch 5 rows are populated.
+**Status:** COMPLETE — All Phase 2.9 requirement rows are populated; Batch 6 regression + closeout gates passed.
 
 ## 1. Table Fix Requirements
 

@@ -193,6 +193,7 @@ Agent directories are auto-detected on `install`. Override with `--target`:
 - Phase 2.5 (URL install, agent auto-detection, binary distribution): complete
 - Phase 2.7 (lock file, UX polish, batch remove): complete
 - Phase 2.8 (TUI deep optimization, table rendering, doc comments): complete
+- Phase 2.9 (UX polish, update semantics, output consistency): complete
 - Phase 3 (crawler / taxonomy / curation): not yet implemented
 
 `eden-skills` is under active development. Avoid production use where breaking changes are not tolerable.
