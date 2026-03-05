@@ -40,7 +40,11 @@ fn ui_context_table_uses_utf8_borders_plain_headers_and_content_driven_width_on_
         !has_ansi_codes(&rendered),
         "TTY table must not include ANSI styling in headers or cells, rendered={rendered}"
     );
-    let max_width = rendered.lines().map(|line| line.chars().count()).max().unwrap_or(0);
+    let max_width = rendered
+        .lines()
+        .map(|line| line.chars().count())
+        .max()
+        .unwrap_or(0);
     assert!(
         max_width < 60,
         "TTY table should size to content instead of terminal width, got {max_width}, rendered={rendered}"
