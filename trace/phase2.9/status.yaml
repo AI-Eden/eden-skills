@@ -93,7 +93,7 @@ builder_progress:
       - follow-up polish: reverted compact-width forcing in dry-run table after terminal regression (`Mode` header wrapping as `Mo`/`de`) and adopted content-driven tty table sizing
       - follow-up hardening: removed ANSI styling from all table headers/cells (ui.table headers + plan/update/doctor table cell renderers) to avoid terminal-specific header drift
       - synced phase2.9 specs for the plain-table-text rule (`SPEC_TABLE_FIX`, `SPEC_TEST_MATRIX`, `SPEC_UPDATE_EXT`, `SPEC_OUTPUT_CONSISTENCY`, `SPEC_TRACEABILITY`) and updated kick prompt wording
-      - manual visual checks TM-P29-004 and TM-P29-005 remain pending for terminal inspection
+      - manual visual checks TM-P29-004 and TM-P29-005 were completed and match expected table-width/alignment behavior on wide terminals
     quality_gate:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed
@@ -111,7 +111,7 @@ builder_progress:
       - replaced remove cancellation text with skipped-symbol line and switched interactive candidates to UiContext table rendering with abbreviated repo source
       - added bold skill labels and dimmed mode/arrow styling in install, reconcile, and plan text result lines
       - added output_consistency_tests.rs covering TM-P29-028, TM-P29-029, TM-P29-030, TM-P29-031, TM-P29-032, TM-P29-033, TM-P29-035
-      - manual visual scenario TM-P29-034 remains pending for terminal color verification
+      - manual visual scenario TM-P29-034 was completed and confirmed cyan path styling when colors are enabled
     quality_gate:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed
@@ -135,8 +135,8 @@ builder_progress:
       - handled interactive prompt interruption as graceful cancel (`· Install cancelled`) instead of runtime error output
       - added TM-P29 install UX coverage in `install_discovery_tests.rs` for card format parity, description indentation, name-only rendering, truncation, tree connectors, grouped skill headers, and list-json contract
       - updated legacy assertions in `table_fix_tests.rs`, `output_upgrade_b_tests.rs`, and `output_upgrade_a2_tests.rs` to match phase2.9 card-preview contracts
-      - manual visual scenario TM-P29-025 remains pending for tree connector/path/mode color verification in a real terminal
-      - manual terminal verification for SIGINT cursor restoration remains pending
+      - manual visual scenario TM-P29-025 was completed and confirmed dimmed connectors/mode labels with cyan paths in tree output
+      - manual terminal verification for SIGINT cursor restoration was completed for interactive install/remove prompt cancellation flows
     quality_gate:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed
@@ -176,6 +176,8 @@ builder_progress:
       - extended `update --json` payload with additive `skills` array (`id`, `status`, `local_sha`, `remote_sha`) and conditional `applied` field for `--apply`
       - implemented `update --apply` reconcile flow for refreshed skills (source sync, safety, plan apply, verify, lock write) and fetch-head materialization for changed repos
       - added dedicated integration coverage in `tests/update_ext_tests.rs` for TM-P29-006 through TM-P29-014
+      - completed post-batch manual verification sweep for TM-P29-004, TM-P29-005, TM-P29-020, TM-P29-025, and TM-P29-034
+      - confirmed SIGINT cursor restore path is healthy in real terminal runs after interactive prompt interruption
     quality_gate:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed

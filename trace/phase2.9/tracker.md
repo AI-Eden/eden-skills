@@ -36,7 +36,7 @@ Started: 2026-03-05
   - `cargo test --workspace` ✅
   - Test inventory: `307`
 - Manual scenarios:
-  - `TM-P29-004` and `TM-P29-005` remain manual terminal-visual checks.
+  - `TM-P29-004` and `TM-P29-005` completed in terminal visual verification and matched expected content-width table behavior.
 
 ### Batch 2 — Output Consistency (Completed 2026-03-06)
 
@@ -62,8 +62,8 @@ Started: 2026-03-05
   - `cargo test --workspace` ✅
   - Test inventory: `315`
 - Manual scenarios:
-  - `TM-P29-034` remains pending for terminal color verification.
-  - `TM-P29-004` and `TM-P29-005` remain pending from Batch 1.
+  - `TM-P29-034` completed and confirmed cyan path styling in color-enabled human output.
+  - `TM-P29-004` and `TM-P29-005` were also confirmed complete in the same manual verification pass.
 
 ### Batch 3 — Install UX: Card Preview + Tree Display (Completed 2026-03-06)
 
@@ -99,8 +99,8 @@ Started: 2026-03-05
   - `cargo test --workspace` ✅
   - Test inventory: `325`
 - Manual scenarios:
-  - `TM-P29-025` remains pending for terminal visual verification of tree connector/path/mode coloring.
-  - SIGINT cursor-restore path remains pending for terminal manual verification.
+  - `TM-P29-025` completed with terminal visual verification for tree connector/path/mode coloring.
+  - SIGINT cursor-restore path completed with real terminal interruption checks.
 
 ### Batch 4 — Install UX: Step Progress + Apply/Repair Integration (Completed 2026-03-06)
 
@@ -131,9 +131,9 @@ Started: 2026-03-05
   - `cargo clippy --workspace -- -D warnings` ✅
   - `cargo test --workspace` ✅
   - Test inventory: `331`
-- Manual scenarios still pending:
-  - `TM-P29-004`, `TM-P29-005`, `TM-P29-025`, `TM-P29-034`
-  - SIGINT cursor-restore behavior in a real terminal session
+- Manual scenarios status:
+  - `TM-P29-004`, `TM-P29-005`, `TM-P29-020`, `TM-P29-025`, and `TM-P29-034` completed and match expected behavior.
+  - SIGINT cursor-restore behavior in a real terminal session is verified.
 
 ### Batch 5 — Update Extension (Completed 2026-03-06)
 
@@ -162,6 +162,6 @@ Started: 2026-03-05
   - `cargo clippy --workspace -- -D warnings` ✅
   - `cargo test --workspace` ✅
   - Test inventory: `340`
-- Manual scenarios still pending (from prior batches):
-  - `TM-P29-004`, `TM-P29-005`, `TM-P29-025`, `TM-P29-034`
-  - SIGINT cursor-restore behavior in a real terminal session
+- Manual scenarios status (from prior batches):
+  - `TM-P29-004`, `TM-P29-005`, `TM-P29-020`, `TM-P29-025`, and `TM-P29-034` completed in post-batch manual verification.
+  - SIGINT cursor-restore behavior in real terminal sessions is verified.

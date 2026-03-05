@@ -16,8 +16,8 @@ Phase 2.9 acceptance test scenarios.
 | TM-P29-001 | TTY tables use content-driven layout (`Disabled`) and keep header/cell text plain (no ANSI styling attributes) | TFX-001 | auto | pending |
 | TM-P29-002 | Non-TTY tables use `Dynamic` with width 80 | TFX-003 | auto | pending |
 | TM-P29-003 | Fixed-width columns respect `UpperBoundary` constraints | TFX-002 | auto | pending |
-| TM-P29-004 | `list` table remains content-width on wide terminal (not full-width stretched) | TFX-001 | manual | pending |
-| TM-P29-005 | `doctor` table remains content-width and visually aligned | TFX-001 | manual | pending |
+| TM-P29-004 | `list` table remains content-width on wide terminal (not full-width stretched) | TFX-001 | manual | completed |
+| TM-P29-005 | `doctor` table remains content-width and visually aligned | TFX-001 | manual | completed |
 
 ## 3. Update Extension (WP-2)
 
@@ -42,12 +42,12 @@ Phase 2.9 acceptance test scenarios.
 | TM-P29-017 | Skills with description show dimmed text on indented line | IUX-003 | auto | pending |
 | TM-P29-018 | Skills without description show name-only line | IUX-003 | auto | pending |
 | TM-P29-019 | Discovery preview truncates at 8 skills (non-`--list` mode) | IUX-001 | auto | pending |
-| TM-P29-020 | Source sync shows step-style `[pos/len]` progress in TTY | IUX-004 | manual | pending |
+| TM-P29-020 | Source sync shows step-style `[pos/len]` progress in TTY | IUX-004 | manual | completed |
 | TM-P29-021 | Source sync shows summary line after completion | IUX-005 | auto | pending |
 | TM-P29-022 | Non-TTY source sync skips progress bar, shows summary only | IUX-005 | auto | pending |
 | TM-P29-023 | Install results use tree display with `├─` and `└─` | IUX-006 | auto | pending |
 | TM-P29-024 | Tree groups skills — name appears once per group | IUX-006 | auto | pending |
-| TM-P29-025 | Tree paths are cyan, connectors dimmed, mode dimmed | IUX-007 | manual | pending |
+| TM-P29-025 | Tree paths are cyan, connectors dimmed, mode dimmed | IUX-007 | manual | completed |
 | TM-P29-026 | `apply`/`repair` use tree-style install lines | IUX-008 | auto | pending |
 | TM-P29-027 | `install --list --json` output unchanged | IUX-001 | auto | pending |
 | TM-P29-041 | `install --dry-run` (multi-skill) renders titled table sections for skill preview and targets | IUX-009 | auto | pending |
@@ -64,7 +64,7 @@ Phase 2.9 acceptance test scenarios.
 | TM-P29-031 | No raw `eprintln!("warning:")` remains in codebase | OCN-004 | auto | pending |
 | TM-P29-032 | `remove` cancellation shows `· Remove cancelled` | OCN-005 | auto | pending |
 | TM-P29-033 | `remove` interactive candidates render as table | OCN-006 | auto | pending |
-| TM-P29-034 | File paths displayed in cyan when colors enabled | OCN-007 | manual | pending |
+| TM-P29-034 | File paths displayed in cyan when colors enabled | OCN-007 | manual | completed |
 | TM-P29-035 | `UiContext::styled_path()` method exists | OCN-010 | auto | pending |
 
 ## 6. Newline Policy (WP-5)
