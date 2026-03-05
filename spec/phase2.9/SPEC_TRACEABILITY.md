@@ -3,8 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.9.
 Use this file to recover accurate context after compression.
 
-**Status:** DRAFT — populated with requirement IDs. Implementation
-and test columns will be filled during Builder execution.
+**Status:** ACTIVE — Batch 1 and Batch 2 rows are populated.
 
 ## 1. Table Fix Requirements
 
@@ -44,16 +43,16 @@ and test columns will be filled during Builder execution.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| OCN-001 | `SPEC_OUTPUT_CONSISTENCY.md` 3.1 | `add` shows `✓ Added` | | TM-P29-028 | pending |
-| OCN-002 | `SPEC_OUTPUT_CONSISTENCY.md` 3.2 | `set` shows `✓ Updated` | | TM-P29-029 | pending |
-| OCN-003 | `SPEC_OUTPUT_CONSISTENCY.md` 3.3 | `config import` shows `✓ Imported` | | TM-P29-030 | pending |
-| OCN-004 | `SPEC_OUTPUT_CONSISTENCY.md` 3.4–3.8 | All warnings through `print_warning()` | | TM-P29-031 | pending |
-| OCN-005 | `SPEC_OUTPUT_CONSISTENCY.md` 3.5 | `remove` cancel uses skipped symbol | | TM-P29-032 | pending |
-| OCN-006 | `SPEC_OUTPUT_CONSISTENCY.md` 3.6 | `remove` candidates render as table | | TM-P29-033 | pending |
-| OCN-007 | `SPEC_OUTPUT_CONSISTENCY.md` 4.1 | File paths styled cyan | | TM-P29-034 | pending |
-| OCN-008 | `SPEC_OUTPUT_CONSISTENCY.md` 4.4 | Skill names bold in result lines | | TM-P29-034 | pending |
-| OCN-009 | `SPEC_OUTPUT_CONSISTENCY.md` 4.4 | Mode labels and connectors dimmed | | TM-P29-034 | pending |
-| OCN-010 | `SPEC_OUTPUT_CONSISTENCY.md` 4.2 | `UiContext::styled_path()` exists | | TM-P29-035 | pending |
+| OCN-001 | `SPEC_OUTPUT_CONSISTENCY.md` 3.1 | `add` shows `✓ Added` | `crates/eden-skills-cli/src/commands/config_ops.rs` (`add`, `style_quoted_skill_id`) | `crates/eden-skills-cli/tests/output_consistency_tests.rs` (`tm_p29_028_add_shows_added_line_with_abbreviated_path`) | completed |
+| OCN-002 | `SPEC_OUTPUT_CONSISTENCY.md` 3.2 | `set` shows `✓ Updated` | `crates/eden-skills-cli/src/commands/config_ops.rs` (`set`, `style_quoted_skill_id`) | `crates/eden-skills-cli/tests/output_consistency_tests.rs` (`tm_p29_029_set_shows_updated_line_with_abbreviated_path`) | completed |
+| OCN-003 | `SPEC_OUTPUT_CONSISTENCY.md` 3.3 | `config import` shows `✓ Imported` | `crates/eden-skills-cli/src/commands/config_ops.rs` (`config_import`) | `crates/eden-skills-cli/tests/output_consistency_tests.rs` (`tm_p29_030_config_import_shows_imported_line_with_abbreviated_path`) | completed |
+| OCN-004 | `SPEC_OUTPUT_CONSISTENCY.md` 3.4–3.8 | All warnings through `print_warning()` | `crates/eden-skills-cli/src/commands/config_ops.rs`, `crates/eden-skills-cli/src/commands/remove.rs`, `crates/eden-skills-cli/src/commands/common.rs` (`validate_registry_manifest_for_resolution`) | `crates/eden-skills-cli/tests/output_consistency_tests.rs` (`tm_p29_031_no_raw_warning_eprintln_remains_in_target_files`) | completed |
+| OCN-005 | `SPEC_OUTPUT_CONSISTENCY.md` 3.5 | `remove` cancel uses skipped symbol | `crates/eden-skills-cli/src/commands/remove.rs` (`remove_many_async`) | `crates/eden-skills-cli/tests/output_consistency_tests.rs` (`tm_p29_032_remove_cancellation_uses_skipped_symbol_line`) | completed |
+| OCN-006 | `SPEC_OUTPUT_CONSISTENCY.md` 3.6 | `remove` candidates render as table | `crates/eden-skills-cli/src/commands/remove.rs` (`print_remove_candidates`) | `crates/eden-skills-cli/tests/output_consistency_tests.rs` (`tm_p29_033_remove_interactive_candidates_render_as_table`) | completed |
+| OCN-007 | `SPEC_OUTPUT_CONSISTENCY.md` 4.1 | File paths styled cyan | `crates/eden-skills-cli/src/ui.rs` (`UiContext::styled_path`), `crates/eden-skills-cli/src/commands/config_ops.rs`, `crates/eden-skills-cli/src/commands/install.rs`, `crates/eden-skills-cli/src/commands/reconcile.rs`, `crates/eden-skills-cli/src/commands/plan_cmd.rs`, `crates/eden-skills-cli/src/commands/diagnose.rs` | TM-P29-034 (manual) | completed |
+| OCN-008 | `SPEC_OUTPUT_CONSISTENCY.md` 4.4 | Skill names bold in result lines | `crates/eden-skills-cli/src/commands/install.rs` (`style_skill_id`), `crates/eden-skills-cli/src/commands/reconcile.rs` (`style_skill_id`), `crates/eden-skills-cli/src/commands/remove.rs` (`style_skill_id`) | TM-P29-034 (manual) | completed |
+| OCN-009 | `SPEC_OUTPUT_CONSISTENCY.md` 4.4 | Mode labels and connectors dimmed | `crates/eden-skills-cli/src/commands/install.rs` (`style_mode_label`, `style_arrow`), `crates/eden-skills-cli/src/commands/reconcile.rs` (`style_mode_label`, `style_arrow`), `crates/eden-skills-cli/src/commands/plan_cmd.rs` (`style_mode_label`, `style_arrow`) | TM-P29-034 (manual) | completed |
+| OCN-010 | `SPEC_OUTPUT_CONSISTENCY.md` 4.2 | `UiContext::styled_path()` exists | `crates/eden-skills-cli/src/ui.rs` (`UiContext::styled_path`) | `crates/eden-skills-cli/tests/output_consistency_tests.rs` (`tm_p29_035_ui_context_exposes_styled_path_method`) | completed |
 
 ## 5. Newline Policy Requirements
 

@@ -507,7 +507,7 @@ fn print_doctor_text(ui: &UiContext, findings: &[DoctorFinding]) {
             finding.code,
             finding.skill_id
         );
-        println!("    {}", finding.message);
+        println!("    {}", doctor_message_with_styled_path(ui, finding));
         println!(
             "    {} {}",
             doctor_remediation_prefix(ui),
@@ -540,6 +540,18 @@ fn doctor_remediation_prefix(ui: &UiContext) -> String {
     } else {
         arrow.to_string()
     }
+}
+
+fn doctor_message_with_styled_path(ui: &UiContext, finding: &DoctorFinding) -> String {
+    if finding.target_path.is_empty() {
+        return finding.message.clone();
+    }
+    let styled_path = ui.styled_path(&finding.target_path);
+    let abbreviated_target = crate::ui::abbreviate_home_path(&finding.target_path);
+    finding
+        .message
+        .replace(&finding.target_path, &styled_path)
+        .replace(&abbreviated_target, &styled_path)
 }
 
 fn print_doctor_json(findings: &[DoctorFinding]) -> Result<(), EdenError> {

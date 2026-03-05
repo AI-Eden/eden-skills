@@ -73,12 +73,14 @@ pub(crate) fn print_plan_text(ui: &UiContext, items: &[PlanItem]) {
     }
 
     for item in items {
+        let mode_label = style_mode_label(ui, item.install_mode.as_str());
         println!(
-            "  {}  {} → {} ({})",
+            "  {}  {} {} {} {}",
             style_plan_action_label(ui, item.action),
             item.skill_id,
-            abbreviate_home_path(&item.target_path),
-            item.install_mode.as_str()
+            style_arrow(ui),
+            ui.styled_path(&item.target_path),
+            mode_label
         );
         for reason in &item.reasons {
             println!("           reason: {reason}");
@@ -116,9 +118,10 @@ fn print_plan_table(ui: &UiContext, items: &[PlanItem]) {
     println!("  Conflicts:");
     for item in conflicts {
         println!(
-            "    {} → {}",
+            "    {} {} {}",
             item.skill_id,
-            abbreviate_home_path(&item.target_path)
+            style_arrow(ui),
+            ui.styled_path(&item.target_path)
         );
         for reason in &item.reasons {
             println!("      reason: {reason}");
@@ -154,6 +157,24 @@ fn style_plan_action_label(ui: &UiContext, action: Action) -> String {
         Action::Noop => padded.dimmed().to_string(),
         Action::Conflict => padded.yellow().to_string(),
         Action::Remove => padded.red().to_string(),
+    }
+}
+
+fn style_mode_label(ui: &UiContext, mode: &str) -> String {
+    let raw = format!("({mode})");
+    if ui.colors_enabled() {
+        raw.dimmed().to_string()
+    } else {
+        raw
+    }
+}
+
+fn style_arrow(ui: &UiContext) -> String {
+    let arrow = "→";
+    if ui.colors_enabled() {
+        arrow.dimmed().to_string()
+    } else {
+        arrow.to_string()
     }
 }
 

@@ -28,6 +28,7 @@ use eden_skills_core::source_format::{
     derive_skill_id_from_source_repo, detect_install_source, DetectedInstallSource,
     UrlInstallSource,
 };
+use owo_colors::OwoColorize;
 
 use crate::ui::{abbreviate_home_path, abbreviate_repo_url, StatusSymbol, UiContext};
 use crate::DEFAULT_CONFIG_PATH;
@@ -128,7 +129,7 @@ fn ensure_install_config_exists(
 
     fs::write(config_path, default_config_template())?;
     if !ui.json_mode() {
-        let display_path = crate::ui::abbreviate_home_path(&config_path.display().to_string());
+        let display_path = ui.styled_path(&config_path.display().to_string());
         if ui.symbols_enabled() {
             println!(
                 "{} Created config at {}",
@@ -174,8 +175,12 @@ async fn install_registry_mode_async(
 
     let mut single_skill_config = select_single_skill_config(&config, skill_name)?;
 
-    single_skill_config =
-        resolve_registry_mode_skills_for_execution(config_path, &single_skill_config, &config_dir)?;
+    single_skill_config = resolve_registry_mode_skills_for_execution(
+        config_path,
+        &single_skill_config,
+        &config_dir,
+        ui,
+    )?;
 
     if req.dry_run {
         print_install_dry_run(
@@ -1331,11 +1336,12 @@ fn print_install_result_lines(ui: &UiContext, installed_targets: &[InstallTarget
             format!("{}  ", ui.action_prefix("Install"))
         };
         println!(
-            "{prefix}{} {} → {} ({})",
+            "{prefix}{} {} {} {} {}",
             ui.status_symbol(StatusSymbol::Success),
-            target.skill_id,
-            crate::ui::abbreviate_home_path(&target.target_path),
-            target.mode
+            style_skill_id(ui, &target.skill_id),
+            style_arrow(ui),
+            ui.styled_path(&target.target_path),
+            style_mode_label(ui, &target.mode)
         );
     }
 }
@@ -1353,6 +1359,32 @@ fn print_install_result_summary(
         agent_count,
         conflict_count
     );
+}
+
+fn style_skill_id(ui: &UiContext, skill_id: &str) -> String {
+    if ui.colors_enabled() {
+        skill_id.bold().to_string()
+    } else {
+        skill_id.to_string()
+    }
+}
+
+fn style_mode_label(ui: &UiContext, mode: &str) -> String {
+    let raw = format!("({mode})");
+    if ui.colors_enabled() {
+        raw.dimmed().to_string()
+    } else {
+        raw
+    }
+}
+
+fn style_arrow(ui: &UiContext) -> String {
+    let arrow = "→";
+    if ui.colors_enabled() {
+        arrow.dimmed().to_string()
+    } else {
+        arrow.to_string()
+    }
 }
 
 fn parse_install_target_spec(spec: &str) -> Result<TargetConfig, EdenError> {

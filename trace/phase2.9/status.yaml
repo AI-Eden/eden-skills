@@ -54,7 +54,7 @@ batches:
         OCN-009,
         OCN-010,
       ]
-    status: pending
+    status: completed
   batch3:
     name: "Install UX: Card Preview + Tree Display"
     work_packages: [WP-3-pt1]
@@ -99,3 +99,21 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 307
+  batch_2_output_consistency:
+    status: completed
+    completed_at: "2026-03-06"
+    requirements: OCN-001, OCN-002, OCN-003, OCN-004, OCN-005, OCN-006, OCN-007, OCN-008, OCN-009, OCN-010
+    scenarios: TM-P29-028, TM-P29-029, TM-P29-030, TM-P29-031, TM-P29-032, TM-P29-033, TM-P29-035
+    notes:
+      - added `UiContext::styled_path()` and applied it to init/add/set/config import/install/apply-repair/plan/doctor human output paths
+      - upgraded add/set/config import result lines to unified symbol-first format with abbreviated paths
+      - routed warning output through `print_warning()` across config_ops, remove, and registry manifest validation
+      - replaced remove cancellation text with skipped-symbol line and switched interactive candidates to UiContext table rendering with abbreviated repo source
+      - added bold skill labels and dimmed mode/arrow styling in install, reconcile, and plan text result lines
+      - added output_consistency_tests.rs covering TM-P29-028, TM-P29-029, TM-P29-030, TM-P29-031, TM-P29-032, TM-P29-033, TM-P29-035
+      - manual visual scenario TM-P29-034 remains pending for terminal color verification
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 315

@@ -52,7 +52,7 @@ pub fn init(config_path: &str, force: bool) -> Result<(), EdenError> {
     let lock_path = lock_path_for_config(&config_path);
     write_lock_file(&lock_path, &LockFile::empty())?;
 
-    let display_path = abbreviate_home_path(&config_path.display().to_string());
+    let display_path = ui.styled_path(&config_path.display().to_string());
     println!(
         "  {} Created config at {display_path}",
         ui.status_symbol(StatusSymbol::Success)
@@ -219,11 +219,12 @@ fn render_skill_agents(skill: &SkillConfig, config_dir: &std::path::Path) -> Str
 /// Returns [`EdenError::Conflict`] for duplicate IDs, [`EdenError::Validation`]
 /// for invalid target specs, or [`EdenError::Io`] on write failures.
 pub fn add(req: AddRequest) -> Result<(), EdenError> {
+    let ui = UiContext::from_env(req.options.json);
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        print_warning(&ui, &warning);
     }
 
     let config_dir = config_dir_from_path(config_path);
@@ -275,7 +276,12 @@ pub fn add(req: AddRequest) -> Result<(), EdenError> {
         return Ok(());
     }
 
-    println!("add: wrote {}", config_path.display());
+    let styled_skill = style_quoted_skill_id(&ui, &req.id);
+    let styled_path = ui.styled_path(&config_path.display().to_string());
+    println!(
+        "  {} Added {styled_skill} to {styled_path}",
+        ui.status_symbol(StatusSymbol::Success)
+    );
     Ok(())
 }
 
@@ -304,11 +310,12 @@ pub fn set(req: SetRequest) -> Result<(), EdenError> {
         ));
     }
 
+    let ui = UiContext::from_env(req.options.json);
     let config_path_buf = resolve_config_path(&req.config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        print_warning(&ui, &warning);
     }
 
     let config_dir = config_dir_from_path(config_path);
@@ -361,7 +368,12 @@ pub fn set(req: SetRequest) -> Result<(), EdenError> {
         return Ok(());
     }
 
-    println!("set: wrote {}", config_path.display());
+    let styled_skill = style_quoted_skill_id(&ui, &req.skill_id);
+    let styled_path = ui.styled_path(&config_path.display().to_string());
+    println!(
+        "  {} Updated {styled_skill} in {styled_path}",
+        ui.status_symbol(StatusSymbol::Success)
+    );
     Ok(())
 }
 
@@ -371,11 +383,12 @@ pub fn set(req: SetRequest) -> Result<(), EdenError> {
 ///
 /// Returns [`EdenError`] on config load or serialization failures.
 pub fn config_export(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
+    let ui = UiContext::from_env(options.json);
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, options.strict)?;
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        print_warning(&ui, &warning);
     }
 
     let registries = read_existing_registries(config_path)?;
@@ -412,11 +425,12 @@ pub fn config_import(
     dry_run: bool,
     options: CommandOptions,
 ) -> Result<(), EdenError> {
+    let ui = UiContext::from_env(options.json);
     let cwd = std::env::current_dir().map_err(EdenError::Io)?;
     let from_path = resolve_path_string(from_path, &cwd)?;
     let loaded = load_config_with_context(&from_path, options.strict)?;
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        print_warning(&ui, &warning);
     }
 
     let registries = read_existing_registries(&from_path)?;
@@ -432,6 +446,18 @@ pub fn config_import(
         fs::create_dir_all(parent)?;
     }
     fs::write(&dest_path, toml)?;
-    println!("config import: wrote {}", dest_path.display());
+    let styled_path = ui.styled_path(&dest_path.display().to_string());
+    println!(
+        "  {} Imported config to {styled_path}",
+        ui.status_symbol(StatusSymbol::Success)
+    );
     Ok(())
+}
+
+fn style_quoted_skill_id(ui: &UiContext, skill_id: &str) -> String {
+    if ui.colors_enabled() {
+        format!("'{}'", skill_id.bold())
+    } else {
+        format!("'{skill_id}'")
+    }
 }

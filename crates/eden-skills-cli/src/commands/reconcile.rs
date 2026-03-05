@@ -21,6 +21,7 @@ use eden_skills_core::reactor::SkillReactor;
 use eden_skills_core::safety::{analyze_skills, persist_reports, SkillSafetyReport};
 use eden_skills_core::source::sync_sources_async_with_reactor;
 use eden_skills_core::verify::verify_config_state;
+use owo_colors::OwoColorize;
 
 use super::common::{
     apply_plan_item, block_on_command_future, ensure_docker_available_for_targets,
@@ -32,7 +33,7 @@ use super::common::{
 };
 
 use super::CommandOptions;
-use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
+use crate::ui::{StatusSymbol, UiContext};
 
 /// Synchronous wrapper around [`apply_async`] using a single-threaded runtime.
 ///
@@ -73,7 +74,7 @@ pub async fn apply_async(
     let reactor = SkillReactor::new(concurrency).map_err(EdenError::from)?;
     let config_dir = config_dir_from_path(config_path);
     let execution_config =
-        resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir)?;
+        resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir, &ui)?;
     if !execution_config.skills.is_empty() {
         ensure_git_available()?;
     }
@@ -240,7 +241,7 @@ pub async fn repair_async(
     let reactor = SkillReactor::new(concurrency).map_err(EdenError::from)?;
     let config_dir = config_dir_from_path(config_path);
     let execution_config =
-        resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir)?;
+        resolve_registry_mode_skills_for_execution(config_path, &loaded.config, &config_dir, &ui)?;
     if !execution_config.skills.is_empty() {
         ensure_git_available()?;
     }
@@ -449,10 +450,12 @@ fn print_install_applied_line(
         format!("{}  ", ui.action_prefix("Install"))
     };
     println!(
-        "{prefix}{} {} → {} ({mode})",
+        "{prefix}{} {} {} {} {}",
         ui.status_symbol(StatusSymbol::Success),
-        skill_id,
-        abbreviate_home_path(target_path),
+        style_skill_id(ui, skill_id),
+        style_arrow(ui),
+        ui.styled_path(target_path),
+        style_mode_label(ui, mode),
     );
 }
 
@@ -466,7 +469,7 @@ fn print_install_skipped_line(ui: &UiContext, install_prefix_emitted: &mut bool,
     println!(
         "{prefix}{} {} (skipped: metadata-only)",
         ui.status_symbol(StatusSymbol::Skipped),
-        skill_id,
+        style_skill_id(ui, skill_id),
     );
 }
 
@@ -479,16 +482,44 @@ fn print_remove_lines(ui: &UiContext, removed_skill_ids: &[String]) {
     for skill_id in removed_skill_ids {
         if remove_prefix_emitted {
             println!(
-                "          {} {skill_id}",
-                ui.status_symbol(StatusSymbol::Success)
+                "          {} {}",
+                ui.status_symbol(StatusSymbol::Success),
+                style_skill_id(ui, skill_id)
             );
         } else {
             remove_prefix_emitted = true;
             println!(
-                "{}  {} {skill_id}",
+                "{}  {} {}",
                 ui.action_prefix("Remove"),
-                ui.status_symbol(StatusSymbol::Success)
+                ui.status_symbol(StatusSymbol::Success),
+                style_skill_id(ui, skill_id)
             );
         }
+    }
+}
+
+fn style_skill_id(ui: &UiContext, skill_id: &str) -> String {
+    if ui.colors_enabled() {
+        skill_id.bold().to_string()
+    } else {
+        skill_id.to_string()
+    }
+}
+
+fn style_mode_label(ui: &UiContext, mode: &str) -> String {
+    let raw = format!("({mode})");
+    if ui.colors_enabled() {
+        raw.dimmed().to_string()
+    } else {
+        raw
+    }
+}
+
+fn style_arrow(ui: &UiContext) -> String {
+    let arrow = "→";
+    if ui.colors_enabled() {
+        arrow.dimmed().to_string()
+    } else {
+        arrow.to_string()
     }
 }

@@ -8,6 +8,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
 
+use comfy_table::{ColumnConstraint, Width};
 use dialoguer::Confirm;
 use dialoguer::Input;
 use eden_skills_core::adapter::create_adapter;
@@ -16,13 +17,14 @@ use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{
     known_default_agent_paths, normalize_lexical, resolve_path_string, resolve_target_path,
 };
+use owo_colors::OwoColorize;
 
-use crate::ui::{StatusSymbol, UiContext};
+use crate::ui::{abbreviate_repo_url, StatusSymbol, UiContext};
 
 use super::common::{
     block_on_command_future, ensure_docker_available_for_targets, format_quoted_ids,
-    load_config_with_context, remove_path, resolve_config_path, unique_ids, with_hint,
-    write_lock_for_config, write_normalized_config,
+    load_config_with_context, print_warning, remove_path, resolve_config_path, unique_ids,
+    with_hint, write_lock_for_config, write_normalized_config,
 };
 use super::CommandOptions;
 
@@ -70,11 +72,11 @@ pub async fn remove_many_async(
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, options.strict)?;
+    let ui = UiContext::from_env(options.json);
     for warning in loaded.warnings {
-        eprintln!("warning: {warning}");
+        print_warning(&ui, &warning);
     }
 
-    let ui = UiContext::from_env(options.json);
     let config_dir = config_dir_from_path(config_path);
     let mut config = loaded.config;
     let removal_ids = resolve_remove_ids(&config, skill_ids, &ui)?;
@@ -85,7 +87,10 @@ pub async fn remove_many_async(
 
     if !confirm_remove_execution(&removal_ids, skip_confirmation, &ui)? {
         if !options.json {
-            println!("remove cancelled.");
+            println!(
+                "  {} Remove cancelled",
+                ui.status_symbol(StatusSymbol::Skipped)
+            );
         }
         return Ok(());
     }
@@ -156,7 +161,7 @@ fn resolve_remove_ids(
         )));
     }
 
-    print_remove_candidates(config);
+    print_remove_candidates(config, ui);
     let selection = prompt_remove_selection()?;
     let selected = parse_remove_selection(config, &selection)?;
     if selected.is_empty() {
@@ -234,9 +239,14 @@ fn print_remove_summary(ui: &UiContext, removed: &[String]) {
     }
 
     let success = ui.status_symbol(StatusSymbol::Success);
-    println!("{}  {} {}", ui.action_prefix("Remove"), success, removed[0]);
+    println!(
+        "{}  {} {}",
+        ui.action_prefix("Remove"),
+        success,
+        style_skill_id(ui, &removed[0])
+    );
     for skill_id in removed.iter().skip(1) {
-        println!("          {} {}", success, skill_id);
+        println!("          {} {}", success, style_skill_id(ui, skill_id));
     }
     println!();
     let noun = if removed.len() == 1 {
@@ -247,17 +257,22 @@ fn print_remove_summary(ui: &UiContext, removed: &[String]) {
     println!("  {} {} {} removed", success, removed.len(), noun);
 }
 
-fn print_remove_candidates(config: &Config) {
+fn print_remove_candidates(config: &Config, ui: &UiContext) {
     println!("  Skills   {} configured:", config.skills.len());
     println!();
-    for (index, skill) in config.skills.iter().enumerate() {
-        println!(
-            "    {}. {:<16} ({})",
-            index + 1,
-            skill.id,
-            skill.source.repo
-        );
+
+    let mut table = ui.table(&["#", "Skill", "Source"]);
+    if let Some(column) = table.column_mut(0) {
+        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(4)));
     }
+    for (index, skill) in config.skills.iter().enumerate() {
+        table.add_row(vec![
+            (index + 1).to_string(),
+            skill.id.clone(),
+            abbreviate_repo_url(&skill.source.repo),
+        ]);
+    }
+    println!("{table}");
     println!();
     println!("  Enter skill numbers or names to remove (space-separated):");
 }
@@ -272,6 +287,14 @@ fn prompt_remove_selection() -> Result<String, EdenError> {
         .allow_empty(false)
         .interact_text()
         .map_err(|err| EdenError::Runtime(format!("interactive prompt failed: {err}")))
+}
+
+fn style_skill_id(ui: &UiContext, skill_id: &str) -> String {
+    if ui.colors_enabled() {
+        skill_id.bold().to_string()
+    } else {
+        skill_id.to_string()
+    }
 }
 
 fn parse_remove_selection(config: &Config, input: &str) -> Result<Vec<String>, EdenError> {

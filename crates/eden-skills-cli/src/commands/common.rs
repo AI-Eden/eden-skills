@@ -402,6 +402,7 @@ pub(crate) fn resolve_registry_mode_skills_for_execution(
     config_path: &Path,
     config: &Config,
     config_dir: &Path,
+    ui: &UiContext,
 ) -> Result<Config, EdenError> {
     if !config
         .skills
@@ -461,7 +462,7 @@ pub(crate) fn resolve_registry_mode_skills_for_execution(
             )));
         }
         for source in &sources_for_skill {
-            validate_registry_manifest_for_resolution(source)?;
+            validate_registry_manifest_for_resolution(source, ui)?;
         }
         if sources_for_skill.iter().all(|source| !source.root.exists()) {
             let repo_dir = storage_root.join(&skill.id);
@@ -497,16 +498,22 @@ pub(crate) fn resolve_registry_mode_skills_for_execution(
     Ok(resolved)
 }
 
-fn validate_registry_manifest_for_resolution(source: &RegistrySource) -> Result<(), EdenError> {
+fn validate_registry_manifest_for_resolution(
+    source: &RegistrySource,
+    ui: &UiContext,
+) -> Result<(), EdenError> {
     if !source.root.exists() {
         return Ok(());
     }
 
     let manifest_path = source.root.join("manifest.toml");
     if !manifest_path.exists() {
-        eprintln!(
-            "warning: registry `{}` is missing manifest.toml; assuming format_version = 1",
-            source.name
+        print_warning(
+            ui,
+            &format!(
+                "registry `{}` is missing manifest.toml; assuming format_version = 1",
+                source.name
+            ),
         );
         return Ok(());
     }
@@ -525,9 +532,12 @@ fn validate_registry_manifest_for_resolution(source: &RegistrySource) -> Result<
         )));
     };
     if format_version != 1 {
-        eprintln!(
-            "warning: registry `{}` manifest format_version={} (expected 1); continuing",
-            source.name, format_version
+        print_warning(
+            ui,
+            &format!(
+                "registry `{}` manifest format_version={} (expected 1); continuing",
+                source.name, format_version
+            ),
         );
     }
     Ok(())

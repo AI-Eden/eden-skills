@@ -177,6 +177,19 @@ impl UiContext {
         }
     }
 
+    /// Abbreviate a path with `~` and colorize it for human output.
+    ///
+    /// Paths are rendered in cyan when colors are enabled. JSON mode and
+    /// `--color never` keep the abbreviated path as plain text.
+    pub fn styled_path(&self, path: &str) -> String {
+        let abbreviated = abbreviate_home_path(path);
+        if self.colors_enabled() {
+            abbreviated.cyan().to_string()
+        } else {
+            abbreviated
+        }
+    }
+
     /// Create a [`Table`] pre-configured for the current terminal context.
     ///
     /// TTY output uses content-driven column widths with plain-text headers;
