@@ -429,7 +429,7 @@ path = "{target_root_b}"
         "apply output should include mode label in tree lines, stdout={apply_stdout}"
     );
     assert!(
-        !apply_stdout.contains("→"),
+        !apply_stdout.contains("~>"),
         "legacy arrow line format should be removed from apply output, stdout={apply_stdout}"
     );
 
@@ -467,7 +467,7 @@ path = "{target_root_b}"
         "repair output should include mode label in tree lines, stdout={repair_stdout}"
     );
     assert!(
-        !repair_stdout.contains("→"),
+        !repair_stdout.contains("~>"),
         "legacy arrow line format should be removed from repair output, stdout={repair_stdout}"
     );
 }

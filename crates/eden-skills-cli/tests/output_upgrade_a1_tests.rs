@@ -77,7 +77,7 @@ fn tm_p28_014_apply_per_skill_install_lines() {
         "expected install mode marker on per-target lines, stdout={stdout}"
     );
     assert!(
-        !stdout.contains("→"),
+        !stdout.contains("~>"),
         "legacy arrow line format should be removed from apply install output, stdout={stdout}"
     );
 }
@@ -220,7 +220,7 @@ fn tm_p28_021_plan_header_and_colored_actions() {
         "expected create/noop/conflict/remove action rows, stdout={stdout}"
     );
     assert!(
-        stdout.contains("→"),
+        stdout.contains("~>"),
         "expected unicode arrow in plan paths, stdout={stdout}"
     );
     assert!(
@@ -290,7 +290,7 @@ fn tm_p28_026_error_hint_uses_arrow() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("→"),
+        stderr.contains("~>"),
         "expected arrow-prefixed hint, stderr={stderr}"
     );
     assert!(

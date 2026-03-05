@@ -75,7 +75,7 @@ fn tm_p28_019_doctor_findings_cards() {
         "doctor finding card should include severity symbol, code, and skill id, stdout={stdout}"
     );
     assert!(
-        stdout.contains("\n    ") && stdout.contains("\n    → "),
+        stdout.contains("\n    ") && stdout.contains("\n    ~> "),
         "doctor finding card should include indented message and remediation lines, stdout={stdout}"
     );
     assert!(
@@ -238,7 +238,7 @@ fn tm_p28_024_install_per_skill_results() {
         "per-target result lines should include install mode, stdout={stdout}"
     );
     assert!(
-        !stdout.contains("→"),
+        !stdout.contains("~>"),
         "legacy flat arrow output should be removed, stdout={stdout}"
     );
     assert!(

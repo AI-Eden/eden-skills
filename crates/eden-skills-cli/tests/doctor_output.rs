@@ -46,7 +46,7 @@ fn doctor_text_output_includes_code_severity_and_remediation() {
         "stdout should render finding cards with severity symbol and code, stdout={stdout}"
     );
     assert!(
-        stdout.contains("    → "),
+        stdout.contains("    ~> "),
         "stdout should contain arrow-prefixed remediation line, stdout={stdout}"
     );
     assert!(

@@ -170,7 +170,7 @@ fn style_mode_label(ui: &UiContext, mode: &str) -> String {
 }
 
 fn style_arrow(ui: &UiContext) -> String {
-    let arrow = "→";
+    let arrow = "~>";
     if ui.colors_enabled() {
         arrow.dimmed().to_string()
     } else {

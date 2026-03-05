@@ -244,7 +244,7 @@ fn tm_p28_010_plan_table_threshold() {
 
     let low_stdout = String::from_utf8_lossy(&low_output.stdout);
     assert!(
-        low_stdout.contains("→"),
+        low_stdout.contains("~>"),
         "plan with <=5 actions should stay in text format with arrow paths, stdout={low_stdout}"
     );
     assert!(

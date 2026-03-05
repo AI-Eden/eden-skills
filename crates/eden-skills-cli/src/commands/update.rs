@@ -276,7 +276,7 @@ fn print_empty_update_guidance(ui: &UiContext) {
         ui.action_prefix("Update")
     );
     println!();
-    println!("  → Run 'eden-skills install <owner/repo>' to get started.");
+    println!("  ~> Run 'eden-skills install <owner/repo>' to get started.");
 }
 
 fn print_update_refresh_sections(
@@ -406,7 +406,7 @@ fn print_update_summary(
         }
     }
     if !apply_requested && updates_available > 0 {
-        println!("  → Run 'eden-skills update --apply' or 'eden-skills apply' to install.");
+        println!("  ~> Run 'eden-skills update --apply' or 'eden-skills apply' to install.");
     }
 }
 

@@ -1011,7 +1011,7 @@ fn tm_p29_023_install_results_use_tree_display_with_connectors() {
         "tree output should include install mode labels, stdout={stdout}"
     );
     assert!(
-        !stdout.contains("→"),
+        !stdout.contains("~>"),
         "legacy flat arrow output must be removed, stdout={stdout}"
     );
 }

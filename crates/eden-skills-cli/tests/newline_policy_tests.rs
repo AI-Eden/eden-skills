@@ -53,7 +53,7 @@ fn tm_p29_037_error_with_hint_has_single_separator_blank_line() {
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("\n\n  → "),
+        stderr.contains("\n\n  ~> "),
         "error with hint must include exactly one blank separator before hint, stderr={stderr:?}"
     );
     assert!(
