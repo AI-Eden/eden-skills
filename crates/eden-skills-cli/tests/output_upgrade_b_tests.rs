@@ -16,6 +16,15 @@ struct SkillTarget {
     path: Option<String>,
 }
 
+struct SkillEntry {
+    id: String,
+    repo: String,
+    subpath: String,
+    mode: String,
+    metadata_only: bool,
+    targets: Vec<SkillTarget>,
+}
+
 #[test]
 fn tm_p28_005_list_renders_as_table() {
     let fixture = setup_list_fixture();
@@ -323,13 +332,13 @@ fn setup_list_fixture() -> Fixture {
     let custom_target = temp.path().join("custom-agent");
 
     let skills = vec![
-        (
-            "alpha-skill".to_string(),
-            "https://github.com/vercel-labs/agent-skills.git".to_string(),
-            "skills/alpha-skill".to_string(),
-            "symlink".to_string(),
-            false,
-            vec![
+        SkillEntry {
+            id: "alpha-skill".to_string(),
+            repo: "https://github.com/vercel-labs/agent-skills.git".to_string(),
+            subpath: "skills/alpha-skill".to_string(),
+            mode: "symlink".to_string(),
+            metadata_only: false,
+            targets: vec![
                 SkillTarget {
                     agent: "claude-code".to_string(),
                     path: None,
@@ -339,29 +348,29 @@ fn setup_list_fixture() -> Fixture {
                     path: None,
                 },
             ],
-        ),
-        (
-            "beta-skill".to_string(),
-            "https://github.com/vercel-labs/agent-skills".to_string(),
-            "skills/beta-skill".to_string(),
-            "copy".to_string(),
-            true,
-            vec![SkillTarget {
+        },
+        SkillEntry {
+            id: "beta-skill".to_string(),
+            repo: "https://github.com/vercel-labs/agent-skills".to_string(),
+            subpath: "skills/beta-skill".to_string(),
+            mode: "copy".to_string(),
+            metadata_only: true,
+            targets: vec![SkillTarget {
                 agent: "claude-code".to_string(),
                 path: None,
             }],
-        ),
-        (
-            "gamma-skill".to_string(),
-            "https://github.com/user/custom-skills.git".to_string(),
-            "skills/gamma-skill".to_string(),
-            "symlink".to_string(),
-            false,
-            vec![SkillTarget {
+        },
+        SkillEntry {
+            id: "gamma-skill".to_string(),
+            repo: "https://github.com/user/custom-skills.git".to_string(),
+            subpath: "skills/gamma-skill".to_string(),
+            mode: "symlink".to_string(),
+            metadata_only: false,
+            targets: vec![SkillTarget {
                 agent: "custom".to_string(),
                 path: Some(custom_target.display().to_string()),
             }],
-        ),
+        },
     ];
 
     write_skills_config(&config_path, &storage_root, &skills);
@@ -388,17 +397,17 @@ fn setup_plan_fixture(skill_count: usize) -> Fixture {
 
     let mut skills = Vec::new();
     for index in 0..skill_count {
-        skills.push((
-            format!("plan-skill-{index}"),
-            repo_url.clone(),
-            "packages/browser".to_string(),
-            "symlink".to_string(),
-            false,
-            vec![SkillTarget {
+        skills.push(SkillEntry {
+            id: format!("plan-skill-{index}"),
+            repo: repo_url.clone(),
+            subpath: "packages/browser".to_string(),
+            mode: "symlink".to_string(),
+            metadata_only: false,
+            targets: vec![SkillTarget {
                 agent: "custom".to_string(),
                 path: Some(temp.path().join("agent-target").display().to_string()),
             }],
-        ));
+        });
     }
     write_skills_config(&config_path, &storage_root, &skills);
 
@@ -481,26 +490,25 @@ no_exec_metadata_only = false
     }
 }
 
-fn write_skills_config(
-    config_path: &Path,
-    storage_root: &Path,
-    skills: &[(String, String, String, String, bool, Vec<SkillTarget>)],
-) {
+fn write_skills_config(config_path: &Path, storage_root: &Path, skills: &[SkillEntry]) {
     let mut config = format!(
         "version = 1\n\n[storage]\nroot = \"{}\"\n",
         toml_escape_path(storage_root)
     );
 
-    for (id, repo, subpath, mode, metadata_only, targets) in skills {
+    for skill in skills {
         config.push_str("\n[[skills]]\n");
-        config.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(id)));
+        config.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(&skill.id)));
         config.push_str("[skills.source]\n");
-        config.push_str(&format!("repo = \"{}\"\n", toml_escape_str(repo)));
-        config.push_str(&format!("subpath = \"{}\"\n", toml_escape_str(subpath)));
+        config.push_str(&format!("repo = \"{}\"\n", toml_escape_str(&skill.repo)));
+        config.push_str(&format!(
+            "subpath = \"{}\"\n",
+            toml_escape_str(&skill.subpath)
+        ));
         config.push_str("ref = \"main\"\n\n");
         config.push_str("[skills.install]\n");
-        config.push_str(&format!("mode = \"{}\"\n", toml_escape_str(mode)));
-        for target in targets {
+        config.push_str(&format!("mode = \"{}\"\n", toml_escape_str(&skill.mode)));
+        for target in &skill.targets {
             config.push_str("\n[[skills.targets]]\n");
             config.push_str(&format!("agent = \"{}\"\n", toml_escape_str(&target.agent)));
             if let Some(path) = &target.path {
@@ -511,7 +519,10 @@ fn write_skills_config(
         config.push_str("enabled = true\n");
         config.push_str("checks = [\"path-exists\"]\n\n");
         config.push_str("[skills.safety]\n");
-        config.push_str(&format!("no_exec_metadata_only = {metadata_only}\n"));
+        config.push_str(&format!(
+            "no_exec_metadata_only = {}\n",
+            skill.metadata_only
+        ));
     }
 
     fs::write(config_path, config).expect("write skills config");
