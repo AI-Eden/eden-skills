@@ -99,14 +99,9 @@ fn tm_p29_003_fixed_columns_apply_upper_boundary_constraints_at_call_sites() {
     );
 
     let install = read_source_file("src/commands/install.rs");
-    assert_contains_all(
-        &install,
-        &[
-            "ui.table(&[\"#\", \"Name\", \"Description\"])",
-            "column_mut(0)",
-            "Width::Fixed(4)",
-        ],
-        "install --list table constraints",
+    assert!(
+        !install.contains("ui.table(&[\"#\", \"Name\", \"Description\"])"),
+        "install discovery preview should no longer use a table renderer in Phase 2.9"
     );
     assert_contains_all(
         &install,

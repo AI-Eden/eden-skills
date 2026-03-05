@@ -149,7 +149,7 @@ fn tm_p28_008_install_dry_run_renders_targets_table() {
 }
 
 #[test]
-fn tm_p28_009_install_list_renders_numbered_table() {
+fn tm_p28_009_install_list_renders_card_style_numbered_preview() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let config_path = temp.path().join("skills.toml");
@@ -184,15 +184,21 @@ fn tm_p28_009_install_list_renders_numbered_table() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains('#') && stdout.contains("Name") && stdout.contains("Description"),
-        "install --list should render numbered table headers, stdout={stdout}"
+        stdout.contains("Found") && stdout.contains("skills in repository"),
+        "install --list should include discovery header, stdout={stdout}"
     );
     assert!(
-        stdout.contains("1")
-            && stdout.contains("alpha-skill")
-            && stdout.contains("beta-skill")
-            && stdout.contains("gamma-skill"),
-        "install --list should include numbered discovered skills, stdout={stdout}"
+        stdout.contains("    1. alpha-skill")
+            && stdout.contains("       Alpha skill")
+            && stdout.contains("    2. beta-skill")
+            && stdout.contains("       Beta skill")
+            && stdout.contains("    3. gamma-skill")
+            && stdout.contains("       Gamma skill"),
+        "install --list should include numbered card-style discovered skills, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("| #") && !stdout.contains("+---"),
+        "install --list should not render a table layout, stdout={stdout}"
     );
     assert!(
         !stdout.contains("Skills in "),

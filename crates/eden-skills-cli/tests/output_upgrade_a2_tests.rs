@@ -248,7 +248,7 @@ fn tm_p28_024_install_per_skill_results() {
 }
 
 #[test]
-fn tm_p28_025_install_discovery_numbered() {
+fn tm_p28_025_install_discovery_card_style_numbered() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = setup_local_discovery_repo(
@@ -287,8 +287,10 @@ fn tm_p28_025_install_discovery_numbered() {
         "discovery output should include numbered skill list, stdout={stdout}"
     );
     assert!(
-        stdout.contains("—"),
-        "discovery list should include em dash between name and description, stdout={stdout}"
+        stdout.contains("    1. alpha-skill\n       Alpha skill")
+            && stdout.contains("    2. beta-skill\n       Beta skill")
+            && stdout.contains("    3. gamma-skill\n       Gamma skill"),
+        "discovery list should render descriptions on indented followup lines, stdout={stdout}"
     );
 }
 

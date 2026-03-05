@@ -237,6 +237,207 @@ fn list_flag_prints_discovered_skills_without_modifying_config() {
 }
 
 #[test]
+fn tm_p29_015_install_list_shows_card_style_numbered_list() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("card-list-repo");
+    write_skill(
+        &repo_dir.join("skills/alpha/SKILL.md"),
+        "alpha-skill",
+        "Alpha details",
+    );
+    write_skill(
+        &repo_dir.join("skills/beta/SKILL.md"),
+        "beta-skill",
+        "Beta details",
+    );
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./card-list-repo",
+            "--list",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install --list");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install --list should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("Found") && stdout.contains("skills in repository"),
+        "card preview should include discovery header, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("    1. alpha-skill") && stdout.contains("    2. beta-skill"),
+        "card preview should render numbered list lines, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("| Name") && !stdout.contains("+---"),
+        "install --list should not use table rendering, stdout={stdout}"
+    );
+}
+
+#[test]
+fn tm_p29_016_interactive_preview_matches_list_card_format() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("interactive-card-repo");
+    write_skill(
+        &repo_dir.join("skills/alpha/SKILL.md"),
+        "alpha-skill",
+        "Alpha details",
+    );
+    write_skill(
+        &repo_dir.join("skills/beta/SKILL.md"),
+        "beta-skill",
+        "Beta details",
+    );
+
+    let config_path = temp.path().join("skills.toml");
+    let list_output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./interactive-card-repo",
+            "--list",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install --list");
+    assert_eq!(
+        list_output.status.code(),
+        Some(0),
+        "install --list should succeed, stderr={}",
+        String::from_utf8_lossy(&list_output.stderr)
+    );
+
+    let interactive_output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .env("EDEN_SKILLS_TEST_CONFIRM", "y")
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./interactive-card-repo",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run interactive install");
+    assert_eq!(
+        interactive_output.status.code(),
+        Some(0),
+        "interactive install should succeed, stderr={}",
+        String::from_utf8_lossy(&interactive_output.stderr)
+    );
+
+    let list_preview =
+        extract_discovery_preview_block(&String::from_utf8_lossy(&list_output.stdout));
+    let interactive_preview =
+        extract_discovery_preview_block(&String::from_utf8_lossy(&interactive_output.stdout));
+    assert_eq!(
+        list_preview, interactive_preview,
+        "interactive discovery preview should match --list card format"
+    );
+}
+
+#[test]
+fn tm_p29_017_discovery_description_uses_indented_followup_line() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("description-indent-repo");
+    write_skill(
+        &repo_dir.join("skills/alpha/SKILL.md"),
+        "alpha-skill",
+        "Alpha details should be shown on a separate line.",
+    );
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./description-indent-repo",
+            "--list",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install --list");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install --list should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains(
+            "    1. alpha-skill\n       Alpha details should be shown on a separate line."
+        ),
+        "description should be rendered on an indented line below skill name, stdout={stdout}"
+    );
+}
+
+#[test]
+fn tm_p29_018_discovery_skill_without_description_renders_name_only_line() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let repo_dir = temp.path().join("name-only-repo");
+    write_skill_without_description(&repo_dir.join("skills/plain/SKILL.md"), "plain-skill");
+
+    let config_path = temp.path().join("skills.toml");
+    let output = eden_command(&home_dir)
+        .current_dir(temp.path())
+        .args([
+            "--color",
+            "never",
+            "install",
+            "./name-only-repo",
+            "--list",
+            "--config",
+        ])
+        .arg(&config_path)
+        .output()
+        .expect("run install --list");
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "install --list should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("    1. plain-skill"),
+        "name-only skill should still render numbered name line, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("    1. plain-skill\n       "),
+        "name-only skill must not render a followup description line, stdout={stdout}"
+    );
+}
+
+#[test]
 fn skill_flags_install_only_selected_skills() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
@@ -581,7 +782,7 @@ fn remote_url_missing_skill_markdown_with_skill_flag_returns_error() {
 }
 
 #[test]
-fn interactive_summary_truncates_when_more_than_eight_skills() {
+fn tm_p29_019_discovery_preview_truncates_to_eight_in_interactive_mode() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = temp.path().join("truncated-summary");
@@ -610,10 +811,21 @@ fn interactive_summary_truncates_when_more_than_eight_skills() {
         String::from_utf8_lossy(&output.stderr)
     );
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(stdout.contains("showing first 8"), "stdout={stdout}");
     assert!(
-        stdout.contains("use --list to see all"),
-        "stdout should include truncation hint, stdout={stdout}"
+        stdout.contains("    1.") && stdout.contains("    8."),
+        "interactive preview should show first 8 numbered entries, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("    9."),
+        "interactive preview should omit skills after index 8, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("  ... and 2 more (use --list to see all)"),
+        "interactive preview should include truncation footer, stdout={stdout}"
+    );
+    assert!(
+        !stdout.contains("showing first 8"),
+        "legacy truncation headline should be removed, stdout={stdout}"
     );
 }
 
@@ -637,6 +849,20 @@ fn write_skill(skill_md_path: &Path, name: &str, description: &str) {
         format!("---\nname: {name}\ndescription: {description}\n---\n"),
     )
     .expect("write SKILL.md");
+    let skill_dir = skill_md_path
+        .parent()
+        .expect("skill directory should exist");
+    fs::write(skill_dir.join("README.md"), "demo").expect("write skill readme");
+}
+
+fn write_skill_without_description(skill_md_path: &Path, name: &str) {
+    fs::create_dir_all(
+        skill_md_path
+            .parent()
+            .expect("skill path should have parent directory"),
+    )
+    .expect("create skill parent directory");
+    fs::write(skill_md_path, format!("---\nname: {name}\n---\n")).expect("write SKILL.md");
     let skill_dir = skill_md_path
         .parent()
         .expect("skill directory should exist");
@@ -701,6 +927,26 @@ fn as_file_url(path: &Path) -> String {
         normalized.insert(0, '/');
     }
     format!("file://{normalized}")
+}
+
+fn extract_discovery_preview_block(stdout: &str) -> String {
+    let mut lines = Vec::new();
+    let mut in_discovery_preview = false;
+    for line in stdout.lines() {
+        if !in_discovery_preview {
+            if line.contains("Found") && line.contains("skills in repository") {
+                in_discovery_preview = true;
+                lines.push(line.to_string());
+            }
+            continue;
+        }
+        if line.is_empty() || line.starts_with("    ") || line.starts_with("  ... and ") {
+            lines.push(line.to_string());
+            continue;
+        }
+        break;
+    }
+    lines.join("\n")
 }
 
 fn read_skill_ids(config_path: &Path) -> Vec<String> {

@@ -59,7 +59,7 @@ batches:
     name: "Install UX: Card Preview + Tree Display"
     work_packages: [WP-3-pt1]
     requirements: [IUX-001, IUX-002, IUX-003, IUX-006, IUX-007]
-    status: pending
+    status: in_progress
   batch4:
     name: "Install UX: Step Progress + Apply/Repair Integration"
     work_packages: [WP-3-pt2]
@@ -117,3 +117,20 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 315
+  batch_3_install_ux_card_preview_tree_display:
+    status: in_progress
+    started_at: "2026-03-06"
+    requirements: IUX-001, IUX-002, IUX-003
+    scenarios: TM-P29-015, TM-P29-016, TM-P29-017, TM-P29-018, TM-P29-019
+    notes:
+      - merged discovery rendering into unified `print_discovery_preview()` and wired both `install --list` and interactive selection preview to the same card-style output path
+      - replaced install discovery table/em-dash output with numbered card lines (`n. skill`) plus indented wrapped description lines
+      - applied non-`--list` truncation to 8 entries with dimmed footer hint (`... and N more (use --list to see all)`)
+      - added TM-P29 discovery coverage in `install_discovery_tests.rs` for card format parity, description indentation, name-only rendering, and truncation behavior
+      - updated legacy assertions in `table_fix_tests.rs`, `output_upgrade_b_tests.rs`, and `output_upgrade_a2_tests.rs` to match phase2.9 card-preview contracts
+      - "remaining in WP-3 pt1: tree-style grouped install result output (IUX-006, IUX-007); TM-P29-027 (`install --list --json`) still pending"
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 319

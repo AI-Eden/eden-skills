@@ -10,7 +10,7 @@ Started: 2026-03-05
 | --- | --- | --- | --- | --- |
 | 1 | Foundation: Table Fix + Newline Policy | WP-1 + WP-5 | TFX-001~003, NLP-001~006 | completed |
 | 2 | Output Consistency | WP-4 | OCN-001~010 | completed |
-| 3 | Install UX: Card Preview + Tree Display | WP-3 pt1 | IUX-001~003, IUX-006~007 | pending |
+| 3 | Install UX: Card Preview + Tree Display | WP-3 pt1 | IUX-001~003, IUX-006~007 | in_progress |
 | 4 | Install UX: Step Progress + Apply/Repair Integration | WP-3 pt2 | IUX-004~005, IUX-008 | pending |
 | 5 | Update Extension | WP-2 | UPD-001~008 | pending |
 | 6 | Regression + Closeout | — | TM regression | pending |
@@ -64,3 +64,29 @@ Started: 2026-03-05
 - Manual scenarios:
   - `TM-P29-034` remains pending for terminal color verification.
   - `TM-P29-004` and `TM-P29-005` remain pending from Batch 1.
+
+### Batch 3 — Install UX: Card Preview + Tree Display (In Progress, started 2026-03-06)
+
+- Requirements in scope: `IUX-001`, `IUX-002`, `IUX-003`, `IUX-006`, `IUX-007`
+- Completed in this pass:
+  - Merged discovery preview rendering into `print_discovery_preview()` and routed both `install --list` + interactive preview through the same formatter (`IUX-002`).
+  - Switched discovery preview from table/em-dash style to card-style numbered lines with indented description follow-up lines and wrapping (`IUX-001`, `IUX-003`).
+  - Added non-`--list` truncation behavior at 8 entries with footer hint `... and N more (use --list to see all)` (`IUX-001`).
+  - Added/updated tests:
+    - `tm_p29_015_install_list_shows_card_style_numbered_list`
+    - `tm_p29_016_interactive_preview_matches_list_card_format`
+    - `tm_p29_017_discovery_description_uses_indented_followup_line`
+    - `tm_p29_018_discovery_skill_without_description_renders_name_only_line`
+    - `tm_p29_019_discovery_preview_truncates_to_eight_in_interactive_mode`
+  - Updated superseded legacy assertions in:
+    - `tests/table_fix_tests.rs`
+    - `tests/output_upgrade_b_tests.rs`
+    - `tests/output_upgrade_a2_tests.rs`
+- Validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace` ✅
+  - Test inventory: `319`
+- Remaining in Batch 3:
+  - Tree-style grouped install result output (`IUX-006`, `IUX-007`)
+  - `TM-P29-027` (`install --list --json` contract confirmation)

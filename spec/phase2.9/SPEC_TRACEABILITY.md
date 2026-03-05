@@ -30,9 +30,9 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| IUX-001 | `SPEC_INSTALL_UX.md` 2.2 | Discovery preview MUST use card-style numbered list | | TM-P29-015, TM-P29-019 | pending |
-| IUX-002 | `SPEC_INSTALL_UX.md` 2.1 | Merge two discovery functions into one | | TM-P29-016 | pending |
-| IUX-003 | `SPEC_INSTALL_UX.md` 2.2 | Descriptions dimmed and indented | | TM-P29-017, TM-P29-018 | pending |
+| IUX-001 | `SPEC_INSTALL_UX.md` 2.2 | Discovery preview MUST use card-style numbered list | `crates/eden-skills-cli/src/commands/install.rs` (`print_discovery_preview`, `install_local_url_mode_async`, `install_remote_url_mode_async`, `resolve_local_install_selection`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`tm_p29_015_install_list_shows_card_style_numbered_list`, `tm_p29_019_discovery_preview_truncates_to_eight_in_interactive_mode`), TM-P29-027 | in_progress |
+| IUX-002 | `SPEC_INSTALL_UX.md` 2.1 | Merge two discovery functions into one | `crates/eden-skills-cli/src/commands/install.rs` (`print_discovery_preview`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`tm_p29_016_interactive_preview_matches_list_card_format`) | completed |
+| IUX-003 | `SPEC_INSTALL_UX.md` 2.2 | Descriptions dimmed and indented | `crates/eden-skills-cli/src/commands/install.rs` (`print_discovery_preview`, `wrap_discovery_description`) | `crates/eden-skills-cli/tests/install_discovery_tests.rs` (`tm_p29_017_discovery_description_uses_indented_followup_line`, `tm_p29_018_discovery_skill_without_description_renders_name_only_line`) | completed |
 | IUX-004 | `SPEC_INSTALL_UX.md` 3.2 | Step-style progress `[pos/len]` in TTY | | TM-P29-020 | pending |
 | IUX-005 | `SPEC_INSTALL_UX.md` 3.3 | Styled sync summary after completion | | TM-P29-021, TM-P29-022 | pending |
 | IUX-006 | `SPEC_INSTALL_UX.md` 4.1–4.3 | Tree-style grouped install results | | TM-P29-023, TM-P29-024 | pending |

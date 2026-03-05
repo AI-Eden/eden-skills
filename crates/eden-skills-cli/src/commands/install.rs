@@ -276,7 +276,7 @@ async fn install_remote_url_mode_async(
     }
 
     if req.list {
-        print_discovered_skills(ui, &discovered);
+        print_discovery_preview(ui, &discovered, true);
         return Ok(());
     }
 
@@ -413,7 +413,7 @@ async fn install_local_url_mode_async(
     }
 
     if req.list {
-        print_discovered_skills(ui, &discovered);
+        print_discovery_preview(ui, &discovered, true);
         return Ok(());
     }
 
@@ -661,7 +661,7 @@ fn resolve_local_install_selection(
         return Ok(discovered.to_vec());
     }
 
-    print_discovery_summary(ui, discovered);
+    print_discovery_preview(ui, discovered, false);
     let install_all = prompt_install_all(discovered.len())?;
     if install_all {
         return Ok(discovered.to_vec());
@@ -742,9 +742,8 @@ fn prompt_skill_names() -> Result<Vec<String>, EdenError> {
         .collect::<Vec<_>>())
 }
 
-fn print_discovered_skills(ui: &UiContext, skills: &[DiscoveredSkill]) {
+fn print_discovery_preview(ui: &UiContext, skills: &[DiscoveredSkill], show_all: bool) {
     const MAX_DISPLAY: usize = 8;
-
     println!(
         "{}  {} skills in repository:",
         ui.action_prefix("Found"),
@@ -755,82 +754,93 @@ fn print_discovered_skills(ui: &UiContext, skills: &[DiscoveredSkill]) {
         println!("  (no SKILL.md discovered)");
         return;
     }
-
     println!();
 
-    let display_skills = if skills.len() > MAX_DISPLAY {
-        &skills[..MAX_DISPLAY]
+    let display_len = if show_all {
+        skills.len()
     } else {
-        skills
+        skills.len().min(MAX_DISPLAY)
     };
-    let mut table = ui.table(&["#", "Name", "Description"]);
-    if let Some(column) = table.column_mut(0) {
-        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(4)));
-    }
+    let display_skills = &skills[..display_len];
+    let number_width = skills.len().to_string().len().max(1);
+    let leading_spaces = 5usize.saturating_sub(number_width);
+    let description_indent = " ".repeat(leading_spaces + number_width + 2);
+    let description_wrap_width = discovery_description_wrap_width(description_indent.len());
+
     for (index, skill) in display_skills.iter().enumerate() {
-        table.add_row(vec![
-            (index + 1).to_string(),
-            skill.name.clone(),
-            skill.description.clone(),
-        ]);
-    }
-    println!("{table}");
-
-    if skills.len() > MAX_DISPLAY {
-        println!(
-            "  ... and {} more (use --list to see all)",
-            skills.len() - MAX_DISPLAY
+        let number_prefix = format!(
+            "{}{:>width$}. ",
+            " ".repeat(leading_spaces),
+            index + 1,
+            width = number_width
         );
-    }
-}
+        println!("{number_prefix}{}", style_skill_id(ui, &skill.name));
 
-fn print_discovery_summary(ui: &UiContext, skills: &[DiscoveredSkill]) {
-    const MAX_DISPLAY: usize = 8;
-    if skills.len() > MAX_DISPLAY {
-        println!(
-            "{}  {} skills in repository (showing first {}):",
-            ui.action_prefix("Found"),
-            skills.len(),
-            MAX_DISPLAY
-        );
-    } else {
-        println!(
-            "{}  {} skills in repository:",
-            ui.action_prefix("Found"),
-            skills.len()
-        );
-    }
-    println!();
-
-    let display_skills = if skills.len() > MAX_DISPLAY {
-        &skills[..MAX_DISPLAY]
-    } else {
-        skills
-    };
-    let width = display_skills
-        .iter()
-        .map(|skill| skill.name.chars().count())
-        .max()
-        .unwrap_or(0);
-    for (index, skill) in display_skills.iter().enumerate() {
-        if skill.description.is_empty() {
-            println!("    {}. {}", index + 1, skill.name);
-        } else {
-            println!(
-                "    {}. {:<width$} — {}",
-                index + 1,
-                skill.name,
-                skill.description
-            );
+        if !skill.description.trim().is_empty() {
+            for line in wrap_discovery_description(&skill.description, description_wrap_width) {
+                let rendered = if ui.colors_enabled() {
+                    line.dimmed().to_string()
+                } else {
+                    line
+                };
+                println!("{description_indent}{rendered}");
+            }
         }
     }
 
-    if skills.len() > MAX_DISPLAY {
-        println!(
-            "... and {} more (use --list to see all)",
+    if !show_all && skills.len() > MAX_DISPLAY {
+        println!();
+        let footer = format!(
+            "  ... and {} more (use --list to see all)",
             skills.len() - MAX_DISPLAY
         );
+        if ui.colors_enabled() {
+            println!("{}", footer.dimmed());
+        } else {
+            println!("{footer}");
+        }
     }
+}
+
+fn discovery_description_wrap_width(indent_len: usize) -> usize {
+    let terminal_width = std::env::var("COLUMNS")
+        .ok()
+        .and_then(|value| value.parse::<usize>().ok())
+        .filter(|width| *width > indent_len)
+        .unwrap_or(80);
+    terminal_width.saturating_sub(indent_len).max(1)
+}
+
+fn wrap_discovery_description(description: &str, width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    for paragraph in description.lines() {
+        let trimmed = paragraph.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let mut current = String::new();
+        for word in trimmed.split_whitespace() {
+            if current.is_empty() {
+                current.push_str(word);
+                continue;
+            }
+            let proposed_len = current.chars().count() + 1 + word.chars().count();
+            if proposed_len <= width {
+                current.push(' ');
+                current.push_str(word);
+            } else {
+                lines.push(current);
+                current = word.to_string();
+            }
+        }
+        if !current.is_empty() {
+            lines.push(current);
+        }
+    }
+    if lines.is_empty() && !description.trim().is_empty() {
+        lines.push(description.trim().to_string());
+    }
+    lines
 }
 
 fn join_scoped_subpath(scope_subpath: &str, discovered_subpath: &str) -> String {
