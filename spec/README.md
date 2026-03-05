@@ -133,7 +133,7 @@ Phase 2.9 fixes table rendering, extends `update` to cover URL-installed
 skills, overhauls install UX with card previews and tree results,
 unifies remaining command output, and normalizes newline behavior.
 
-- `phase2.9/SPEC_TABLE_FIX.md`: `DynamicFullWidth` migration, column constraint policy (TFX-001~003)
+- `phase2.9/SPEC_TABLE_FIX.md`: content-driven TTY table sizing, plain table text rule, column constraint policy (TFX-001~003)
 - `phase2.9/SPEC_UPDATE_EXT.md`: `update` dual-layer refresh, Mode A skill source fetch, `--apply` flag (UPD-001~008)
 - `phase2.9/SPEC_INSTALL_UX.md`: card-style discovery preview, step-style sync progress, tree-style install results (IUX-001~008)
 - `phase2.9/SPEC_OUTPUT_CONSISTENCY.md`: `add`/`set`/`config import`/`remove` output upgrade, path coloring, UiContext gaps (OCN-001~010)

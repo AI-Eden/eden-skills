@@ -9,12 +9,12 @@ use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
+use comfy_table::{ColumnConstraint, Width};
 use eden_skills_core::config::config_dir_from_path;
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::resolve_path_string;
 use eden_skills_core::reactor::SkillReactor;
 use eden_skills_core::registry::{parse_registry_specs_from_toml, sort_registry_specs_by_priority};
-use owo_colors::OwoColorize;
 
 use super::common::{
     ensure_git_available, load_config_with_context, read_head_sha, resolve_config_path,
@@ -158,10 +158,13 @@ pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
         println!();
 
         let mut table = ui.table(&["Registry", "Status", "Detail"]);
+        if let Some(column) = table.column_mut(1) {
+            column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(10)));
+        }
         for result in &results {
             table.add_row(vec![
                 result.name.clone(),
-                format_registry_status(&ui, &result.status),
+                registry_status_cell(&result.status),
                 result.detail.clone().unwrap_or_default(),
             ]);
         }
@@ -195,16 +198,8 @@ pub async fn update_async(req: UpdateRequest) -> Result<(), EdenError> {
     Ok(())
 }
 
-fn format_registry_status(ui: &UiContext, status: &RegistrySyncStatus) -> String {
-    let label = status.as_str().to_string();
-    if !ui.colors_enabled() {
-        return label;
-    }
-    match status {
-        RegistrySyncStatus::Cloned | RegistrySyncStatus::Updated => label.green().to_string(),
-        RegistrySyncStatus::Skipped => label.dimmed().to_string(),
-        RegistrySyncStatus::Failed => label.red().to_string(),
-    }
+fn registry_status_cell(status: &RegistrySyncStatus) -> String {
+    status.as_str().to_string()
 }
 
 async fn sync_registry_task(

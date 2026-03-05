@@ -30,7 +30,7 @@ production use of Phase 2.8:
 - Phase 2.8 specs are frozen.
 - Phase 2.9 specs in this directory:
   1. **Fix** the Phase 2.8 table rendering infrastructure (TBL-002
-     override: `Dynamic` → `DynamicFullWidth` with column constraints).
+     override: terminal-coupled layout → content-driven TTY layout (`Disabled`) with column constraints).
   2. **Extend** the Phase 2 `update` command semantics beyond registry
      sync to cover Mode A skill source refresh.
   3. **Supersede** the Phase 2.8 install discovery output with a
@@ -53,7 +53,7 @@ production use of Phase 2.8:
 
 | WP | Priority | Spec File | Domain | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| WP-1 | **P0** | `SPEC_TABLE_FIX.md` | CLI | `DynamicFullWidth` migration, column constraint policy |
+| WP-1 | **P0** | `SPEC_TABLE_FIX.md` | CLI | Content-driven TTY table sizing + column constraint policy |
 | WP-2 | **P0** | `SPEC_UPDATE_EXT.md` | CLI + Core | `update` dual-layer refresh (registries + Mode A skills), `--apply` flag |
 | WP-3 | **P0** | `SPEC_INSTALL_UX.md` | CLI | Discovery card preview, step-style sync progress, tree-style results |
 | WP-4 | **P0** | `SPEC_OUTPUT_CONSISTENCY.md` | CLI | `add`/`set`/`config import`/`remove` output upgrade, path coloring, UiContext gaps |

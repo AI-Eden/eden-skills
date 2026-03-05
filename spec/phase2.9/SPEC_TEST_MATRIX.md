@@ -13,11 +13,11 @@ Phase 2.9 acceptance test scenarios.
 
 | ID | Scenario | Spec | Type | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| TM-P29-001 | TTY tables use `DynamicFullWidth` — no phantom column | TFX-001 | auto | pending |
+| TM-P29-001 | TTY tables use content-driven layout (`Disabled`) and keep header/cell text plain (no ANSI styling attributes) | TFX-001 | auto | pending |
 | TM-P29-002 | Non-TTY tables use `Dynamic` with width 80 | TFX-003 | auto | pending |
 | TM-P29-003 | Fixed-width columns respect `UpperBoundary` constraints | TFX-002 | auto | pending |
-| TM-P29-004 | `list` table has no phantom empty column on wide terminal | TFX-001 | manual | pending |
-| TM-P29-005 | `doctor` table has no phantom empty column | TFX-001 | manual | pending |
+| TM-P29-004 | `list` table remains content-width on wide terminal (not full-width stretched) | TFX-001 | manual | pending |
+| TM-P29-005 | `doctor` table remains content-width and visually aligned | TFX-001 | manual | pending |
 
 ## 3. Update Extension (WP-2)
 
@@ -28,7 +28,7 @@ Phase 2.9 acceptance test scenarios.
 | TM-P29-008 | `update --apply` reconciles skills with new commits | UPD-003 | auto | pending |
 | TM-P29-009 | `update` with no registries and no skills shows guidance | UPD-006 | auto | pending |
 | TM-P29-010 | `update` skill refresh renders as table | UPD-004 | auto | pending |
-| TM-P29-011 | `update` skill status colors: `new commit` green, `up-to-date` dimmed | UPD-005 | manual | pending |
+| TM-P29-011 | `update` skill status cells are plain labels (no ANSI styling attributes) | UPD-005 | auto | pending |
 | TM-P29-012 | `update --json` includes `skills` array in output | UPD-007 | auto | pending |
 | TM-P29-013 | `update` with registries + skills shows both sections | UPD-001 | auto | pending |
 | TM-P29-014 | `update` skill refresh uses reactor concurrency | UPD-008 | auto | pending |

@@ -42,7 +42,11 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
             }
             _ => {
                 let raw = err.to_string();
-                let msg = raw.strip_prefix("error: ").unwrap_or(&raw).to_string();
+                let msg = raw
+                    .strip_prefix("error: ")
+                    .unwrap_or(&raw)
+                    .trim_end()
+                    .to_string();
                 return Err(EdenError::InvalidArguments(msg));
             }
         },

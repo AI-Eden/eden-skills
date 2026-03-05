@@ -28,8 +28,8 @@ fn print_error(err: &EdenError) {
         "error:".to_string()
     };
     eprintln!("{prefix} {message}");
-    eprintln!();
     if let Some(hint) = hint {
+        eprintln!();
         if colors_enabled {
             eprintln!("  {} {hint}", "→".dimmed());
         } else {

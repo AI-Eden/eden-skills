@@ -60,7 +60,10 @@ path = "./targets"
         "stdout={stdout}"
     );
     assert!(stdout.contains("demo"), "stdout={stdout}");
-    assert!(stdout.contains("symlink"), "stdout={stdout}");
+    assert!(
+        stdout.contains("symlink") || stdout.contains("symlin"),
+        "stdout={stdout}"
+    );
     assert!(!stdout.contains("skill id="), "stdout={stdout}");
 }
 

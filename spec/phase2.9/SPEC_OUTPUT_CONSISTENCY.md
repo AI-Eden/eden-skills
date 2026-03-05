@@ -190,7 +190,7 @@ This method combines `~` abbreviation and cyan coloring in one call.
 
 - `--json` output.
 - Table cell content where `abbreviate_home_path()` is already applied
-  (table cells handle their own styling).
+  (table cells MUST remain plain text and MUST NOT apply ANSI styling).
 
 ### 4.4 Additional Element Styling
 

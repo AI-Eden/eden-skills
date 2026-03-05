@@ -19,7 +19,7 @@ fn comfy_table_dependency_is_declared_in_cli_cargo_toml() {
 }
 
 #[test]
-fn ui_context_table_uses_utf8_borders_and_bold_headers_on_tty() {
+fn ui_context_table_uses_utf8_borders_plain_headers_and_content_driven_width_on_tty() {
     let _guard = test_env_lock();
     std::env::set_var("EDEN_SKILLS_FORCE_TTY", "1");
     std::env::remove_var("CI");
@@ -37,8 +37,13 @@ fn ui_context_table_uses_utf8_borders_and_bold_headers_on_tty() {
         "TTY table should use UTF-8 borders, rendered={rendered}"
     );
     assert!(
-        has_ansi_codes(&rendered),
-        "TTY table header should include ANSI bold styling, rendered={rendered}"
+        !has_ansi_codes(&rendered),
+        "TTY table must not include ANSI styling in headers or cells, rendered={rendered}"
+    );
+    let max_width = rendered.lines().map(|line| line.chars().count()).max().unwrap_or(0);
+    assert!(
+        max_width < 60,
+        "TTY table should size to content instead of terminal width, got {max_width}, rendered={rendered}"
     );
 }
 

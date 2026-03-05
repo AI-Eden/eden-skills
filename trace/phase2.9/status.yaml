@@ -1,5 +1,5 @@
 phase: phase29_ux_polish_update_output
-status: ready_for_implementation
+status: active_implementation
 started_at: "2026-03-05"
 
 spec_files:
@@ -25,12 +25,35 @@ batches:
   batch1:
     name: "Foundation: Table Fix + Newline Policy"
     work_packages: [WP-1, WP-5]
-    requirements: [TFX-001, TFX-002, TFX-003, NLP-001, NLP-002, NLP-003, NLP-004, NLP-005, NLP-006]
-    status: pending
+    requirements:
+      [
+        TFX-001,
+        TFX-002,
+        TFX-003,
+        NLP-001,
+        NLP-002,
+        NLP-003,
+        NLP-004,
+        NLP-005,
+        NLP-006,
+      ]
+    status: completed
   batch2:
     name: "Output Consistency"
     work_packages: [WP-4]
-    requirements: [OCN-001, OCN-002, OCN-003, OCN-004, OCN-005, OCN-006, OCN-007, OCN-008, OCN-009, OCN-010]
+    requirements:
+      [
+        OCN-001,
+        OCN-002,
+        OCN-003,
+        OCN-004,
+        OCN-005,
+        OCN-006,
+        OCN-007,
+        OCN-008,
+        OCN-009,
+        OCN-010,
+      ]
     status: pending
   batch3:
     name: "Install UX: Card Preview + Tree Display"
@@ -45,7 +68,8 @@ batches:
   batch5:
     name: "Update Extension"
     work_packages: [WP-2]
-    requirements: [UPD-001, UPD-002, UPD-003, UPD-004, UPD-005, UPD-006, UPD-007, UPD-008]
+    requirements:
+      [UPD-001, UPD-002, UPD-003, UPD-004, UPD-005, UPD-006, UPD-007, UPD-008]
     status: pending
   batch6:
     name: "Regression + Closeout"
@@ -53,4 +77,25 @@ batches:
     requirements: []
     status: pending
 
-builder_progress: []
+builder_progress:
+  batch_1_foundation_table_fix_newline_policy:
+    status: completed
+    completed_at: "2026-03-05"
+    requirements: TFX-001, TFX-002, TFX-003, NLP-001, NLP-002, NLP-003, NLP-004, NLP-005, NLP-006
+    scenarios: TM-P29-001, TM-P29-002, TM-P29-003, TM-P29-036, TM-P29-037, TM-P29-038, TM-P29-039, TM-P29-040
+    notes:
+      - switched UiContext table factory to content-driven tty layout (`ContentArrangement::Disabled`) while preserving non-tty Dynamic + width 80 behavior
+      - applied UpperBoundary column constraints at list, doctor, plan, update, install --list, and install --dry-run table call sites
+      - fixed print_error spacing so blank separator is emitted only when a hint exists
+      - trimmed clap parser error strings with trim_end before wrapping InvalidArguments
+      - added table_fix_tests.rs and newline_policy_tests.rs with TM-P29 batch-1 aligned coverage
+      - adjusted list_command.rs assertion to accept wrapped mode cell output under tightened width constraints
+      - follow-up polish: reverted compact-width forcing in dry-run table after terminal regression (`Mode` header wrapping as `Mo`/`de`) and adopted content-driven tty table sizing
+      - follow-up hardening: removed ANSI styling from all table headers/cells (ui.table headers + plan/update/doctor table cell renderers) to avoid terminal-specific header drift
+      - synced phase2.9 specs for the plain-table-text rule (`SPEC_TABLE_FIX`, `SPEC_TEST_MATRIX`, `SPEC_UPDATE_EXT`, `SPEC_OUTPUT_CONSISTENCY`, `SPEC_TRACEABILITY`) and updated kick prompt wording
+      - manual visual checks TM-P29-004 and TM-P29-005 remain pending for terminal inspection
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 307

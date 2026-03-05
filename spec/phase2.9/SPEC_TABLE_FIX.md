@@ -1,6 +1,6 @@
 # SPEC_TABLE_FIX.md
 
-Table rendering fix for the phantom empty column issue.
+Table rendering fix for visual alignment drift and width stability.
 
 **Related contracts:**
 
@@ -9,62 +9,77 @@ Table rendering fix for the phantom empty column issue.
 
 ## 1. Problem Statement
 
-Phase 2.8 introduced `comfy-table` with `ContentArrangement::Dynamic`
-and the `UTF8_FULL_CONDENSED` preset. In TTY environments, when the
-table's natural content width is less than the detected terminal width,
-`Dynamic` mode leaves surplus space unallocated. The preset's right
-border character still renders, producing a visible phantom column
-(double `││` at the right edge).
+Phase 2.8/2.9 table rendering in TTY mode used width strategies tied to
+terminal size (`Dynamic` first, then `DynamicFullWidth`). This can cause
+layout instability when terminal width changes:
+
+- Very wide terminals produce oversized tables that are hard to scan.
+- Column geometry depends on terminal width rather than content width.
+- Some terminals show separator/header drift when table text includes
+  ANSI styling attributes.
 
 This affects every table in the CLI: `list`, `doctor`, `plan`,
 `update`, `install --dry-run`, and `install --list`.
 
 ## 2. Root Cause
 
-`ContentArrangement::Dynamic` computes column widths to fit content
-within the terminal width but does **not** distribute surplus space.
-When the total content width plus borders is less than the terminal
-width, the remaining space appears as an empty gap before the right
-border, visually resembling an additional column.
+`ContentArrangement::DynamicFullWidth` always consumes all available
+terminal width. This avoids right-side gaps, but it makes table shape
+depend on terminal size and can over-stretch narrow content.
 
-`ContentArrangement::DynamicFullWidth` has the same fitting logic but
-always distributes surplus space evenly across all columns, eliminating
-the phantom gap.
+`ContentArrangement::Disabled` uses content-driven sizing: each column
+is measured from header + cell content and rendered near its natural
+width (with preset padding). This is stable and deterministic across
+different terminal widths.
 
-## 3. Fix: TTY Content Arrangement
+## 3. Fix: Content-Driven TTY Layout + Plain Table Text
 
 ### 3.1 Arrangement Change
 
 The `UiContext::table()` factory method MUST use
-`ContentArrangement::DynamicFullWidth` for TTY output.
+`ContentArrangement::Disabled` for TTY output.
 
-**Before (Phase 2.8):**
+**Before (Phase 2.9 previous):**
 
 ```rust
-table.set_content_arrangement(ContentArrangement::Dynamic);
+table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
 ```
 
 **After (Phase 2.9):**
 
 ```rust
 if human_tty {
-    table.set_content_arrangement(ContentArrangement::DynamicFullWidth);
+    table.set_content_arrangement(ContentArrangement::Disabled);
 } else {
     table.set_content_arrangement(ContentArrangement::Dynamic);
 }
 ```
 
 Non-TTY output (piped, CI) continues to use `Dynamic` with
-`set_width(80)`, which is unaffected by the phantom column issue
-because the width is explicitly bounded.
+`set_width(80)`, preserving bounded width behavior for pipelines/logs.
+
+### 3.1.1 Table Text Style Rule
+
+All table headers and table cell values MUST be rendered as plain text
+without ANSI styling attributes. This applies regardless of `--color`
+mode.
+
+Examples of forbidden styling in table content:
+
+- bold (`.bold()`)
+- color (`.green()`, `.cyan()`, `.yellow()`, `.red()`)
+- dim/italic/underline (`.dimmed()`, etc.)
+
+This rule applies only to table header/cell content. Non-table output
+lines (action prefixes, status symbols, warnings, summaries) may still
+use styling according to existing output specs.
 
 ### 3.2 Column Constraint Policy
 
-With `DynamicFullWidth`, surplus space is distributed evenly across
-all columns. This can make narrow fixed-semantics columns (e.g.,
-`Sev`, `Mode`, `#`) unnecessarily wide. To prevent this, each table
-definition MUST apply `UpperBoundary` constraints on columns whose
-content has a known maximum width.
+With content-driven sizing, columns naturally fit their content. Fixed
+semantic columns (e.g., `Sev`, `Mode`, `#`) still MUST keep
+`UpperBoundary` constraints to avoid accidental expansion from outlier
+values and to preserve visual consistency.
 
 Policy:
 
@@ -102,13 +117,13 @@ if let Some(col) = table.column_mut(0) {
 
 The border preset remains `UTF8_FULL_CONDENSED` for TTY and
 `ASCII_FULL_CONDENSED` for non-TTY. No preset change is needed;
-the phantom column is eliminated by the arrangement mode change alone.
+only the content-arrangement strategy changes.
 
 ## 5. Normative Requirements
 
 | ID | Owner | Priority | Statement | Verification |
 | :--- | :--- | :--- | :--- | :--- |
-| **TFX-001** | Builder | **P0** | TTY tables MUST use `ContentArrangement::DynamicFullWidth`. | `UiContext::table()` sets `DynamicFullWidth` when `human_tty` is true. |
+| **TFX-001** | Builder | **P0** | TTY tables MUST use content-driven layout (`ContentArrangement::Disabled`), and table headers/cells MUST remain plain text (no ANSI styling attributes). | `UiContext::table()` sets `Disabled` when `human_tty` is true and does not style table headers/cells. |
 | **TFX-002** | Builder | **P0** | Fixed-semantics columns MUST have `UpperBoundary` constraints per Section 3.3. | Each table call site applies constraints. |
 | **TFX-003** | Builder | **P0** | Non-TTY tables MUST continue using `Dynamic` with `set_width(80)`. | Non-TTY output unchanged from Phase 2.8. |
 
@@ -118,5 +133,5 @@ the phantom column is eliminated by the arrangement mode change alone.
 | :--- | :--- |
 | `--json` output | Unchanged. Tables never appear in JSON mode. |
 | Non-TTY piped output | Unchanged. `Dynamic` + width 80 + ASCII borders. |
-| `NO_COLOR` / `FORCE_COLOR` / `CI` | Unchanged. Table styling follows resolved color mode. |
+| `NO_COLOR` / `FORCE_COLOR` / `CI` | Unchanged for non-table output. Table headers/cells remain plain text in all modes. |
 | `--color` flag | Unchanged. |

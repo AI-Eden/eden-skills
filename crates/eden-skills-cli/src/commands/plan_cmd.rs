@@ -4,6 +4,7 @@
 //! any side effects. Renders as colored text for small plans or as a
 //! table when the action count exceeds a threshold.
 
+use comfy_table::{ColumnConstraint, Width};
 use eden_skills_core::config::{config_dir_from_path, InstallMode};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::lock::{
@@ -87,9 +88,15 @@ pub(crate) fn print_plan_text(ui: &UiContext, items: &[PlanItem]) {
 
 fn print_plan_table(ui: &UiContext, items: &[PlanItem]) {
     let mut table = ui.table(&["Action", "Skill", "Target", "Mode"]);
+    if let Some(column) = table.column_mut(0) {
+        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(10)));
+    }
+    if let Some(column) = table.column_mut(3) {
+        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
+    }
     for item in items {
         table.add_row(vec![
-            style_plan_action_cell(ui, item.action),
+            plan_action_cell(item.action),
             item.skill_id.clone(),
             abbreviate_home_path(&item.target_path),
             item.install_mode.as_str().to_string(),
@@ -150,18 +157,8 @@ fn style_plan_action_label(ui: &UiContext, action: Action) -> String {
     }
 }
 
-fn style_plan_action_cell(ui: &UiContext, action: Action) -> String {
-    let label = action_label(action).to_string();
-    if !ui.colors_enabled() {
-        return label;
-    }
-    match action {
-        Action::Create => label.green().to_string(),
-        Action::Update => label.cyan().to_string(),
-        Action::Noop => label.dimmed().to_string(),
-        Action::Conflict => label.yellow().to_string(),
-        Action::Remove => label.red().to_string(),
-    }
+fn plan_action_cell(action: Action) -> String {
+    action_label(action).to_string()
 }
 
 pub(crate) fn build_remove_plan_items(removed: &[LockSkillEntry]) -> Vec<PlanItem> {

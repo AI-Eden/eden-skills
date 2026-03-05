@@ -7,6 +7,7 @@
 use std::collections::HashSet;
 use std::fs;
 
+use comfy_table::{ColumnConstraint, Width};
 use eden_skills_core::config::SkillConfig;
 use eden_skills_core::config::{
     config_dir_from_path, default_verify_checks_for_mode, validate_config,
@@ -159,6 +160,9 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     println!();
 
     let mut table = ui.table(&["Skill", "Mode", "Source", "Agents"]);
+    if let Some(column) = table.column_mut(1) {
+        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
+    }
     for skill in skills {
         table.add_row(vec![
             skill.id.clone(),

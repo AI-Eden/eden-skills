@@ -179,30 +179,23 @@ impl UiContext {
 
     /// Create a [`Table`] pre-configured for the current terminal context.
     ///
-    /// TTY output gets UTF-8 condensed borders with bold headers; non-TTY
-    /// output gets ASCII borders capped at 80 columns with dynamic wrapping.
+    /// TTY output uses content-driven column widths with plain-text headers;
+    /// non-TTY output keeps ASCII borders capped at 80 columns with dynamic wrapping.
     pub fn table(&self, headers: &[&str]) -> Table {
         let mut table = Table::new();
         let human_tty = self.stdout_is_tty && !self.ci;
         if human_tty {
             table.load_preset(presets::UTF8_FULL_CONDENSED);
+            table.set_content_arrangement(ContentArrangement::Disabled);
         } else {
             table.load_preset(presets::ASCII_FULL_CONDENSED);
             table.set_width(80);
+            table.set_content_arrangement(ContentArrangement::Dynamic);
         }
-        table.set_content_arrangement(ContentArrangement::Dynamic);
 
-        let style_headers = human_tty && self.colors_enabled();
         let header_cells = headers
             .iter()
-            .map(|header| {
-                let content = if style_headers {
-                    (*header).bold().to_string()
-                } else {
-                    (*header).to_string()
-                };
-                Cell::new(content)
-            })
+            .map(|header| Cell::new(*header))
             .collect::<Vec<_>>();
         table.set_header(header_cells);
         table

@@ -66,7 +66,8 @@ Batch 1 — Foundation: Table Fix + Newline Policy (WP-1 + WP-5):
   Two small infrastructure changes that all subsequent batches depend on.
 
   Table Fix (SPEC_TABLE_FIX.md):
-  TFX-001: Change UiContext::table() to use DynamicFullWidth for TTY mode.
+  TFX-001: Change UiContext::table() to use content-driven layout (`Disabled`) for TTY mode,
+           and ensure table header/cell text stays plain (no ANSI styling attributes).
   TFX-002: Apply UpperBoundary column constraints at each table call site
            per Section 3.3 of the spec. Affected call sites:
            - config_ops.rs (list table: Skill/Mode/Source/Agents)
@@ -139,7 +140,7 @@ Batch 5 — Update Extension (WP-2):
   UPD-002: update without --apply is read-only (fetch only, no reset).
   UPD-003: update --apply reconciles changed skills.
   UPD-004: Skill refresh results rendered as table.
-  UPD-005: Status colors (new commit green, up-to-date dimmed, etc.).
+  UPD-005: Status labels remain plain text in table cells (no ANSI styling attributes).
   UPD-006: Empty state (no skills + no registries) shows guidance.
   UPD-007: --json output extended with skills array.
   UPD-008: Skill refresh uses reactor concurrency.
@@ -183,7 +184,7 @@ Current workspace (post-Phase 2.8):
   crates/eden-skills-indexer/ — (reserved for Phase 3)
 
 Phase 2.9 code placement:
-  - DynamicFullWidth + column constraints:
+  - Content-driven tty table layout (`Disabled`) + column constraints:
     → ui.rs (UiContext::table) + each command file at table call sites
   - Newline fixes:
     → main.rs (print_error), lib.rs (clap error trim)
@@ -329,7 +330,7 @@ Start with Batch 1 (Foundation: Table Fix + Newline Policy). These are
 two small infrastructure changes that all subsequent batches depend on.
 
 Expected batch progression:
-  Batch 1: WP-1 + WP-5 — Table DynamicFullWidth + column constraints + newline fixes
+  Batch 1: WP-1 + WP-5 — Content-driven tty tables + column constraints + newline fixes
   Batch 2: WP-4     — Output consistency (add/set/import/remove + styled_path)
   Batch 3: WP-3 pt1 — Install card preview + tree display (rendering only)
   Batch 4: WP-3 pt2 — Step progress bar + apply/repair tree integration

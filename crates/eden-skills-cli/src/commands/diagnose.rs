@@ -8,6 +8,7 @@ use std::fs;
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use comfy_table::{ColumnConstraint, Width};
 use eden_skills_core::config::{config_dir_from_path, Config};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::resolve_path_string;
@@ -485,9 +486,12 @@ fn print_doctor_text(ui: &UiContext, findings: &[DoctorFinding]) {
 
     if findings.len() > 3 {
         let mut table = ui.table(&["Sev", "Code", "Skill"]);
+        if let Some(column) = table.column_mut(0) {
+            column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(5)));
+        }
         for finding in findings {
             table.add_row(vec![
-                doctor_severity_symbol(ui, &finding.severity),
+                doctor_severity_cell(&finding.severity),
                 finding.code.clone(),
                 finding.skill_id.clone(),
             ]);
@@ -519,6 +523,13 @@ fn doctor_severity_symbol(ui: &UiContext, severity: &str) -> String {
     match severity {
         "warning" => ui.status_symbol(StatusSymbol::Warning),
         _ => ui.status_symbol(StatusSymbol::Failure),
+    }
+}
+
+fn doctor_severity_cell(severity: &str) -> String {
+    match severity {
+        "warning" => "warn".to_string(),
+        _ => "error".to_string(),
     }
 }
 

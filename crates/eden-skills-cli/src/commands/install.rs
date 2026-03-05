@@ -11,6 +11,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use comfy_table::{ColumnConstraint, Width};
 use dialoguer::{Confirm, Input};
 use eden_skills_core::agents::detect_installed_agent_targets;
 use eden_skills_core::config::{
@@ -758,6 +759,9 @@ fn print_discovered_skills(ui: &UiContext, skills: &[DiscoveredSkill]) {
         skills
     };
     let mut table = ui.table(&["#", "Name", "Description"]);
+    if let Some(column) = table.column_mut(0) {
+        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(4)));
+    }
     for (index, skill) in display_skills.iter().enumerate() {
         table.add_row(vec![
             (index + 1).to_string(),
@@ -924,16 +928,27 @@ fn print_install_dry_run(
         );
         println!();
 
+        let mode_label = resolved_skill.install.mode.as_str().to_string();
+        let target_rows = resolved_skill
+            .targets
+            .iter()
+            .map(|target| {
+                let resolved_path = resolve_target_path(target, config_dir)
+                    .map(|path| path.display().to_string())
+                    .unwrap_or_else(|err| format!("ERROR: {err}"));
+                (
+                    agent_kind_label(&target.agent).to_string(),
+                    abbreviate_home_path(&resolved_path),
+                )
+            })
+            .collect::<Vec<_>>();
+
         let mut table = ui.table(&["Agent", "Path", "Mode"]);
-        for target in &resolved_skill.targets {
-            let resolved_path = resolve_target_path(target, config_dir)
-                .map(|path| path.display().to_string())
-                .unwrap_or_else(|err| format!("ERROR: {err}"));
-            table.add_row(vec![
-                agent_kind_label(&target.agent).to_string(),
-                abbreviate_home_path(&resolved_path),
-                resolved_skill.install.mode.as_str().to_string(),
-            ]);
+        if let Some(column) = table.column_mut(2) {
+            column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
+        }
+        for (agent, path) in target_rows {
+            table.add_row(vec![agent, path, mode_label.clone()]);
         }
         println!("{table}");
     }

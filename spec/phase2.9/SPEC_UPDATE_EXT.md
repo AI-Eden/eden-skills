@@ -143,14 +143,17 @@ When `--apply` is NOT passed:
   ✓ 2 skills updated [3.1s]
 ```
 
-### 3.5 Skill Refresh Status Colors
+### 3.5 Skill Refresh Status Labels (Plain Table Cells)
 
-| Status | Color | Condition |
-| :--- | :--- | :--- |
-| `new commit` | green | Remote HEAD differs from local HEAD |
-| `up-to-date` | dimmed | Remote HEAD matches local HEAD |
-| `missing` | yellow | Cached repo directory does not exist |
-| `failed` | red | `git fetch` failed |
+Skill refresh status values are rendered as plain text labels in table
+cells (no ANSI styling attributes in table content).
+
+| Status | Condition |
+| :--- | :--- |
+| `new commit` | Remote HEAD differs from local HEAD |
+| `up-to-date` | Remote HEAD matches local HEAD |
+| `missing` | Cached repo directory does not exist |
+| `failed` | `git fetch` failed |
 
 ### 3.6 JSON Output
 
@@ -208,7 +211,7 @@ threaded through to `UpdateRequest`.
 | **UPD-002** | Builder | **P0** | `update` without `--apply` MUST NOT mutate local source state beyond fetch. | No `git reset`, no file copy, no symlink changes. |
 | **UPD-003** | Builder | **P0** | `update --apply` MUST reconcile targets for skills with `new-commit` or `missing` status. | Changed skills get source sync + plan + install. |
 | **UPD-004** | Builder | **P0** | Skill refresh results MUST render as a table with Skill and Status columns. | Table output present in human mode. |
-| **UPD-005** | Builder | **P1** | Status values MUST be colored per Section 3.5. | `new commit` green, `up-to-date` dimmed, etc. |
+| **UPD-005** | Builder | **P1** | Status values MUST render as plain labels in table cells (no ANSI styling attributes). | Skill status cells are plain text (`new commit`, `up-to-date`, `missing`, `failed`). |
 | **UPD-006** | Builder | **P0** | When no registries AND no skills exist, output MUST include install guidance. | Section 3.3 message displayed. |
 | **UPD-007** | Builder | **P1** | `--json` output MUST extend existing schema with `skills` array. | JSON includes skill refresh statuses. |
 | **UPD-008** | Builder | **P1** | Skill refresh MUST use reactor concurrency. | Refresh tasks run through `SkillReactor`. |
