@@ -99,7 +99,7 @@ fn determine_action(
 
     match install_mode {
         InstallMode::Symlink => {
-            if !metadata.file_type().is_symlink() {
+            if !is_symlink_or_junction(&metadata, target_path) {
                 return Ok((
                     Action::Conflict,
                     vec!["target exists but is not a symlink".to_string()],
@@ -123,7 +123,7 @@ fn determine_action(
             }
         }
         InstallMode::Copy => {
-            if metadata.file_type().is_symlink() {
+            if is_symlink_or_junction(&metadata, target_path) {
                 return Ok((
                     Action::Conflict,
                     vec!["target is a symlink but install mode is copy".to_string()],
@@ -151,6 +151,32 @@ fn determine_action(
     }
 }
 
+fn is_symlink_or_junction(metadata: &fs::Metadata, path: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        metadata.file_type().is_symlink() || junction::exists(path).unwrap_or(false)
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = path;
+        metadata.file_type().is_symlink()
+    }
+}
+
+fn file_type_is_symlink_or_junction(file_type: &fs::FileType, path: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        file_type.is_symlink() || junction::exists(path).unwrap_or(false)
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = path;
+        file_type.is_symlink()
+    }
+}
+
 #[derive(Debug)]
 enum CopyCompareError {
     SymlinkInTree,
@@ -170,7 +196,8 @@ fn copy_content_equal(source: &Path, target: &Path) -> Result<bool, CopyCompareE
     // Copy-mode comparisons must not follow symlinks (both for safety and for determinism).
     let source_meta = fs::symlink_metadata(source).map_err(|e| CopyCompareError::Io(e.kind()))?;
     let target_meta = fs::symlink_metadata(target).map_err(|e| CopyCompareError::Io(e.kind()))?;
-    if source_meta.file_type().is_symlink() || target_meta.file_type().is_symlink() {
+    if is_symlink_or_junction(&source_meta, source) || is_symlink_or_junction(&target_meta, target)
+    {
         return Err(CopyCompareError::SymlinkInTree);
     }
 
@@ -212,10 +239,11 @@ fn read_dir_entry_names_no_symlink(
     let mut names = Vec::new();
     for entry in fs::read_dir(path).map_err(|e| CopyCompareError::Io(e.kind()))? {
         let entry = entry.map_err(|e| CopyCompareError::Io(e.kind()))?;
+        let entry_path = entry.path();
         let file_type = entry
             .file_type()
             .map_err(|e| CopyCompareError::Io(e.kind()))?;
-        if file_type.is_symlink() {
+        if file_type_is_symlink_or_junction(&file_type, &entry_path) {
             return Err(CopyCompareError::SymlinkInTree);
         }
         names.push(entry.file_name());
@@ -251,7 +279,16 @@ fn file_content_equal_streaming(source: &Path, target: &Path) -> Result<bool, Co
 }
 
 fn read_symlink_target(target_path: &Path) -> Result<PathBuf, std::io::Error> {
+    #[cfg(windows)]
+    let raw_target = if junction::exists(target_path).unwrap_or(false) {
+        junction::get_target(target_path)?
+    } else {
+        fs::read_link(target_path)?
+    };
+
+    #[cfg(not(windows))]
     let raw_target = fs::read_link(target_path)?;
+
     let resolved = if raw_target.is_absolute() {
         raw_target
     } else {

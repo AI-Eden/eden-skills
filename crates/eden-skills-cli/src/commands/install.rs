@@ -36,9 +36,10 @@ use crate::DEFAULT_CONFIG_PATH;
 
 use super::common::{
     agent_kind_label, apply_plan_item, copy_recursively, ensure_git_available, ensure_parent_dir,
-    load_config_with_context, parse_target_specs, print_source_sync_step_summary_human,
-    print_warning, remove_path, resolve_config_path, resolve_registry_mode_skills_for_execution,
-    run_git_command, source_sync_failure_error, write_lock_for_config, write_normalized_config,
+    load_config_with_context, parse_target_specs, path_is_symlink_or_junction,
+    print_source_sync_step_summary_human, print_warning, remove_path, resolve_config_path,
+    resolve_registry_mode_skills_for_execution, run_git_command, source_sync_failure_error,
+    write_lock_for_config, write_normalized_config,
 };
 use super::config_ops::default_config_template;
 use super::InstallRequest;
@@ -46,6 +47,7 @@ use super::InstallRequest;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct DefaultInstallModeDecision {
     mode: InstallMode,
+    warn_windows_junction_fallback: bool,
     warn_windows_hardcopy_fallback: bool,
 }
 
@@ -1357,14 +1359,14 @@ fn install_local_source_skill(
         match fs::symlink_metadata(&target_path) {
             Ok(metadata)
                 if matches!(skill.install.mode, InstallMode::Symlink)
-                    && !metadata.file_type().is_symlink() =>
+                    && !path_is_symlink_or_junction(&target_path, &metadata) =>
             {
                 summary.conflicts += 1;
                 continue;
             }
             Ok(metadata)
                 if matches!(skill.install.mode, InstallMode::Copy)
-                    && metadata.file_type().is_symlink() =>
+                    && path_is_symlink_or_junction(&target_path, &metadata) =>
             {
                 summary.conflicts += 1;
                 continue;
@@ -1564,31 +1566,72 @@ fn requested_install_mode(copy: bool) -> Option<InstallMode> {
 
 fn resolve_default_install_mode_decision() -> DefaultInstallModeDecision {
     if let Some(forced_symlink_supported) = forced_windows_symlink_support_for_tests() {
-        return decide_default_install_mode(true, forced_symlink_supported);
+        #[cfg(windows)]
+        let junction_supported = if forced_symlink_supported {
+            false
+        } else {
+            forced_windows_junction_support_for_tests()
+                .unwrap_or_else(windows_supports_junction_creation)
+        };
+
+        #[cfg(not(windows))]
+        let junction_supported = if forced_symlink_supported {
+            false
+        } else {
+            forced_windows_junction_support_for_tests().unwrap_or(false)
+        };
+
+        return decide_default_install_mode(true, forced_symlink_supported, junction_supported);
     }
 
     #[cfg(windows)]
     {
-        decide_default_install_mode(true, windows_supports_symlink_creation())
+        let symlink_supported = windows_supports_symlink_creation();
+        let junction_supported = if symlink_supported {
+            false
+        } else {
+            windows_supports_junction_creation()
+        };
+        decide_default_install_mode(true, symlink_supported, junction_supported)
     }
     #[cfg(not(windows))]
     {
-        decide_default_install_mode(false, true)
+        decide_default_install_mode(false, true, false)
     }
 }
 
 fn decide_default_install_mode(
     is_windows: bool,
     symlink_supported: bool,
+    junction_supported: bool,
 ) -> DefaultInstallModeDecision {
-    if is_windows && !symlink_supported {
+    if is_windows {
+        if symlink_supported {
+            return DefaultInstallModeDecision {
+                mode: InstallMode::Symlink,
+                warn_windows_junction_fallback: false,
+                warn_windows_hardcopy_fallback: false,
+            };
+        }
+
+        if junction_supported {
+            return DefaultInstallModeDecision {
+                mode: InstallMode::Symlink,
+                warn_windows_junction_fallback: true,
+                warn_windows_hardcopy_fallback: false,
+            };
+        }
+
         return DefaultInstallModeDecision {
             mode: InstallMode::Copy,
+            warn_windows_junction_fallback: false,
             warn_windows_hardcopy_fallback: true,
         };
     }
+
     DefaultInstallModeDecision {
         mode: InstallMode::Symlink,
+        warn_windows_junction_fallback: false,
         warn_windows_hardcopy_fallback: false,
     }
 }
@@ -1604,11 +1647,31 @@ fn forced_windows_symlink_support_for_tests() -> Option<bool> {
     }
 }
 
+fn forced_windows_junction_support_for_tests() -> Option<bool> {
+    match std::env::var("EDEN_SKILLS_TEST_WINDOWS_JUNCTION_SUPPORTED")
+        .ok()
+        .as_deref()
+    {
+        Some("1") => Some(true),
+        Some("0") => Some(false),
+        _ => None,
+    }
+}
+
 fn warn_windows_hardcopy_fallback_if_needed(ui: &UiContext, decision: DefaultInstallModeDecision) {
-    if decision.warn_windows_hardcopy_fallback && !ui.json_mode() {
+    if ui.json_mode() {
+        return;
+    }
+
+    if decision.warn_windows_junction_fallback {
         print_warning(
             ui,
-            "Windows symlink permission is unavailable; falling back to hardcopy mode; this may slow down installs.",
+            "Windows symlink permission unavailable; using NTFS junction (functionally equivalent, no admin required).",
+        );
+    } else if decision.warn_windows_hardcopy_fallback {
+        print_warning(
+            ui,
+            "Windows symlink and junction unavailable; falling back to hardcopy mode (this may slow down installs).",
         );
     }
 }
@@ -1631,6 +1694,61 @@ fn windows_supports_symlink_creation() -> bool {
 
     let _ = fs::remove_dir_all(&probe_root);
     created
+}
+
+#[cfg(windows)]
+fn windows_supports_junction_creation() -> bool {
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let nonce = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    let probe_root = std::env::temp_dir().join(format!("eden-skills-junction-probe-{nonce}"));
+    let source_dir = probe_root.join("source");
+    let junction_path = probe_root.join("link");
+
+    let mut created = false;
+    let supported = match fs::create_dir_all(&source_dir) {
+        Ok(()) => match junction::create(&source_dir, &junction_path) {
+            Ok(()) => {
+                created = true;
+                junction::exists(&junction_path).unwrap_or(false)
+            }
+            Err(_) => false,
+        },
+        Err(_) => false,
+    };
+
+    let cleaned = cleanup_windows_junction_probe(&probe_root, &junction_path);
+
+    if let Ok(log_path) = std::env::var("EDEN_SKILLS_TEST_WINDOWS_JUNCTION_PROBE_LOG") {
+        let _ = fs::write(
+            log_path,
+            format!(
+                "probe_root={}\njunction_path={}\ncreated={created}\ncleaned={cleaned}\n",
+                probe_root.display(),
+                junction_path.display()
+            ),
+        );
+    }
+
+    supported && cleaned
+}
+
+#[cfg(windows)]
+fn cleanup_windows_junction_probe(probe_root: &Path, junction_path: &Path) -> bool {
+    let junction_deleted = if junction::exists(junction_path).unwrap_or(false) {
+        junction::delete(junction_path).is_ok()
+    } else {
+        true
+    };
+    let root_deleted = if probe_root.exists() {
+        fs::remove_dir_all(probe_root).is_ok()
+    } else {
+        true
+    };
+    junction_deleted && root_deleted
 }
 
 fn resolve_url_mode_install_targets(

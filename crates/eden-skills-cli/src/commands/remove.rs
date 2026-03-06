@@ -587,7 +587,7 @@ mod tests {
             version: 1,
             storage_root: "~/.eden-skills/skills".to_string(),
             reactor: eden_skills_core::config::ReactorConfig::default(),
-            skills: ids.iter().map(|id| sample_skill(id)).collect(),
+            skills: ids.iter().map(sample_skill).collect(),
         }
     }
 

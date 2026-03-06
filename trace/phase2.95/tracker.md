@@ -1,7 +1,7 @@
 # Phase 2.95 Execution Tracker
 
 Phase: Performance, Platform Reach & UX Completeness
-Status: Batch 2 Completed
+Status: Batch 3 Completed
 Started: 2026-03-06
 
 ## Batch Plan
@@ -10,7 +10,7 @@ Started: 2026-03-06
 | --- | --- | --- | --- | --- |
 | 1 | Install Scripts | WP-5 | ISC-001~007 | completed |
 | 2 | Remove All Symbol | WP-2 | RMA-001~004 | completed |
-| 3 | Windows Junction Fallback | WP-3 | WJN-001~006 | pending |
+| 3 | Windows Junction Fallback | WP-3 | WJN-001~006 | completed |
 | 4 | Performance Part 1: Repo-Level Cache | WP-1 pt1 | PSY-001~003, PSY-006~007 | pending |
 | 5 | Performance Part 2: Batch Sync + Migration | WP-1 pt2 | PSY-004~006, PSY-008 | pending |
 | 6 | Docker Bind Mount + Agent Auto-Detection | WP-4 | DBM-001~007 | pending |
@@ -54,3 +54,18 @@ Started: 2026-03-06
   - `cargo clippy --workspace -- -D warnings` ✅
   - `cargo test --workspace` ✅
   - Test inventory: `358`
+
+### Batch 3 — Windows Junction Fallback (Completed 2026-03-06)
+
+- Requirements: `WJN-001`, `WJN-002`, `WJN-003`, `WJN-004`, `WJN-005`, `WJN-006`
+- Completed in this pass:
+  - Added `junction = "1"` as a Windows-only dependency in both `crates/eden-skills-core/Cargo.toml` and `crates/eden-skills-cli/Cargo.toml`.
+  - Extended `crates/eden-skills-cli/src/commands/install.rs` so the default Windows install decision now follows `symlink -> junction -> copy`, emits the new junction/hardcopy warnings, and supports test hooks for forced junction support plus probe logging.
+  - Updated `crates/eden-skills-core/src/adapter.rs` and `crates/eden-skills-cli/src/commands/common.rs` so directory symlink creation falls back to NTFS junctions on Windows permission denial and existing junctions are removed safely before reinstall.
+  - Updated `crates/eden-skills-core/src/plan.rs`, `crates/eden-skills-core/src/verify.rs`, and the local-source install conflict checks in `crates/eden-skills-cli/src/commands/install.rs` so junction-backed targets are treated like symlink-mode installs instead of false conflicts.
+  - Added `crates/eden-skills-cli/tests/junction_tests.rs` and `crates/eden-skills-core/tests/junction_tests.rs` covering `TM-P295-016` through `TM-P295-023`, and refreshed the older hardcopy fallback regression test in `crates/eden-skills-cli/tests/install_url_tests.rs`.
+- Validation:
+  - `cargo fmt --all` ✅
+  - `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` ✅
+  - `cargo test --workspace` ✅
+  - Test inventory: `363`

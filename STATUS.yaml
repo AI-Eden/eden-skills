@@ -3,7 +3,7 @@ updated_at: "2026-03-06"
 project:
   name: eden-skills
   phase: phase295_performance_platform_reach
-  status: batch2_completed
+  status: batch3_completed
 
 authority_order:
   - spec
@@ -53,9 +53,9 @@ phases:
     completed_at: "2026-03-06"
     archive: trace/phase2.9/
   phase295:
-    status: batch2_completed
+    status: batch3_completed
     started_at: "2026-03-06"
     archive: trace/phase2.95/
 
 next_execution_targets:
-  - phase295_batch3_windows_junction_fallback
+  - phase295_batch4_perf_part1_repo_cache

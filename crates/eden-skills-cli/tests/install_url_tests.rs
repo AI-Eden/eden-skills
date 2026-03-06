@@ -59,7 +59,7 @@ fn local_path_install_persists_absolute_repo_and_stages_source_into_storage_root
 }
 
 #[test]
-fn install_warns_when_windows_symlink_permission_missing_and_falls_back_to_hardcopy() {
+fn install_warns_when_windows_symlink_and_junction_are_unavailable_and_falls_back_to_hardcopy() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let source_dir = temp.path().join("test-skills");
@@ -70,6 +70,7 @@ fn install_warns_when_windows_symlink_permission_missing_and_falls_back_to_hardc
     let output = eden_command(&home_dir)
         .current_dir(temp.path())
         .env("EDEN_SKILLS_TEST_WINDOWS_SYMLINK_SUPPORTED", "0")
+        .env("EDEN_SKILLS_TEST_WINDOWS_JUNCTION_SUPPORTED", "0")
         .args(["install", "./test-skills", "--config"])
         .arg(&config_path)
         .output()
@@ -83,6 +84,10 @@ fn install_warns_when_windows_symlink_permission_missing_and_falls_back_to_hardc
     );
 
     let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("symlink and junction unavailable"),
+        "missing combined Windows fallback warning, stderr={stderr}"
+    );
     assert!(
         stderr.contains("falling back to hardcopy mode"),
         "missing hardcopy fallback warning, stderr={stderr}"

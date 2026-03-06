@@ -771,6 +771,19 @@ pub(crate) fn apply_plan_item(item: &PlanItem) -> Result<(), EdenError> {
     }
 }
 
+pub(crate) fn path_is_symlink_or_junction(path: &Path, metadata: &fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        metadata.file_type().is_symlink() || junction::exists(path).unwrap_or(false)
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = path;
+        metadata.file_type().is_symlink()
+    }
+}
+
 fn apply_symlink(source_path: &Path, target_path: &Path) -> Result<(), EdenError> {
     ensure_parent_dir(target_path)?;
     if fs::symlink_metadata(target_path).is_ok() {
@@ -784,8 +797,21 @@ fn apply_symlink(source_path: &Path, target_path: &Path) -> Result<(), EdenError
     #[cfg(windows)]
     {
         if source_path.is_dir() {
-            std::os::windows::fs::symlink_dir(source_path, target_path)
-                .map_err(|err| map_windows_symlink_error(err, source_path, target_path))?;
+            match std::os::windows::fs::symlink_dir(source_path, target_path) {
+                Ok(()) => {}
+                Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+                    junction::create(source_path, target_path).map_err(|junction_err| {
+                        EdenError::Runtime(format!(
+                            "failed to create symlink `{}` -> `{}`: {}. junction fallback failed: {}",
+                            target_path.display(),
+                            source_path.display(),
+                            err,
+                            junction_err
+                        ))
+                    })?;
+                }
+                Err(err) => return Err(map_windows_symlink_error(err, source_path, target_path)),
+            }
         } else {
             std::os::windows::fs::symlink_file(source_path, target_path)
                 .map_err(|err| map_windows_symlink_error(err, source_path, target_path))?;
@@ -829,7 +855,7 @@ pub(crate) fn ensure_parent_dir(path: &Path) -> Result<(), EdenError> {
 
 pub(crate) fn remove_path(path: &Path) -> Result<(), EdenError> {
     let metadata = fs::symlink_metadata(path)?;
-    if metadata.file_type().is_symlink() {
+    if path_is_symlink_or_junction(path, &metadata) {
         remove_symlink_path(path)?;
         return Ok(());
     }
@@ -851,6 +877,16 @@ fn remove_symlink_path(path: &Path) -> Result<(), EdenError> {
 
 #[cfg(windows)]
 fn remove_symlink_path(path: &Path) -> Result<(), EdenError> {
+    if junction::exists(path).unwrap_or(false) {
+        junction::delete(path).map_err(|err| {
+            EdenError::Runtime(format!(
+                "failed to delete junction `{}`: {err}",
+                path.display()
+            ))
+        })?;
+        return Ok(());
+    }
+
     match fs::remove_file(path) {
         Ok(()) => Ok(()),
         Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {

@@ -1,5 +1,5 @@
 phase: phase295_performance_platform_reach
-status: batch2_completed
+status: batch3_completed
 started_at: "2026-03-06"
 
 spec_files:
@@ -36,7 +36,7 @@ batches:
     name: "Windows Junction Fallback"
     work_packages: [WP-3]
     requirements: [WJN-001, WJN-002, WJN-003, WJN-004, WJN-005, WJN-006]
-    status: pending
+    status: completed
   batch4:
     name: "Performance Part 1: Repo-Level Cache"
     work_packages: [WP-1-pt1]
@@ -92,3 +92,20 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 358
+  batch_3_windows_junction_fallback:
+    status: completed
+    started_at: "2026-03-06"
+    completed_at: "2026-03-06"
+    requirements: WJN-001, WJN-002, WJN-003, WJN-004, WJN-005, WJN-006
+    scenarios: TM-P295-016, TM-P295-017, TM-P295-018, TM-P295-019, TM-P295-020, TM-P295-021, TM-P295-022, TM-P295-023
+    notes:
+      - added `junction = "1"` as a Windows-only dependency in both `crates/eden-skills-core/Cargo.toml` and `crates/eden-skills-cli/Cargo.toml`
+      - extended `crates/eden-skills-cli/src/commands/install.rs` with the three-level Windows fallback chain, a junction capability probe, transparent `symlink` mode recording, and test hooks for forced symlink/junction support plus probe logging
+      - updated `crates/eden-skills-core/src/adapter.rs` and `crates/eden-skills-cli/src/commands/common.rs` so directory symlink creation falls back to NTFS junctions on Windows permission denial and existing junctions are deleted safely before reinstall
+      - updated `crates/eden-skills-core/src/plan.rs`, `crates/eden-skills-core/src/verify.rs`, and the local-source install path in `crates/eden-skills-cli/src/commands/install.rs` to treat junctions as valid symlink-mode targets
+      - added `crates/eden-skills-cli/tests/junction_tests.rs` and `crates/eden-skills-core/tests/junction_tests.rs` for TM-P295-016 through TM-P295-023 coverage, and refreshed the legacy hardcopy fallback regression in `crates/eden-skills-cli/tests/install_url_tests.rs`
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 363

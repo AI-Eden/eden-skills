@@ -256,6 +256,7 @@ dependencies = [
  "eden-skills-core",
  "enable-ansi-support",
  "indicatif",
+ "junction",
  "owo-colors",
  "serde",
  "serde_json",
@@ -269,6 +270,7 @@ name = "eden-skills-core"
 version = "0.1.8"
 dependencies = [
  "async-trait",
+ "junction",
  "semver",
  "serde",
  "serde_json",
@@ -476,6 +478,16 @@ checksum = "8c942ebf8e95485ca0d52d97da7c5a2c387d0e7f0ba4c35e93bfcaee045955b3"
 dependencies = [
  "once_cell",
  "wasm-bindgen",
+]
+
+[[package]]
+name = "junction"
+version = "1.4.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8cfc352a66ba903c23239ef51e809508b6fc2b0f90e3476ac7a9ff47e863ae95"
+dependencies = [
+ "scopeguard",
+ "windows-sys 0.61.2",
 ]
 
 [[package]]

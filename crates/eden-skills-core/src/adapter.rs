@@ -444,8 +444,8 @@ async fn ensure_parent_dir(path: &Path) -> Result<(), AdapterError> {
 async fn remove_existing_path(path: &Path) -> Result<(), AdapterError> {
     match tokio::fs::symlink_metadata(path).await {
         Ok(metadata) => {
-            if metadata.file_type().is_symlink() {
-                remove_symlink(path).await?;
+            if path_is_symlink_or_junction(path, &metadata) {
+                remove_symlink_or_junction(path).await?;
                 return Ok(());
             }
 
@@ -462,10 +462,28 @@ async fn remove_existing_path(path: &Path) -> Result<(), AdapterError> {
     }
 }
 
+fn path_is_symlink_or_junction(path: &Path, metadata: &std::fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        metadata.file_type().is_symlink() || junction::exists(path).unwrap_or(false)
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = path;
+        metadata.file_type().is_symlink()
+    }
+}
+
 #[cfg(not(windows))]
 async fn remove_symlink(path: &Path) -> Result<(), AdapterError> {
     tokio::fs::remove_file(path).await?;
     Ok(())
+}
+
+#[cfg(not(windows))]
+async fn remove_symlink_or_junction(path: &Path) -> Result<(), AdapterError> {
+    remove_symlink(path).await
 }
 
 #[cfg(windows)]
@@ -480,6 +498,18 @@ async fn remove_symlink(path: &Path) -> Result<(), AdapterError> {
     }
 }
 
+#[cfg(windows)]
+async fn remove_symlink_or_junction(path: &Path) -> Result<(), AdapterError> {
+    if junction::exists(path).unwrap_or(false) {
+        junction::delete(path).map_err(|err| AdapterError::Runtime {
+            detail: format!("failed to delete junction `{}`: {err}", path.display()),
+        })?;
+        return Ok(());
+    }
+
+    remove_symlink(path).await
+}
+
 fn create_symlink(source: &Path, target: &Path, source_is_dir: bool) -> Result<(), AdapterError> {
     #[cfg(unix)]
     {
@@ -491,8 +521,23 @@ fn create_symlink(source: &Path, target: &Path, source_is_dir: bool) -> Result<(
     #[cfg(windows)]
     {
         if source_is_dir {
-            std::os::windows::fs::symlink_dir(source, target)
-                .map_err(|err| map_windows_symlink_error(err, source, target))?;
+            match std::os::windows::fs::symlink_dir(source, target) {
+                Ok(()) => {}
+                Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
+                    junction::create(source, target).map_err(|junction_err| {
+                        AdapterError::Runtime {
+                            detail: format!(
+                                "failed to create symlink `{}` -> `{}`: {}. junction fallback failed: {}",
+                                target.display(),
+                                source.display(),
+                                err,
+                                junction_err
+                            ),
+                        }
+                    })?;
+                }
+                Err(err) => return Err(map_windows_symlink_error(err, source, target)),
+            }
         } else {
             std::os::windows::fs::symlink_file(source, target)
                 .map_err(|err| map_windows_symlink_error(err, source, target))?;

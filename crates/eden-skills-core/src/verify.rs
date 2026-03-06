@@ -68,7 +68,7 @@ fn run_check(
         }
         "is-symlink" => match fs::symlink_metadata(target_path) {
             Ok(metadata) => {
-                if !metadata.file_type().is_symlink() {
+                if !path_is_symlink_or_junction(target_path, &metadata) {
                     issues.push(issue(
                         skill_id,
                         target_path,
@@ -84,7 +84,7 @@ fn run_check(
                 "target path does not exist".to_string(),
             )),
         },
-        "target-resolves" => match fs::read_link(target_path) {
+        "target-resolves" => match read_symlink_or_junction_target(target_path) {
             Ok(current_target) => {
                 let resolved = resolve_symlink_target(target_path, &current_target);
                 if !resolved.exists() {
@@ -168,6 +168,30 @@ fn run_check(
     }
 
     Ok(())
+}
+
+fn path_is_symlink_or_junction(target_path: &Path, metadata: &fs::Metadata) -> bool {
+    #[cfg(windows)]
+    {
+        metadata.file_type().is_symlink() || junction::exists(target_path).unwrap_or(false)
+    }
+
+    #[cfg(not(windows))]
+    {
+        let _ = target_path;
+        metadata.file_type().is_symlink()
+    }
+}
+
+fn read_symlink_or_junction_target(target_path: &Path) -> Result<PathBuf, std::io::Error> {
+    #[cfg(windows)]
+    {
+        if junction::exists(target_path).unwrap_or(false) {
+            return junction::get_target(target_path);
+        }
+    }
+
+    fs::read_link(target_path)
 }
 
 fn resolve_symlink_target(target_path: &Path, link_target: &Path) -> PathBuf {

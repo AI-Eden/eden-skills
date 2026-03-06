@@ -31,12 +31,12 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| WJN-001 | `SPEC_WINDOWS_JUNCTION.md` 2 | Three-level fallback: symlink → junction → copy | | | pending |
-| WJN-002 | `SPEC_WINDOWS_JUNCTION.md` 5 | `junction` crate as `cfg(windows)` dependency | | | pending |
-| WJN-003 | `SPEC_WINDOWS_JUNCTION.md` 3.1 | Junction NOT exposed as new InstallMode | | | pending |
-| WJN-004 | `SPEC_WINDOWS_JUNCTION.md` 4 | plan.rs detects junction reparse points | | | pending |
-| WJN-005 | `SPEC_WINDOWS_JUNCTION.md` 3.2–3.3 | Adapter handles junction create/remove | | | pending |
-| WJN-006 | `SPEC_WINDOWS_JUNCTION.md` 2.1 | Junction probe in install mode decision | | | pending |
+| WJN-001 | `SPEC_WINDOWS_JUNCTION.md` 2 | Three-level fallback: symlink → junction → copy | `crates/eden-skills-cli/src/commands/install.rs`, `crates/eden-skills-core/src/adapter.rs`, `crates/eden-skills-cli/src/commands/common.rs` | `crates/eden-skills-cli/tests/junction_tests.rs` (TM-P295-016, TM-P295-017, TM-P295-018), `crates/eden-skills-cli/tests/install_url_tests.rs` (`install_warns_when_windows_symlink_and_junction_are_unavailable_and_falls_back_to_hardcopy`) | completed |
+| WJN-002 | `SPEC_WINDOWS_JUNCTION.md` 5 | `junction` crate as `cfg(windows)` dependency | `crates/eden-skills-core/Cargo.toml`, `crates/eden-skills-cli/Cargo.toml` | `crates/eden-skills-core/tests/junction_tests.rs` (TM-P295-023) | completed |
+| WJN-003 | `SPEC_WINDOWS_JUNCTION.md` 3.1 | Junction NOT exposed as new InstallMode | `crates/eden-skills-cli/src/commands/install.rs` | `crates/eden-skills-cli/tests/junction_tests.rs` (TM-P295-019) | completed |
+| WJN-004 | `SPEC_WINDOWS_JUNCTION.md` 4 | plan.rs detects junction reparse points | `crates/eden-skills-core/src/plan.rs`, `crates/eden-skills-core/src/verify.rs` | `crates/eden-skills-core/tests/junction_tests.rs` (TM-P295-020) | completed |
+| WJN-005 | `SPEC_WINDOWS_JUNCTION.md` 3.2–3.3 | Adapter handles junction create/remove | `crates/eden-skills-core/src/adapter.rs`, `crates/eden-skills-cli/src/commands/common.rs`, `crates/eden-skills-cli/src/commands/install.rs` | `crates/eden-skills-core/tests/junction_tests.rs` (TM-P295-021) | completed |
+| WJN-006 | `SPEC_WINDOWS_JUNCTION.md` 2.1 | Junction probe in install mode decision | `crates/eden-skills-cli/src/commands/install.rs` | `crates/eden-skills-cli/tests/junction_tests.rs` (TM-P295-022) | completed |
 
 ## 4. Docker Bind Mount Requirements
 
