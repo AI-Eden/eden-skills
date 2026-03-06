@@ -57,9 +57,11 @@ curl -fsSL https://raw.githubusercontent.com/AI-Eden/eden-skills/main/install.sh
    already configured there.
    - If the PATH export is already present, do not append a duplicate.
    - If it is missing, append the export line automatically:
-     ```
+
+     ```sh
      export PATH="$HOME/.eden-skills/bin:$PATH"
      ```
+
    - After detection or update, print a note explaining how to reload the
      shell config so the new PATH takes effect immediately.
    - If the rc file cannot be updated automatically, print the same export

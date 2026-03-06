@@ -12,12 +12,13 @@ This file is designed for fast recovery after context compression.
 5. `spec/phase2.7/SPEC_*.md` (Phase 2.7 UX polish & lock file contracts)
 6. `spec/phase2.8/SPEC_*.md` (Phase 2.8 TUI deep optimization & code maintainability contracts)
 7. `spec/phase2.95/SPEC_*.md` (Phase 2.95 performance, platform reach & UX completeness contracts)
-8. Current phase's `SPEC_TRACEABILITY.md`
-9. `STATUS.yaml`
-10. `EXECUTION_TRACKER.md`
-11. `ROADMAP.md`
-12. `README.md`
-13. `trace/` (archived phase records — read only when historical context is needed)
+8. `spec/phase2.97/SPEC_*.md` (Phase 2.97 reliability, interactive UX & Docker safety contracts)
+9. Current phase's `SPEC_TRACEABILITY.md`
+10. `STATUS.yaml`
+11. `EXECUTION_TRACKER.md`
+12. `ROADMAP.md`
+13. `README.md`
+14. `trace/` (archived phase records — read only when historical context is needed)
 
 ## 2. Authority Order
 
@@ -88,6 +89,15 @@ When files disagree, follow:
 - If task is Docker bind mount or `docker mount-hint`: start from `spec/phase2.95/SPEC_DOCKER_BIND.md`.
 - If task is install script or `cargo-binstall`: start from `spec/phase2.95/SPEC_INSTALL_SCRIPT.md`.
 
+### Phase 2.97 (Reliability, Interactive UX & Docker Safety)
+
+- If task is update concurrency bug or refresh dedup: start from `spec/phase2.97/SPEC_UPDATE_FIX.md`.
+- If task is table content styling or `custom_styling` feature: start from `spec/phase2.97/SPEC_TABLE_STYLE.md`.
+- If task is interactive remove/install MultiSelect UX: start from `spec/phase2.97/SPEC_INTERACTIVE_UX.md`.
+- If task is cache cleanup or `clean` command: start from `spec/phase2.97/SPEC_CACHE_CLEAN.md`.
+- If task is Docker management domain or `.eden-managed`: start from `spec/phase2.97/SPEC_DOCKER_MANAGED.md`.
+- If task is hint arrow prefix or `~>` styling: start from `spec/phase2.97/SPEC_HINT_SYNC.md`.
+
 ### General
 
 - If task is progress planning: use `STATUS.yaml` first, then `EXECUTION_TRACKER.md`.
@@ -100,4 +110,5 @@ When files disagree, follow:
 - Do not introduce Phase 3 crawler/taxonomy implementation into any current phase specs.
 - Phase 1, 2, 2.5, 2.7, 2.8, and 2.9 spec files are frozen; changes require explicit user approval.
 - Phase 2.95 extends Phase 2 adapter/reactor, Phase 2.5 install flow, Phase 2.7 remove interactive mode, and Phase 2.9 update semantics.
+- Phase 2.97 fixes Phase 2.95 update concurrency, replaces Phase 2.95 remove `*` wildcard with MultiSelect, extends Phase 2.8 table styling, adds cache cleanup, and introduces Docker management domain tracking.
 - Completed phase execution records are archived in `trace/<phase>/`. Root `STATUS.yaml` and `EXECUTION_TRACKER.md` only contain the current execution state (the active phase, or the most recently closed phase before the next phase starts).

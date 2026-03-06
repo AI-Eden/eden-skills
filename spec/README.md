@@ -62,13 +62,23 @@ spec/
 │   ├── SPEC_NEWLINE_POLICY.md
 │   ├── SPEC_TEST_MATRIX.md
 │   └── SPEC_TRACEABILITY.md
-└── phase2.95/             (Phase 2.95: Performance, Platform Reach & UX Completeness)
+├── phase2.95/             (Phase 2.95: Performance, Platform Reach & UX Completeness)
+│   ├── README.md
+│   ├── SPEC_PERF_SYNC.md
+│   ├── SPEC_REMOVE_ALL.md
+│   ├── SPEC_WINDOWS_JUNCTION.md
+│   ├── SPEC_DOCKER_BIND.md
+│   ├── SPEC_INSTALL_SCRIPT.md
+│   ├── SPEC_TEST_MATRIX.md
+│   └── SPEC_TRACEABILITY.md
+└── phase2.97/             (Phase 2.97: Reliability, Interactive UX & Docker Safety)
     ├── README.md
-    ├── SPEC_PERF_SYNC.md
-    ├── SPEC_REMOVE_ALL.md
-    ├── SPEC_WINDOWS_JUNCTION.md
-    ├── SPEC_DOCKER_BIND.md
-    ├── SPEC_INSTALL_SCRIPT.md
+    ├── SPEC_UPDATE_FIX.md
+    ├── SPEC_TABLE_STYLE.md
+    ├── SPEC_INTERACTIVE_UX.md
+    ├── SPEC_CACHE_CLEAN.md
+    ├── SPEC_DOCKER_MANAGED.md
+    ├── SPEC_HINT_SYNC.md
     ├── SPEC_TEST_MATRIX.md
     └── SPEC_TRACEABILITY.md
 ```
@@ -163,6 +173,22 @@ install scripts, and adds a remove-all wildcard.
 - `phase2.95/SPEC_INSTALL_SCRIPT.md`: `install.sh`, `install.ps1`, `cargo-binstall` metadata (ISC-001~007)
 - `phase2.95/SPEC_TEST_MATRIX.md`: Phase 2.95 acceptance test scenarios (TM-P295-001~048)
 - `phase2.95/SPEC_TRACEABILITY.md`: Phase 2.95 requirement-to-implementation mapping
+
+## Phase 2.97: Reliability, Interactive UX & Docker Safety
+
+Phase 2.97 fixes the `update` concurrency bug, modernizes interactive
+selection UX with `MultiSelect`, adds table content styling, introduces
+cache cleanup, implements Docker management domain tracking, and syncs
+the hint arrow prefix across specs.
+
+- `phase2.97/SPEC_UPDATE_FIX.md`: deduplicate Mode A refresh tasks by repo cache key (UFX-001~003)
+- `phase2.97/SPEC_TABLE_STYLE.md`: `comfy-table` `custom_styling` feature, content color rules (TST-001~005)
+- `phase2.97/SPEC_INTERACTIVE_UX.md`: `MultiSelect` for remove + install, description-on-hover (IUX-001~010)
+- `phase2.97/SPEC_CACHE_CLEAN.md`: `clean` command, `--auto-clean`, doctor orphan check (CCL-001~007)
+- `phase2.97/SPEC_DOCKER_MANAGED.md`: `.eden-managed` manifest, ownership guard, doctor findings (DMG-001~008)
+- `phase2.97/SPEC_HINT_SYNC.md`: hint prefix amendment `→` → `~>` (HSY-001~002)
+- `phase2.97/SPEC_TEST_MATRIX.md`: Phase 2.97 acceptance test scenarios (TM-P297-001~056)
+- `phase2.97/SPEC_TRACEABILITY.md`: Phase 2.97 requirement-to-implementation mapping
 
 ## Rule of Authority
 

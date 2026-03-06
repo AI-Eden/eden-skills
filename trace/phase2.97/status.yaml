@@ -1,0 +1,60 @@
+phase: phase297_reliability_interactive_ux_docker_safety
+status: spec_frozen
+started_at: "2026-03-07"
+completed_at: ~
+
+spec_files:
+  - spec/phase2.97/README.md
+  - spec/phase2.97/SPEC_UPDATE_FIX.md
+  - spec/phase2.97/SPEC_TABLE_STYLE.md
+  - spec/phase2.97/SPEC_INTERACTIVE_UX.md
+  - spec/phase2.97/SPEC_CACHE_CLEAN.md
+  - spec/phase2.97/SPEC_DOCKER_MANAGED.md
+  - spec/phase2.97/SPEC_HINT_SYNC.md
+  - spec/phase2.97/SPEC_TEST_MATRIX.md
+  - spec/phase2.97/SPEC_TRACEABILITY.md
+
+requirement_ids:
+  update_fix: UFX-001 ~ UFX-003
+  table_style: TST-001 ~ TST-005
+  interactive_ux: IUX-001 ~ IUX-010
+  cache_clean: CCL-001 ~ CCL-007
+  docker_managed: DMG-001 ~ DMG-008
+  hint_sync: HSY-001 ~ HSY-002
+  documentation: DOC-001 ~ DOC-002
+
+test_scenarios: TM-P297-001 ~ TM-P297-056
+
+batches:
+  batch1:
+    name: "Update Concurrency Fix"
+    work_packages: [WP-1]
+    requirements: [UFX-001, UFX-002, UFX-003]
+    status: pending
+  batch2:
+    name: "Table Content Styling + Hint Sync"
+    work_packages: [WP-2, WP-6]
+    requirements: [TST-001, TST-002, TST-003, TST-004, TST-005, HSY-001, HSY-002]
+    status: pending
+  batch3:
+    name: "Interactive UX (Remove + Install)"
+    work_packages: [WP-3]
+    requirements: [IUX-001, IUX-002, IUX-003, IUX-004, IUX-005, IUX-006, IUX-007, IUX-008, IUX-009, IUX-010]
+    status: pending
+  batch4:
+    name: "Cache Clean"
+    work_packages: [WP-4]
+    requirements: [CCL-001, CCL-002, CCL-003, CCL-004, CCL-005, CCL-006, CCL-007]
+    status: pending
+  batch5:
+    name: "Docker Management Domain"
+    work_packages: [WP-5]
+    requirements: [DMG-001, DMG-002, DMG-003, DMG-004, DMG-005, DMG-006, DMG-007, DMG-008]
+    status: pending
+  batch6:
+    name: "Documentation + Regression + Closeout"
+    work_packages: [WP-7]
+    requirements: [DOC-001, DOC-002]
+    status: pending
+
+builder_progress: {}
