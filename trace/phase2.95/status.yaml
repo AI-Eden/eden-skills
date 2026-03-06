@@ -139,7 +139,8 @@ builder_progress:
       - extended `crates/eden-skills-core/src/source.rs` with repo-level skip support for grouped sync tasks, and updated `crates/eden-skills-cli/src/commands/reconcile.rs` so `apply` marks unchanged repo-cache keys as skipped without network fetch while `repair` continues to sync every repo
       - completed the remaining repo-cache migration coverage by adding `TM-P295-034` in `crates/eden-skills-cli/tests/update_ext_tests.rs` and `TM-P295-036` in `crates/eden-skills-cli/tests/doctor_copy.rs`, proving `update` and `doctor` read from repo-cache-backed sources even when legacy per-skill paths are absent or broken
       - added the `mtime + size` copy fast path in `crates/eden-skills-core/src/plan.rs`, plus `TM-P295-037` in `crates/eden-skills-core/tests/plan_copy_edge_tests.rs`, and adjusted older copy-plan fixtures so they continue to exercise unreadable-file conflict behavior outside the new fast-path
-      - added `TM-P295-031`, `TM-P295-032`, and `TM-P295-033` in `crates/eden-skills-cli/tests/perf_sync_tests.rs` using a portable git-subcommand probe to verify batched install fetches, apply skip summaries, and repair’s no-skip behavior
+      - added `TM-P295-031`, `TM-P295-032`, and `TM-P295-033` in `crates/eden-skills-cli/tests/perf_sync_tests.rs` to verify batched install fetches, apply skip summaries, and repair’s no-skip behavior
+      - post-Batch-5 Windows CI follow-up: replaced the PATH/git wrapper fetch counter in `crates/eden-skills-cli/tests/perf_sync_tests.rs` with an explicit `EDEN_SKILLS_TEST_GIT_FETCH_LOG` hook in `crates/eden-skills-core/src/source.rs`, matching the earlier clone-count stabilization pattern from Batch 4
     quality_gate:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed

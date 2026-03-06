@@ -1,10 +1,6 @@
 mod common;
 
-use std::env;
-use std::ffi::OsString;
 use std::fs;
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -146,12 +142,14 @@ fn tm_p295_031_install_batches_remote_sync_into_one_repo_fetch() {
         &["alpha-skill", "beta-skill"],
     );
     let config_path = temp.path().join("skills.toml");
-    let git_probe = create_git_probe(temp.path());
+    let clone_log = temp.path().join("git-clones.log");
+    let fetch_log = temp.path().join("git-fetches.log");
     let repo_url = as_file_url(&repo_dir);
 
     let output = eden_command(&home_dir)
         .current_dir(temp.path())
-        .env("PATH", &git_probe.path_env)
+        .env("EDEN_SKILLS_TEST_GIT_CLONE_LOG", &clone_log)
+        .env("EDEN_SKILLS_TEST_GIT_FETCH_LOG", &fetch_log)
         .args(["install", &repo_url, "--all", "--config"])
         .arg(&config_path)
         .output()
@@ -164,13 +162,13 @@ fn tm_p295_031_install_batches_remote_sync_into_one_repo_fetch() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert_eq!(
-        count_git_subcommand(&git_probe.log_path, "clone"),
+        clone_count(&clone_log),
         1,
         "remote install should still perform exactly one discovery clone, stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
     assert_eq!(
-        count_git_subcommand(&git_probe.log_path, "fetch"),
+        fetch_count(&fetch_log),
         1,
         "remote install should batch selected skills into one repo-cache fetch, stderr={}",
         String::from_utf8_lossy(&output.stderr)
@@ -204,10 +202,10 @@ fn tm_p295_032_apply_reports_skipped_repo_without_fetching_unchanged_lock_entrie
         String::from_utf8_lossy(&first_apply.stderr)
     );
 
-    let git_probe = create_git_probe(temp.path());
+    let fetch_log = temp.path().join("git-fetches.log");
     let second_apply = eden_command(&home_dir)
         .current_dir(temp.path())
-        .env("PATH", &git_probe.path_env)
+        .env("EDEN_SKILLS_TEST_GIT_FETCH_LOG", &fetch_log)
         .args(["apply", "--config"])
         .arg(&config_path)
         .output()
@@ -221,7 +219,7 @@ fn tm_p295_032_apply_reports_skipped_repo_without_fetching_unchanged_lock_entrie
 
     let stdout = String::from_utf8_lossy(&second_apply.stdout);
     assert_eq!(
-        count_git_subcommand(&git_probe.log_path, "fetch"),
+        fetch_count(&fetch_log),
         0,
         "apply should skip network fetch for unchanged lock entries, stdout={stdout}"
     );
@@ -258,10 +256,10 @@ fn tm_p295_033_repair_always_fetches_repos_even_when_lock_entries_are_unchanged(
         String::from_utf8_lossy(&first_apply.stderr)
     );
 
-    let git_probe = create_git_probe(temp.path());
+    let fetch_log = temp.path().join("git-fetches.log");
     let repair_output = eden_command(&home_dir)
         .current_dir(temp.path())
-        .env("PATH", &git_probe.path_env)
+        .env("EDEN_SKILLS_TEST_GIT_FETCH_LOG", &fetch_log)
         .args(["repair", "--config"])
         .arg(&config_path)
         .output()
@@ -275,7 +273,7 @@ fn tm_p295_033_repair_always_fetches_repos_even_when_lock_entries_are_unchanged(
 
     let stdout = String::from_utf8_lossy(&repair_output.stdout);
     assert_eq!(
-        count_git_subcommand(&git_probe.log_path, "fetch"),
+        fetch_count(&fetch_log),
         1,
         "repair should always fetch unchanged repos instead of skipping them, stdout={stdout}"
     );
@@ -291,83 +289,6 @@ fn eden_command(home_dir: &Path) -> Command {
     #[cfg(windows)]
     command.env("USERPROFILE", home_dir);
     command
-}
-
-struct GitProbe {
-    log_path: PathBuf,
-    path_env: OsString,
-}
-
-fn create_git_probe(base: &Path) -> GitProbe {
-    let wrapper_dir = base.join("git-probe-bin");
-    fs::create_dir_all(&wrapper_dir).expect("create git probe dir");
-    let log_path = base.join("git-subcommands.log");
-    let real_git = find_git_binary();
-
-    #[cfg(unix)]
-    {
-        let wrapper_path = wrapper_dir.join("git");
-        fs::write(
-            &wrapper_path,
-            format!(
-                "#!/bin/sh\nsubcmd=\"\"\nskip_next=0\nfor arg in \"$@\"; do\n  if [ \"$skip_next\" -eq 1 ]; then\n    skip_next=0\n    continue\n  fi\n  case \"$arg\" in\n    -C|--git-dir|--work-tree|--namespace)\n      skip_next=1\n      ;;\n    -*)\n      ;;\n    *)\n      subcmd=\"$arg\"\n      break\n      ;;\n  esac\ndone\nprintf '%s\\n' \"$subcmd\" >> \"{}\"\nexec \"{}\" \"$@\"\n",
-                log_path.display(),
-                real_git.display()
-            ),
-        )
-        .expect("write unix git probe");
-        let mut permissions = fs::metadata(&wrapper_path)
-            .expect("wrapper metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&wrapper_path, permissions).expect("chmod git probe");
-    }
-
-    #[cfg(windows)]
-    {
-        let wrapper_path = wrapper_dir.join("git.cmd");
-        fs::write(
-            &wrapper_path,
-            format!(
-                "@echo off\r\nsetlocal EnableDelayedExpansion\r\nset \"skip_next=0\"\r\nset \"subcmd=\"\r\nfor %%A in (%*) do (\r\n  if \"!skip_next!\"==\"1\" (\r\n    set \"skip_next=0\"\r\n  ) else if /I \"%%~A\"==\"-C\" (\r\n    set \"skip_next=1\"\r\n  ) else if /I \"%%~A\"==\"--git-dir\" (\r\n    set \"skip_next=1\"\r\n  ) else if /I \"%%~A\"==\"--work-tree\" (\r\n    set \"skip_next=1\"\r\n  ) else if /I \"%%~A\"==\"--namespace\" (\r\n    set \"skip_next=1\"\r\n  ) else if not defined subcmd (\r\n    if not \"%%~A\"==\"\" set \"subcmd=%%~A\"\r\n  )\r\n)\r\n>>\"{}\" echo !subcmd!\r\n\"{}\" %*\r\n",
-                log_path.display(),
-                real_git.display()
-            ),
-        )
-        .expect("write windows git probe");
-    }
-
-    let path_env = prepend_path(&wrapper_dir, env::var_os("PATH"));
-    GitProbe { log_path, path_env }
-}
-
-fn prepend_path(prefix: &Path, existing: Option<OsString>) -> OsString {
-    let mut paths = vec![prefix.to_path_buf()];
-    if let Some(existing) = existing {
-        paths.extend(env::split_paths(&existing));
-    }
-    env::join_paths(paths).expect("join PATH")
-}
-
-fn find_git_binary() -> PathBuf {
-    let path = env::var_os("PATH").expect("PATH should exist");
-    for dir in env::split_paths(&path) {
-        for candidate in ["git", "git.exe", "git.cmd", "git.bat"] {
-            let path = dir.join(candidate);
-            if path.is_file() {
-                return path;
-            }
-        }
-    }
-    panic!("failed to locate git binary in PATH");
-}
-
-fn count_git_subcommand(log_path: &Path, subcommand: &str) -> usize {
-    fs::read_to_string(log_path)
-        .unwrap_or_default()
-        .lines()
-        .filter(|line| *line == subcommand)
-        .count()
 }
 
 fn init_remote_skill_repo(base: &Path, repo_name: &str, skill_name: &str) -> PathBuf {
@@ -460,10 +381,18 @@ fn write_mode_a_config(
 }
 
 fn clone_count(log_path: &Path) -> usize {
+    event_count(log_path, "clone")
+}
+
+fn fetch_count(log_path: &Path) -> usize {
+    event_count(log_path, "fetch")
+}
+
+fn event_count(log_path: &Path, event: &str) -> usize {
     fs::read_to_string(log_path)
         .unwrap_or_default()
         .lines()
-        .filter(|line| *line == "clone")
+        .filter(|line| *line == event)
         .count()
 }
 

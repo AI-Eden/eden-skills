@@ -1,0 +1,41 @@
+     Running tests\perf_sync_tests.rs (target\debug\deps\perf_sync_tests-99dbd74cf44716df.exe)
+
+running 6 tests
+test local_path_install_keeps_using_per_skill_storage_without_repo_cache ... ok
+test tm_p295_032_apply_reports_skipped_repo_without_fetching_unchanged_lock_entries ... ok
+test remote_install_falls_back_to_fresh_clone_when_cache_move_fails ... ok
+test tm_p295_031_install_batches_remote_sync_into_one_repo_fetch ... FAILED
+test remote_install_reuses_discovery_clone_when_repo_cache_is_empty ... ok
+test tm_p295_033_repair_always_fetches_repos_even_when_lock_entries_are_unchanged ... FAILED
+
+failures:
+
+---- tm_p295_031_install_batches_remote_sync_into_one_repo_fetch stdout ----
+
+thread 'tm_p295_031_install_batches_remote_sync_into_one_repo_fetch' (1276) panicked at crates\eden-skills-cli\tests\perf_sync_tests.rs:166:5:
+assertion `left == right` failed: remote install should still perform exactly one discovery clone, stderr=  warning: No installed agents detected; defaulting to claude-code (~/.claude/skills/)
+
+  left: 0
+ right: 1
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tm_p295_033_repair_always_fetches_repos_even_when_lock_entries_are_unchanged stdout ----
+
+thread 'tm_p295_033_repair_always_fetches_repos_even_when_lock_entries_are_unchanged' (812) panicked at crates\eden-skills-cli\tests\perf_sync_tests.rs:277:5:
+assertion `left == right` failed: repair should always fetch unchanged repos instead of skipping them, stdout= Syncing  0 cloned, 0 updated, 1 skipped, 0 failed
+  Safety  0 permissive, 0 risk flags, 0 no-exec
+ Summary  ✓ 0 created, 0 updated, 1 noop, 0 conflicts, 0 removed
+  ✓ Verification passed
+
+  left: 0
+ right: 1
+
+
+failures:
+    tm_p295_031_install_batches_remote_sync_into_one_repo_fetch
+    tm_p295_033_repair_always_fetches_repos_even_when_lock_entries_are_unchanged
+
+test result: FAILED. 4 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.99s
+
+error: test failed, to rerun pass `-p eden-skills --test perf_sync_tests`
+Error: Process completed with exit code 1.

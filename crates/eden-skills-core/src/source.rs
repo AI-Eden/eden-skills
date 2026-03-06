@@ -344,6 +344,7 @@ fn clone_repo(
 fn update_repo(repo_dir: &Path, reference: &str) -> Result<SyncOutcome, SyncOperationError> {
     let head_before = read_head_sha(repo_dir);
 
+    record_test_git_fetch_if_configured();
     run_git(
         Command::new("git")
             .arg("-C")
@@ -439,7 +440,15 @@ fn is_local_source_repo(repo_url: &str) -> bool {
 }
 
 fn record_test_git_clone_if_configured() {
-    let Some(log_path) = std::env::var_os("EDEN_SKILLS_TEST_GIT_CLONE_LOG") else {
+    record_test_git_event_if_configured("EDEN_SKILLS_TEST_GIT_CLONE_LOG", b"clone\n");
+}
+
+fn record_test_git_fetch_if_configured() {
+    record_test_git_event_if_configured("EDEN_SKILLS_TEST_GIT_FETCH_LOG", b"fetch\n");
+}
+
+fn record_test_git_event_if_configured(env_var: &str, line: &[u8]) {
+    let Some(log_path) = std::env::var_os(env_var) else {
         return;
     };
     let Ok(mut file) = std::fs::OpenOptions::new()
@@ -449,5 +458,5 @@ fn record_test_git_clone_if_configured() {
     else {
         return;
     };
-    let _ = std::io::Write::write_all(&mut file, b"clone\n");
+    let _ = std::io::Write::write_all(&mut file, line);
 }
