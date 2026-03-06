@@ -42,13 +42,13 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| DBM-001 | `SPEC_DOCKER_BIND.md` 2 | Bind mount detection via docker inspect | | | pending |
-| DBM-002 | `SPEC_DOCKER_BIND.md` 2.3 | Bind mount → host-side symlink | | | pending |
-| DBM-003 | `SPEC_DOCKER_BIND.md` 3 | `docker mount-hint` subcommand | | | pending |
-| DBM-004 | `SPEC_DOCKER_BIND.md` 4 | Doctor reports DOCKER_NO_BIND_MOUNT | | | pending |
-| DBM-005 | `SPEC_DOCKER_BIND.md` 5 | Install completion bind-mount hint | | | pending |
-| DBM-006 | `SPEC_DOCKER_BIND.md` 4 | docs/04-docker-targets.md updated | | | pending |
-| DBM-007 | `SPEC_DOCKER_BIND.md` 2 | `--target docker:` auto-detects agents in container | | | pending |
+| DBM-001 | `SPEC_DOCKER_BIND.md` 3.1–3.2 | Bind mount detection via docker inspect | `crates/eden-skills-core/src/adapter.rs` | `crates/eden-skills-core/tests/adapter_tests.rs` (TM-P295-039, TM-P295-040) | completed |
+| DBM-002 | `SPEC_DOCKER_BIND.md` 3.3–3.4 | Bind mount → host-side symlink / host-side uninstall | `crates/eden-skills-core/src/adapter.rs`, `crates/eden-skills-cli/src/commands/install.rs` | `crates/eden-skills-core/tests/adapter_tests.rs` (TM-P295-039, TM-P295-045) | completed |
+| DBM-003 | `SPEC_DOCKER_BIND.md` 4 | `docker mount-hint` subcommand | `crates/eden-skills-cli/src/commands/docker_cmd.rs`, `crates/eden-skills-cli/src/lib.rs` | `crates/eden-skills-cli/tests/docker_bind_tests.rs` (TM-P295-041, TM-P295-042) | completed |
+| DBM-004 | `SPEC_DOCKER_BIND.md` 5 | Doctor reports DOCKER_NO_BIND_MOUNT | `crates/eden-skills-cli/src/commands/diagnose.rs` | `crates/eden-skills-cli/tests/phase2_doctor.rs` (TM-P295-043) | completed |
+| DBM-005 | `SPEC_DOCKER_BIND.md` 6 | Install completion bind-mount hint | `crates/eden-skills-cli/src/commands/install.rs` | `crates/eden-skills-cli/tests/docker_bind_tests.rs` (TM-P295-044) | completed |
+| DBM-006 | `SPEC_DOCKER_BIND.md` 4, 8 | docs/04-docker-targets.md updated | `docs/04-docker-targets.md` | — | completed |
+| DBM-007 | `SPEC_DOCKER_BIND.md` 2 | `--target docker:` auto-detects agents in container | `crates/eden-skills-core/src/adapter.rs`, `crates/eden-skills-cli/src/commands/install.rs` | `crates/eden-skills-cli/tests/install_agent_detect_tests.rs` (TM-P295-046, TM-P295-047, TM-P295-048) | completed |
 
 ## 5. Install Script Requirements
 

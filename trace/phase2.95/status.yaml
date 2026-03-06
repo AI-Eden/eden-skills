@@ -1,5 +1,5 @@
 phase: phase295_performance_platform_reach
-status: batch5_completed
+status: batch6_completed
 started_at: "2026-03-06"
 
 spec_files:
@@ -16,7 +16,7 @@ requirement_ids:
   perf_sync: PSY-001 ~ PSY-008
   remove_all: RMA-001 ~ RMA-004
   windows_junction: WJN-001 ~ WJN-006
-  docker_bind: DBM-001 ~ DBM-006
+  docker_bind: DBM-001 ~ DBM-007
   install_script: ISC-001 ~ ISC-007
 
 test_scenarios: TM-P295-001 ~ TM-P295-048
@@ -51,7 +51,7 @@ batches:
     name: "Docker Bind Mount"
     work_packages: [WP-4]
     requirements: [DBM-001, DBM-002, DBM-003, DBM-004, DBM-005, DBM-006, DBM-007]
-    status: pending
+    status: completed
   batch7:
     name: "Regression + Closeout"
     work_packages: []
@@ -147,3 +147,22 @@ builder_progress:
       test_workspace: passed
       windows_check_x86_64_pc_windows_msvc: passed
       current_test_inventory: 381
+  batch_6_docker_bind_mount_and_agent_auto_detection:
+    status: completed
+    started_at: "2026-03-06"
+    completed_at: "2026-03-06"
+    requirements: DBM-001, DBM-002, DBM-003, DBM-004, DBM-005, DBM-006, DBM-007
+    scenarios: TM-P295-039, TM-P295-040, TM-P295-041, TM-P295-042, TM-P295-043, TM-P295-044, TM-P295-045, TM-P295-046, TM-P295-047, TM-P295-048
+    notes:
+      - extended `crates/eden-skills-core/src/adapter.rs` with `docker inspect` bind-mount parsing, host-path mapping, container HOME resolution, container agent auto-detection, and bind-mount-aware install/uninstall branching
+      - updated `crates/eden-skills-cli/src/commands/install.rs` so `--target docker:<container>` now auto-detects agents inside the container, preserves existing manual Docker targets when no explicit docker target is requested, routes Docker installs through `DockerAdapter`, and prints a bind-mount tip after `docker cp` fallback
+      - added the new `eden-skills docker mount-hint <container>` command in `crates/eden-skills-cli/src/commands/docker_cmd.rs` and wired it through `crates/eden-skills-cli/src/lib.rs`
+      - updated `crates/eden-skills-cli/src/commands/diagnose.rs` to emit `DOCKER_NO_BIND_MOUNT` info findings for running Docker targets that lack writable bind mounts
+      - refreshed `docs/04-docker-targets.md` to document container agent auto-detection, bind-mount-aware install behavior, `docker mount-hint`, and the new Docker doctor guidance
+      - added Batch 6 coverage in `crates/eden-skills-core/tests/adapter_tests.rs`, `crates/eden-skills-cli/tests/docker_bind_tests.rs`, `crates/eden-skills-cli/tests/install_agent_detect_tests.rs`, and `crates/eden-skills-cli/tests/phase2_doctor.rs`
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      windows_check_x86_64_pc_windows_msvc: passed
+      current_test_inventory: 392

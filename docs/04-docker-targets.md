@@ -1,102 +1,117 @@
 # Docker Targets Tutorial
 
-This guide explains Docker-target configuration, diagnostics, and adapter contracts.
-
-## Audience
-
-- Users running agents inside Docker containers
-- CI environments validating Docker target behavior
+This guide explains the Docker-target workflow in Phase 2.95: container agent auto-detection, bind-mount-aware installs, `docker mount-hint`, and related diagnostics.
 
 ## Target Model
 
 For `targets[].environment` in `skills.toml`:
 
-- `environment = "local"`: local target semantics
-- `environment = "docker:<container>"`: Docker-target semantics (container-aware checks and adapter flows)
+- `environment = "local"` keeps normal host installs.
+- `environment = "docker:<container>"` tells eden-skills to install into a running Docker container.
 
-## Example Config
+## Auto-Detect During Install
 
-```toml
-[[skills]]
-id = "web-design-guidelines"
-
-[skills.source]
-repo = "https://github.com/vercel-labs/agent-skills.git"
-subpath = "skills/web-design-guidelines"
-ref = "main"
-
-[skills.install]
-mode = "symlink"
-
-[[skills.targets]]
-agent = "custom"
-path = "/workspace/agent-skills"
-environment = "docker:my-agent"
-
-[skills.verify]
-enabled = true
-checks = ["path-exists", "content-present"]
-
-[skills.safety]
-no_exec_metadata_only = false
-```
-
-## Current CLI Focus for Docker Targets
-
-At CLI level, Docker target coverage is currently strongest in:
-
-- `doctor` Docker health diagnostics
-- adapter-backed uninstall path used by `remove`
-- lock-diff orphan uninstall path used by `apply`
-- config validation for `environment = "docker:<container>"`
-
-Example diagnostics:
+When you install directly to a Docker target:
 
 ```bash
 CONFIG="${HOME}/.eden-skills/skills.toml"
-eden-skills doctor --config "$CONFIG"
+eden-skills install https://github.com/vercel-labs/agent-skills.git --target docker:my-agent --config "$CONFIG"
 ```
 
-## Adapter Contract: Symlink Fallback
+the CLI now:
 
-At adapter contract level (`DockerAdapter`), if `install.mode = "symlink"` is requested:
+1. Connects to the running container.
+2. Detects installed agents from the container's `$HOME` (for example `.claude`, `.cursor`, `.codex`, `.codeium/windsurf`).
+3. Writes one `[[skills.targets]]` entry per detected agent.
 
-- A warning is emitted
-- Effective mode falls back to copy
+Example persisted config:
 
-This is expected because host/container boundaries do not support safe cross-boundary symlink behavior.
+```toml
+[[skills.targets]]
+agent = "claude-code"
+environment = "docker:my-agent"
 
-## Diagnose Docker Issues
+[[skills.targets]]
+agent = "cursor"
+environment = "docker:my-agent"
+```
 
-Relevant finding codes:
+If no supported agent directories are detected in the container, install falls back to `claude-code` and prints a warning.
 
-- `DOCKER_NOT_FOUND`
-- `ADAPTER_HEALTH_FAIL`
+Existing manual Docker targets are preserved as-is. Auto-detection only triggers when you explicitly use `--target docker:<container>`.
 
-## Typical Fixes
+## Bind Mount Behavior
 
-- `DOCKER_NOT_FOUND`:
-  - Install Docker
-  - Ensure Docker CLI is available in PATH
+Before copying files into a container, `DockerAdapter` inspects the container mounts:
 
-- `ADAPTER_HEALTH_FAIL`:
-  - Start container (`docker start <container>`)
-  - Verify daemon access and container name
+- If the target path is covered by a writable bind mount, eden-skills installs on the host path behind that mount.
+- If no writable bind mount covers the target path, eden-skills falls back to `docker cp`.
 
-## Remove Flow with Docker Targets
+This has two important effects:
 
-When using:
+- Host-side bind mounts allow live sync without repeated `docker cp`.
+- `install.mode = "symlink"` is honored when the target is bind-mounted, because the symlink is created on the host filesystem.
+
+Without a bind mount, Docker installs still work, but symlink mode falls back to copy and install prints a follow-up hint:
+
+```text
+  → Tip: add bind mounts for live sync. Run 'eden-skills docker mount-hint my-agent'.
+```
+
+## Generate Recommended Mounts
+
+Use the dedicated helper command to print the bind mounts you should add to `docker run` or `docker-compose`:
 
 ```bash
-eden-skills remove --config "$CONFIG" <skill-id>
+eden-skills docker mount-hint my-agent --config "$CONFIG"
 ```
 
-the CLI uses adapter uninstall semantics for each target.  
-For Docker targets, uninstall is performed through container commands.
+The output includes:
 
-The same Docker uninstall path is also used when `apply` detects lock-only orphan skills and generates `remove` actions from lock diff.
+- A read-only mount for `storage.root` into the container's `~/.eden-skills/skills`
+- Writable mounts for every configured Docker agent target that references that container
 
-## Optional: Force a Custom Docker Binary (Testing)
+Example output:
+
+```text
+  Docker mount-hint for container 'my-agent':
+
+  Recommended bind mounts (add to your docker run / docker-compose):
+
+    -v /home/me/.eden-skills/skills:/root/.eden-skills/skills:ro
+    -v /home/me/.claude/skills:/root/.claude/skills
+    -v /home/me/.cursor/skills:/root/.cursor/skills
+
+  After adding these mounts, restart the container and run:
+    eden-skills apply --config "$CONFIG"
+```
+
+If all recommended mounts already exist, the command reports that the container is already fully covered.
+
+## Doctor Findings
+
+Relevant Docker-related `doctor` findings now include:
+
+- `DOCKER_NOT_FOUND`: Docker CLI is unavailable.
+- `ADAPTER_HEALTH_FAIL`: container is missing or not running.
+- `DOCKER_NO_BIND_MOUNT`: Docker target is running in copy mode without a writable bind mount.
+
+For the last case, the remediation points to:
+
+```bash
+eden-skills docker mount-hint <container>
+```
+
+## Remove / Uninstall Semantics
+
+Docker uninstall now follows the same bind-mount-aware logic:
+
+- If the Docker target path is backed by a host bind mount, eden-skills removes the host-side target.
+- Otherwise it falls back to `docker exec rm -rf ...` inside the container.
+
+This applies both to direct adapter uninstall flows and to higher-level cleanup paths that rely on Docker target removal.
+
+## Optional: Override Docker Binary for Tests
 
 For deterministic CI/test scenarios:
 
@@ -104,4 +119,4 @@ For deterministic CI/test scenarios:
 EDEN_SKILLS_DOCKER_BIN=/path/to/docker eden-skills doctor --config "$CONFIG"
 ```
 
-If the binary path is invalid, `doctor` will report `DOCKER_NOT_FOUND`.
+If the binary path is invalid, `doctor` reports `DOCKER_NOT_FOUND`.

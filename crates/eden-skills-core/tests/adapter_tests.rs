@@ -168,7 +168,7 @@ async fn docker_adapter_uses_docker_cli_for_health_install_and_exec() {
     let state_path = temp.path().join("docker-state.txt");
     let docker_bin = temp.path().join("docker");
     let script = format!(
-        "#!/bin/sh\nset -eu\nstate=\"{}\"\ncmd=\"$1\"\nshift\nif [ \"$cmd\" = \"--version\" ]; then\n  echo \"Docker version 27.0.0\"\n  exit 0\nfi\nif [ \"$cmd\" = \"inspect\" ]; then\n  if [ \"$1\" = \"--format\" ] && [ \"$2\" = \"{{{{.State.Running}}}}\" ] && [ \"$3\" = \"test-container\" ]; then\n    echo \"true\"\n    exit 0\n  fi\n  echo \"false\"\n  exit 0\nfi\nif [ \"$cmd\" = \"cp\" ]; then\n  src=\"$1\"\n  dst=\"$2\"\n  printf \"%s\\n\" \"$dst\" > \"$state\"\n  if [ -d \"${{src%/.}}\" ]; then\n    exit 0\n  fi\n  exit 0\nfi\nif [ \"$cmd\" = \"exec\" ]; then\n  container=\"$1\"\n  shift\n  if [ \"$container\" != \"test-container\" ]; then\n    echo \"container not found\" >&2\n    exit 1\n  fi\n  if [ \"$1\" = \"sh\" ] && [ \"$2\" = \"-c\" ]; then\n    case \"$3\" in\n      test\\ -e\\ *)\n        path=\"${{3#test -e }}\"\n        path=\"${{path#\\\"}}\"\n        path=\"${{path%\\\"}}\"\n        if [ -f \"$state\" ] && grep -q \":$path$\" \"$state\"; then\n          exit 0\n        fi\n        exit 1\n        ;;\n      *)\n        echo \"$3\"\n        exit 0\n        ;;\n    esac\n  fi\nfi\necho \"unsupported docker call\" >&2\nexit 1\n",
+        "#!/bin/sh\nset -eu\nstate=\"{}\"\ncmd=\"$1\"\nshift\nif [ \"$cmd\" = \"--version\" ]; then\n  echo \"Docker version 27.0.0\"\n  exit 0\nfi\nif [ \"$cmd\" = \"inspect\" ]; then\n  if [ \"$1\" = \"--format\" ] && [ \"$2\" = \"{{{{.State.Running}}}}\" ] && [ \"$3\" = \"test-container\" ]; then\n    echo \"true\"\n    exit 0\n  fi\n  if [ \"$1\" = \"--format\" ] && [ \"$2\" = \"{{{{json .Mounts}}}}\" ] && [ \"$3\" = \"test-container\" ]; then\n    echo \"[]\"\n    exit 0\n  fi\n  echo \"false\"\n  exit 0\nfi\nif [ \"$cmd\" = \"cp\" ]; then\n  src=\"$1\"\n  dst=\"$2\"\n  printf \"%s\\n\" \"$dst\" > \"$state\"\n  if [ -d \"${{src%/.}}\" ]; then\n    exit 0\n  fi\n  exit 0\nfi\nif [ \"$cmd\" = \"exec\" ]; then\n  container=\"$1\"\n  shift\n  if [ \"$container\" != \"test-container\" ]; then\n    echo \"container not found\" >&2\n    exit 1\n  fi\n  if [ \"$1\" = \"sh\" ] && [ \"$2\" = \"-c\" ]; then\n    case \"$3\" in\n      test\\ -e\\ *)\n        path=\"${{3#test -e }}\"\n        path=\"${{path#\\\"}}\"\n        path=\"${{path%\\\"}}\"\n        if [ -f \"$state\" ] && grep -q \":$path$\" \"$state\"; then\n          exit 0\n        fi\n        exit 1\n        ;;\n      *)\n        echo \"$3\"\n        exit 0\n        ;;\n    esac\n  fi\nfi\necho \"unsupported docker call\" >&2\nexit 1\n",
         state_path.display()
     );
     fs::write(&docker_bin, script).expect("write docker stub");
@@ -255,8 +255,14 @@ if [ "$cmd" = "--version" ]; then
   exit 0
 fi
 if [ "$cmd" = "inspect" ]; then
-  echo "true"
-  exit 0
+  if [ "$1" = "--format" ] && [ "$2" = "{{.State.Running}}" ]; then
+    echo "true"
+    exit 0
+  fi
+  if [ "$1" = "--format" ] && [ "$2" = "{{json .Mounts}}" ]; then
+    echo "[]"
+    exit 0
+  fi
 fi
 if [ "$cmd" = "cp" ]; then
   echo "read-only file system" >&2
@@ -301,7 +307,7 @@ async fn docker_adapter_symlink_mode_emits_warning_and_falls_back_to_copy() {
     let state_path = temp.path().join("docker-state.txt");
     let docker_bin = temp.path().join("docker");
     let script = format!(
-        "#!/bin/sh\nset -eu\nstate=\"{}\"\ncmd=\"$1\"\nshift\nif [ \"$cmd\" = \"--version\" ]; then\n  echo \"Docker version 27.0.0\"\n  exit 0\nfi\nif [ \"$cmd\" = \"inspect\" ]; then\n  if [ \"$1\" = \"--format\" ] && [ \"$2\" = \"{{{{.State.Running}}}}\" ] && [ \"$3\" = \"test-container\" ]; then\n    echo \"true\"\n    exit 0\n  fi\n  echo \"false\"\n  exit 0\nfi\nif [ \"$cmd\" = \"cp\" ]; then\n  src=\"$1\"\n  dst=\"$2\"\n  printf \"%s\\n\" \"$dst\" > \"$state\"\n  if [ -d \"${{src%/.}}\" ]; then\n    exit 0\n  fi\n  exit 0\nfi\nif [ \"$cmd\" = \"exec\" ]; then\n  container=\"$1\"\n  shift\n  if [ \"$container\" != \"test-container\" ]; then\n    echo \"container not found\" >&2\n    exit 1\n  fi\n  if [ \"$1\" = \"sh\" ] && [ \"$2\" = \"-c\" ]; then\n    case \"$3\" in\n      test\\ -e\\ *)\n        path=\"${{3#test -e }}\"\n        path=\"${{path#\\\"}}\"\n        path=\"${{path%\\\"}}\"\n        if [ -f \"$state\" ] && grep -q \":$path$\" \"$state\"; then\n          exit 0\n        fi\n        exit 1\n        ;;\n      *)\n        exit 0\n        ;;\n    esac\n  fi\nfi\necho \"unsupported docker call\" >&2\nexit 1\n",
+        "#!/bin/sh\nset -eu\nstate=\"{}\"\ncmd=\"$1\"\nshift\nif [ \"$cmd\" = \"--version\" ]; then\n  echo \"Docker version 27.0.0\"\n  exit 0\nfi\nif [ \"$cmd\" = \"inspect\" ]; then\n  if [ \"$1\" = \"--format\" ] && [ \"$2\" = \"{{{{.State.Running}}}}\" ] && [ \"$3\" = \"test-container\" ]; then\n    echo \"true\"\n    exit 0\n  fi\n  if [ \"$1\" = \"--format\" ] && [ \"$2\" = \"{{{{json .Mounts}}}}\" ] && [ \"$3\" = \"test-container\" ]; then\n    echo \"[]\"\n    exit 0\n  fi\n  echo \"false\"\n  exit 0\nfi\nif [ \"$cmd\" = \"cp\" ]; then\n  src=\"$1\"\n  dst=\"$2\"\n  printf \"%s\\n\" \"$dst\" > \"$state\"\n  if [ -d \"${{src%/.}}\" ]; then\n    exit 0\n  fi\n  exit 0\nfi\nif [ \"$cmd\" = \"exec\" ]; then\n  container=\"$1\"\n  shift\n  if [ \"$container\" != \"test-container\" ]; then\n    echo \"container not found\" >&2\n    exit 1\n  fi\n  if [ \"$1\" = \"sh\" ] && [ \"$2\" = \"-c\" ]; then\n    case \"$3\" in\n      test\\ -e\\ *)\n        path=\"${{3#test -e }}\"\n        path=\"${{path#\\\"}}\"\n        path=\"${{path%\\\"}}\"\n        if [ -f \"$state\" ] && grep -q \":$path$\" \"$state\"; then\n          exit 0\n        fi\n        exit 1\n        ;;\n      *)\n        exit 0\n        ;;\n    esac\n  fi\nfi\necho \"unsupported docker call\" >&2\nexit 1\n",
         state_path.display()
     );
     fs::write(&docker_bin, script).expect("write docker stub");
@@ -339,6 +345,304 @@ async fn docker_adapter_symlink_mode_emits_warning_and_falls_back_to_copy() {
     assert!(
         adapter.path_exists(target).await.expect("path exists"),
         "docker target should exist after fallback copy"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn docker_adapter_bind_mount_for_path_resolves_matching_host_path() {
+    let temp = tempdir().expect("tempdir");
+    let host_mount = temp.path().join("host-claude-skills");
+    fs::create_dir_all(&host_mount).expect("create host mount");
+    let docker_bin = temp.path().join("docker");
+    let script = format!(
+        r#"#!/bin/sh
+set -eu
+cmd="$1"
+shift
+if [ "$cmd" = "--version" ]; then
+  echo "Docker version 27.0.0"
+  exit 0
+fi
+if [ "$cmd" = "inspect" ]; then
+  if [ "$1" = "--format" ] && [ "$2" = "{{{{.State.Running}}}}" ]; then
+    echo "true"
+    exit 0
+  fi
+  if [ "$1" = "--format" ] && [ "$2" = "{{{{json .Mounts}}}}" ]; then
+    printf '%s\n' '[{{"Type":"bind","Source":"{host_mount}","Destination":"/root/.claude/skills","RW":true}}]'
+    exit 0
+  fi
+fi
+echo "unsupported docker call: $cmd" >&2
+exit 1
+"#,
+        host_mount = host_mount.display()
+    );
+    write_unix_executable(&docker_bin, &script);
+
+    let adapter = docker_adapter_with_retry("test-container", &docker_bin);
+    let host_path = adapter
+        .bind_mount_for_path(Path::new("/root/.claude/skills/demo-skill"))
+        .await
+        .expect("bind mount lookup should succeed")
+        .expect("bind mount should resolve to host path");
+    assert_eq!(host_path, host_mount.join("demo-skill"));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn docker_adapter_install_uses_host_bind_mount_instead_of_docker_cp() {
+    let temp = tempdir().expect("tempdir");
+    let host_mount = temp.path().join("host-claude-skills");
+    let cp_log = temp.path().join("docker-cp.log");
+    let copied_targets = temp.path().join("copied-targets.log");
+    fs::create_dir_all(&host_mount).expect("create host mount");
+
+    let docker_bin = temp.path().join("docker");
+    let script = format!(
+        r#"#!/bin/sh
+set -eu
+cp_log="{cp_log}"
+copied_targets="{copied_targets}"
+cmd="$1"
+shift
+if [ "$cmd" = "--version" ]; then
+  echo "Docker version 27.0.0"
+  exit 0
+fi
+if [ "$cmd" = "inspect" ]; then
+  if [ "$1" = "--format" ] && [ "$2" = "{{{{.State.Running}}}}" ]; then
+    echo "true"
+    exit 0
+  fi
+  if [ "$1" = "--format" ] && [ "$2" = "{{{{json .Mounts}}}}" ]; then
+    printf '%s\n' '[{{"Type":"bind","Source":"{host_mount}","Destination":"/root/.claude/skills","RW":true}}]'
+    exit 0
+  fi
+fi
+if [ "$cmd" = "cp" ]; then
+  printf '%s\n' "$2" >> "$cp_log"
+  dst="$2"
+  printf '%s\n' "${{dst#*:}}" >> "$copied_targets"
+  exit 0
+fi
+if [ "$cmd" = "exec" ]; then
+  container="$1"
+  shift
+  if [ "$container" != "test-container" ]; then
+    echo "container not found" >&2
+    exit 1
+  fi
+  if [ "$1" = "sh" ] && [ "$2" = "-c" ]; then
+    case "$3" in
+      test\ -e\ *)
+        path="${{3#test -e }}"
+        path="${{path#\"}}"
+        path="${{path%\"}}"
+        if [ -f "$copied_targets" ] && grep -Fxq "$path" "$copied_targets"; then
+          exit 0
+        fi
+        exit 1
+        ;;
+      *)
+        exit 0
+        ;;
+    esac
+  fi
+fi
+echo "unsupported docker call: $cmd" >&2
+exit 1
+"#,
+        cp_log = cp_log.display(),
+        copied_targets = copied_targets.display(),
+        host_mount = host_mount.display()
+    );
+    write_unix_executable(&docker_bin, &script);
+
+    let source = temp.path().join("source");
+    fs::create_dir_all(&source).expect("create source");
+    fs::write(source.join("README.md"), "hello\n").expect("write source");
+
+    let adapter = docker_adapter_with_retry("test-container", &docker_bin);
+    adapter
+        .install(
+            &source,
+            Path::new("/root/.claude/skills/demo-skill"),
+            InstallMode::Symlink,
+        )
+        .await
+        .expect("install should succeed");
+
+    let host_target = host_mount.join("demo-skill");
+    let metadata = fs::symlink_metadata(&host_target).expect("host target metadata");
+    assert!(
+        metadata.file_type().is_symlink(),
+        "bind-mounted install should create host-side symlink"
+    );
+    assert_eq!(
+        fs::read_link(&host_target).expect("read host symlink"),
+        source,
+        "host-side symlink should point at source path"
+    );
+    let cp_calls = fs::read_to_string(&cp_log).unwrap_or_default();
+    assert!(
+        cp_calls.trim().is_empty(),
+        "bind-mounted install must not fall back to docker cp, log={cp_calls:?}"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn docker_adapter_install_checks_mounts_before_falling_back_to_docker_cp() {
+    let temp = tempdir().expect("tempdir");
+    let mount_inspect_log = temp.path().join("mount-inspect.log");
+    let cp_log = temp.path().join("docker-cp.log");
+    let copied_targets = temp.path().join("copied-targets.log");
+    let docker_bin = temp.path().join("docker");
+    let script = format!(
+        r#"#!/bin/sh
+set -eu
+mount_inspect_log="{mount_inspect_log}"
+cp_log="{cp_log}"
+copied_targets="{copied_targets}"
+cmd="$1"
+shift
+if [ "$cmd" = "--version" ]; then
+  echo "Docker version 27.0.0"
+  exit 0
+fi
+if [ "$cmd" = "inspect" ]; then
+  if [ "$1" = "--format" ] && [ "$2" = "{{{{.State.Running}}}}" ]; then
+    echo "true"
+    exit 0
+  fi
+  if [ "$1" = "--format" ] && [ "$2" = "{{{{json .Mounts}}}}" ]; then
+    printf 'inspected\n' >> "$mount_inspect_log"
+    printf '%s\n' '[]'
+    exit 0
+  fi
+fi
+if [ "$cmd" = "cp" ]; then
+  printf '%s\n' "$2" >> "$cp_log"
+  dst="$2"
+  printf '%s\n' "${{dst#*:}}" >> "$copied_targets"
+  exit 0
+fi
+if [ "$cmd" = "exec" ]; then
+  container="$1"
+  shift
+  if [ "$container" != "test-container" ]; then
+    echo "container not found" >&2
+    exit 1
+  fi
+  if [ "$1" = "sh" ] && [ "$2" = "-c" ]; then
+    case "$3" in
+      test\ -e\ *)
+        path="${{3#test -e }}"
+        path="${{path#\"}}"
+        path="${{path%\"}}"
+        if [ -f "$copied_targets" ] && grep -Fxq "$path" "$copied_targets"; then
+          exit 0
+        fi
+        exit 1
+        ;;
+      *)
+        exit 0
+        ;;
+    esac
+  fi
+fi
+echo "unsupported docker call: $cmd" >&2
+exit 1
+"#,
+        mount_inspect_log = mount_inspect_log.display(),
+        cp_log = cp_log.display(),
+        copied_targets = copied_targets.display()
+    );
+    write_unix_executable(&docker_bin, &script);
+
+    let source = temp.path().join("source");
+    fs::create_dir_all(&source).expect("create source");
+    fs::write(source.join("README.md"), "hello\n").expect("write source");
+
+    let adapter = docker_adapter_with_retry("test-container", &docker_bin);
+    adapter
+        .install(
+            &source,
+            Path::new("/root/.claude/skills/demo-skill"),
+            InstallMode::Copy,
+        )
+        .await
+        .expect("install should fall back to docker cp");
+
+    assert!(
+        mount_inspect_log.exists(),
+        "install should inspect mounts before falling back to docker cp"
+    );
+    let cp_calls = fs::read_to_string(&cp_log).expect("read docker cp log");
+    assert!(
+        cp_calls.contains("test-container:/root/.claude/skills/demo-skill"),
+        "expected docker cp fallback log entry, got: {cp_calls:?}"
+    );
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn docker_adapter_uninstall_removes_host_bind_mount_without_docker_exec_rm() {
+    let temp = tempdir().expect("tempdir");
+    let host_mount = temp.path().join("host-claude-skills");
+    let exec_log = temp.path().join("docker-exec.log");
+    let docker_bin = temp.path().join("docker");
+    fs::create_dir_all(host_mount.join("demo-skill")).expect("create bind-mounted target");
+    fs::write(host_mount.join("demo-skill/README.md"), "hello\n").expect("write bind target");
+
+    let script = format!(
+        r#"#!/bin/sh
+set -eu
+exec_log="{exec_log}"
+cmd="$1"
+shift
+if [ "$cmd" = "--version" ]; then
+  echo "Docker version 27.0.0"
+  exit 0
+fi
+if [ "$cmd" = "inspect" ]; then
+  if [ "$1" = "--format" ] && [ "$2" = "{{{{.State.Running}}}}" ]; then
+    echo "true"
+    exit 0
+  fi
+  if [ "$1" = "--format" ] && [ "$2" = "{{{{json .Mounts}}}}" ]; then
+    printf '%s\n' '[{{"Type":"bind","Source":"{host_mount}","Destination":"/root/.claude/skills","RW":true}}]'
+    exit 0
+  fi
+fi
+if [ "$cmd" = "exec" ]; then
+  printf '%s\n' "$*" >> "$exec_log"
+  exit 0
+fi
+echo "unsupported docker call: $cmd" >&2
+exit 1
+"#,
+        exec_log = exec_log.display(),
+        host_mount = host_mount.display()
+    );
+    write_unix_executable(&docker_bin, &script);
+
+    let adapter = docker_adapter_with_retry("test-container", &docker_bin);
+    adapter
+        .uninstall(Path::new("/root/.claude/skills/demo-skill"))
+        .await
+        .expect("uninstall should succeed");
+
+    assert!(
+        !host_mount.join("demo-skill").exists(),
+        "bind-mounted uninstall should remove host-side target"
+    );
+    let exec_calls = fs::read_to_string(&exec_log).unwrap_or_default();
+    assert!(
+        exec_calls.trim().is_empty(),
+        "bind-mounted uninstall must not shell into docker for rm, log={exec_calls:?}"
     );
 }
 
@@ -397,6 +701,17 @@ fn docker_adapter_with_retry(container_name: &str, docker_bin: &Path) -> DockerA
         "docker adapter: {}",
         last_err.expect("expected text-file-busy error")
     );
+}
+
+#[cfg(unix)]
+fn write_unix_executable(path: &Path, contents: &str) {
+    fs::write(path, contents).expect("write unix executable");
+    let mut perms = fs::metadata(path)
+        .expect("unix executable metadata")
+        .permissions();
+    use std::os::unix::fs::PermissionsExt;
+    perms.set_mode(0o755);
+    fs::set_permissions(path, perms).expect("set unix executable permissions");
 }
 
 #[cfg(windows)]

@@ -165,6 +165,70 @@ exit 1
     );
 }
 
+#[cfg(unix)]
+#[test]
+fn doctor_emits_docker_no_bind_mount_for_running_unmounted_targets() {
+    let temp = tempdir().expect("tempdir");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("agent-target");
+    let config_path = write_docker_target_config(temp.path(), &storage_root, &target_root);
+    let path_dir = temp.path().join("docker-stub-bin");
+    fs::create_dir_all(&path_dir).expect("create path dir");
+
+    let docker_bin = path_dir.join("docker");
+    let script = r#"#!/bin/sh
+set -eu
+cmd="$1"
+shift
+if [ "$cmd" = "--version" ]; then
+  echo "Docker version 27.0.0"
+  exit 0
+fi
+if [ "$cmd" = "inspect" ]; then
+  if [ "$1" = "--format" ] && [ "$2" = "{{.State.Running}}" ]; then
+    echo "true"
+    exit 0
+  fi
+  if [ "$1" = "--format" ] && [ "$2" = "{{json .Mounts}}" ]; then
+    echo "[]"
+    exit 0
+  fi
+fi
+echo "unsupported docker call" >&2
+exit 1
+"#;
+    fs::write(&docker_bin, script).expect("write docker stub");
+    let mut perms = fs::metadata(&docker_bin)
+        .expect("docker stub metadata")
+        .permissions();
+    use std::os::unix::fs::PermissionsExt;
+    perms.set_mode(0o755);
+    fs::set_permissions(&docker_bin, perms).expect("set docker stub executable");
+
+    let output = Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .args(["doctor", "--config"])
+        .arg(&config_path)
+        .env("PATH", &path_dir)
+        .output()
+        .expect("run doctor");
+
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "doctor should succeed without --strict, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("DOCKER_NO_BIND_MOUNT"),
+        "expected DOCKER_NO_BIND_MOUNT in doctor output, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("eden-skills docker mount-hint"),
+        "expected doctor remediation to mention mount-hint, stdout={stdout}"
+    );
+}
+
 fn write_docker_target_config(base: &Path, storage_root: &Path, target_root: &Path) -> PathBuf {
     let config_path = base.join("skills.toml");
     fs::write(

@@ -7,6 +7,7 @@
 pub(crate) mod common;
 mod config_ops;
 mod diagnose;
+mod docker_cmd;
 mod install;
 mod plan_cmd;
 mod reconcile;
@@ -15,6 +16,7 @@ mod update;
 
 pub use config_ops::*;
 pub use diagnose::*;
+pub use docker_cmd::*;
 pub use install::*;
 pub use plan_cmd::*;
 pub use reconcile::*;

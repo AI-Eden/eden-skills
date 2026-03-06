@@ -5,18 +5,20 @@
 //! results as severity-tagged cards in human mode or as a JSON array.
 
 use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use comfy_table::{ColumnConstraint, Width};
 use eden_skills_core::config::{config_dir_from_path, Config};
 use eden_skills_core::error::EdenError;
-use eden_skills_core::paths::resolve_path_string;
+use eden_skills_core::paths::{default_agent_path, normalize_lexical, resolve_path_string};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::registry::{parse_registry_specs_from_toml, sort_registry_specs_by_priority};
 use eden_skills_core::safety::{analyze_skills, LicenseStatus, SkillSafetyReport};
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
 use owo_colors::OwoColorize;
+use serde::Deserialize;
 
 use super::common::{
     doctor_docker_bin, load_config_with_context, resolve_config_path, REGISTRY_SYNC_MARKER_FILE,
@@ -25,6 +27,18 @@ use super::CommandOptions;
 use crate::ui::{StatusSymbol, UiContext};
 
 const REGISTRY_STALE_THRESHOLD_SECS: u64 = 7 * 24 * 60 * 60;
+
+#[derive(Debug, Deserialize)]
+struct DockerInspectMount {
+    #[serde(rename = "Type")]
+    mount_type: String,
+    #[serde(rename = "Source")]
+    source: PathBuf,
+    #[serde(rename = "Destination")]
+    destination: PathBuf,
+    #[serde(rename = "RW", default)]
+    writable: bool,
+}
 
 #[derive(Debug, Clone)]
 pub(crate) struct DoctorFinding {
@@ -110,7 +124,7 @@ fn collect_phase2_doctor_findings(
         config,
         config_dir,
     )?);
-    findings.extend(collect_adapter_health_findings(config));
+    findings.extend(collect_adapter_health_findings(config, config_dir));
     Ok(findings)
 }
 
@@ -174,7 +188,7 @@ fn collect_registry_stale_findings(
     Ok(findings)
 }
 
-fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
+fn collect_adapter_health_findings(config: &Config, config_dir: &Path) -> Vec<DoctorFinding> {
     let mut findings = Vec::new();
     let docker_bin = doctor_docker_bin();
     for skill in &config.skills {
@@ -271,6 +285,7 @@ fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
                             "Start the container (`docker start {container_name}`) and retry."
                         ),
                     });
+                    continue;
                 }
                 Err(err) => {
                     findings.push(DoctorFinding {
@@ -289,11 +304,120 @@ fn collect_adapter_health_findings(config: &Config) -> Vec<DoctorFinding> {
                             "Verify Docker daemon access and container `{container_name}` state."
                         ),
                     });
+                    continue;
                 }
+            }
+
+            let Some(target_path) =
+                docker_target_root_for_doctor(target, container_name, &docker_bin, config_dir)
+            else {
+                continue;
+            };
+            match docker_mounted_host_path_for_target(
+                &docker_bin,
+                container_name,
+                &target_path,
+                true,
+            ) {
+                Ok(Some(_)) => {}
+                Ok(None) => {
+                    findings.push(DoctorFinding {
+                        code: "DOCKER_NO_BIND_MOUNT".to_string(),
+                        severity: "info".to_string(),
+                        skill_id: skill.id.clone(),
+                        target_path: target.environment.clone(),
+                        message: format!(
+                            "docker target '{container_name}' uses copy mode; bind mount recommended for live sync"
+                        ),
+                        remediation: format!(
+                            "Run `eden-skills docker mount-hint {container_name}` to print recommended bind mounts."
+                        ),
+                    });
+                }
+                Err(_) => {}
             }
         }
     }
     findings
+}
+
+fn docker_target_root_for_doctor(
+    target: &eden_skills_core::config::TargetConfig,
+    container_name: &str,
+    docker_bin: &str,
+    config_dir: &Path,
+) -> Option<PathBuf> {
+    if let Some(path) = &target.path {
+        return Some(PathBuf::from(path));
+    }
+    if let Some(expected_path) = &target.expected_path {
+        return Some(PathBuf::from(expected_path));
+    }
+    let relative = default_agent_path(&target.agent)?.strip_prefix("~/")?;
+    let container_home = docker_container_home(docker_bin, container_name).ok()?;
+    let _ = config_dir;
+    Some(normalize_lexical(&container_home.join(relative)))
+}
+
+fn docker_container_home(docker_bin: &str, container_name: &str) -> Result<PathBuf, String> {
+    let output = Command::new(docker_bin)
+        .args(["exec", container_name, "sh", "-c", "printf '%s' \"$HOME\""])
+        .output()
+        .map_err(|err| err.to_string())?;
+    if !output.status.success() {
+        return Err(format!(
+            "status={} stderr=`{}` stdout=`{}`",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim(),
+            String::from_utf8_lossy(&output.stdout).trim()
+        ));
+    }
+    let home = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    if home.is_empty() {
+        return Err("empty HOME".to_string());
+    }
+    Ok(PathBuf::from(home))
+}
+
+fn docker_mounted_host_path_for_target(
+    docker_bin: &str,
+    container_name: &str,
+    target_path: &Path,
+    require_writable: bool,
+) -> Result<Option<PathBuf>, String> {
+    let output = Command::new(docker_bin)
+        .args(["inspect", "--format", "{{json .Mounts}}", container_name])
+        .output()
+        .map_err(|err| err.to_string())?;
+    if !output.status.success() {
+        return Err(format!(
+            "status={} stderr=`{}` stdout=`{}`",
+            output.status,
+            String::from_utf8_lossy(&output.stderr).trim(),
+            String::from_utf8_lossy(&output.stdout).trim()
+        ));
+    }
+    let raw = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let mounts: Vec<DockerInspectMount> =
+        serde_json::from_str(&raw).map_err(|err| err.to_string())?;
+    let target_path = normalize_lexical(target_path);
+    for mount in mounts {
+        if mount.mount_type != "bind" {
+            continue;
+        }
+        if require_writable && !mount.writable {
+            continue;
+        }
+        let destination = normalize_lexical(&mount.destination);
+        if !(target_path == destination || target_path.starts_with(&destination)) {
+            continue;
+        }
+        let suffix = target_path
+            .strip_prefix(&destination)
+            .unwrap_or(Path::new(""));
+        return Ok(Some(normalize_lexical(&mount.source.join(suffix))));
+    }
+    Ok(None)
 }
 
 fn plan_conflict_to_findings(item: &PlanItem) -> Vec<DoctorFinding> {
@@ -521,6 +645,7 @@ fn print_doctor_text(ui: &UiContext, findings: &[DoctorFinding]) {
 
 fn doctor_severity_symbol(ui: &UiContext, severity: &str) -> String {
     match severity {
+        "info" => ui.status_symbol(StatusSymbol::Skipped),
         "warning" => ui.status_symbol(StatusSymbol::Warning),
         _ => ui.status_symbol(StatusSymbol::Failure),
     }
@@ -528,6 +653,7 @@ fn doctor_severity_symbol(ui: &UiContext, severity: &str) -> String {
 
 fn doctor_severity_cell(severity: &str) -> String {
     match severity {
+        "info" => "info".to_string(),
         "warning" => "warn".to_string(),
         _ => "error".to_string(),
     }

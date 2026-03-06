@@ -126,6 +126,11 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 json: args.json,
             },
         ),
+        Commands::Docker(args) => match args.command {
+            DockerSubcommand::MountHint(cmd) => {
+                commands::docker_mount_hint_async(&cmd.container, &cmd.config).await
+            }
+        },
         Commands::Repair(args) => {
             commands::repair_async(
                 &args.config,
@@ -271,6 +276,11 @@ enum Commands {
     )]
     Doctor(CommonArgs),
     #[command(
+        about = "Docker-specific utilities",
+        next_help_heading = "Container Utilities"
+    )]
+    Docker(DockerArgs),
+    #[command(
         about = "Auto-repair drifted or broken installations",
         next_help_heading = "State Reconciliation"
     )]
@@ -311,6 +321,7 @@ impl Commands {
             Self::Plan(args) => args.json,
             Self::Apply(args) => args.json,
             Self::Doctor(args) => args.json,
+            Self::Docker(_) => false,
             Self::Repair(args) => args.json,
             Self::Init(_) => false,
             Self::List(args) => args.json,
@@ -322,6 +333,31 @@ impl Commands {
             },
         }
     }
+}
+
+#[derive(Debug, Clone, Args)]
+struct DockerArgs {
+    #[command(subcommand)]
+    command: DockerSubcommand,
+}
+
+#[derive(Debug, Clone, Subcommand)]
+enum DockerSubcommand {
+    #[command(about = "Print recommended bind mounts for a container")]
+    MountHint(DockerMountHintArgs),
+}
+
+#[derive(Debug, Clone, Args)]
+struct DockerMountHintArgs {
+    #[arg(help = "Running Docker container name")]
+    container: String,
+    #[arg(
+        long,
+        default_value = DEFAULT_CONFIG_PATH,
+        hide_default_value = true,
+        help = "Path to skills.toml config file [default: ~/.eden-skills/skills.toml]"
+    )]
+    config: String,
 }
 
 #[derive(Debug, Clone, Args)]

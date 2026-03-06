@@ -13,6 +13,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use comfy_table::{ColumnConstraint, Width};
 use dialoguer::{Confirm, Input};
+use eden_skills_core::adapter::{DockerAdapter, LocalAdapter, TargetAdapter};
 use eden_skills_core::agents::detect_installed_agent_targets;
 use eden_skills_core::config::{
     config_dir_from_path, default_verify_checks_for_mode, encode_registry_mode_repo,
@@ -23,7 +24,9 @@ use eden_skills_core::discovery::{discover_skills, DiscoveredSkill};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action};
-use eden_skills_core::source::{resolve_repo_cache_root, sync_sources_async};
+use eden_skills_core::source::{
+    resolve_repo_cache_root, resolve_skill_source_path, sync_sources_async,
+};
 use eden_skills_core::source_format::{
     derive_skill_id_from_source_repo, detect_install_source, DetectedInstallSource,
     UrlInstallSource,
@@ -55,6 +58,7 @@ struct DefaultInstallModeDecision {
 struct InstallExecutionSummary {
     installed_targets: Vec<InstallTargetLine>,
     conflicts: usize,
+    docker_cp_hint_containers: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -143,6 +147,20 @@ impl InstallExecutionSummary {
     fn merge(&mut self, mut other: InstallExecutionSummary) {
         self.conflicts += other.conflicts;
         self.installed_targets.append(&mut other.installed_targets);
+        for container in other.docker_cp_hint_containers.drain(..) {
+            self.record_docker_cp_hint(container);
+        }
+    }
+
+    fn record_docker_cp_hint(&mut self, container_name: impl Into<String>) {
+        let container_name = container_name.into();
+        if !self
+            .docker_cp_hint_containers
+            .iter()
+            .any(|existing| existing == &container_name)
+        {
+            self.docker_cp_hint_containers.push(container_name);
+        }
     }
 }
 
@@ -241,12 +259,13 @@ async fn install_registry_mode_async(
 
     let mut config = loaded.config;
     let requested_constraint = req.version.clone().unwrap_or_else(|| "*".to_string());
+    let target_override = resolve_registry_mode_install_targets(&req.target, ui).await?;
     upsert_mode_b_skill(
         &mut config,
         skill_name,
         &requested_constraint,
         req.registry.as_deref(),
-        &req.target,
+        target_override,
         requested_install_mode(req.copy),
     )?;
     validate_config(&config, &config_dir)?;
@@ -288,7 +307,7 @@ async fn install_registry_mode_async(
     }
 
     let execution_summary =
-        execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
+        execute_install_plan_async(&single_skill_config, &config_dir, req.options.strict).await?;
 
     let full_loaded = load_config_with_context(config_path, false)?;
     write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
@@ -303,6 +322,7 @@ async fn install_registry_mode_async(
             unique_agent_count(&single_skill_config),
             execution_summary.conflicts,
         );
+        print_docker_cp_hints(ui, &execution_summary.docker_cp_hint_containers);
     }
     Ok(())
 }
@@ -395,8 +415,6 @@ async fn install_remote_url_mode_async(
     if selected.is_empty() {
         return Ok(());
     }
-    let resolved_targets = resolve_url_mode_install_targets(&req.target, ui)?;
-
     let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
         print_warning(ui, &warning);
@@ -412,13 +430,20 @@ async fn install_remote_url_mode_async(
             skill.name.clone()
         };
         let effective_subpath = join_scoped_subpath(&scope_subpath, &skill.subpath);
+        let existing_skill = config
+            .skills
+            .iter()
+            .find(|existing| existing.id == skill_id)
+            .cloned();
+        let target_override =
+            resolve_url_mode_install_targets(&req.target, existing_skill.as_ref(), ui).await?;
         upsert_mode_a_skill(
             &mut config,
             &skill_id,
             &url_source.repo,
             &effective_subpath,
             &source_ref,
-            &resolved_targets,
+            target_override,
             requested_install_mode(req.copy),
         )?;
         selected_ids.push(skill_id);
@@ -464,7 +489,8 @@ async fn install_remote_url_mode_async(
             sync_progress.record_step(ui, index, skill_id, false);
             let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
             let skill_summary =
-                execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
+                execute_install_plan_async(&single_skill_config, &config_dir, req.options.strict)
+                    .await?;
             execution_summary.merge(skill_summary);
         }
     }
@@ -494,6 +520,7 @@ async fn install_remote_url_mode_async(
             unique_agent_count(&selected_config),
             execution_summary.conflicts,
         );
+        print_docker_cp_hints(ui, &execution_summary.docker_cp_hint_containers);
     }
 
     Ok(())
@@ -556,8 +583,6 @@ async fn install_local_url_mode_async(
     if selected.is_empty() {
         return Ok(());
     }
-    let resolved_targets = resolve_url_mode_install_targets(&req.target, ui)?;
-
     let loaded = load_config_with_context(config_path, req.options.strict)?;
     for warning in loaded.warnings {
         print_warning(ui, &warning);
@@ -577,13 +602,20 @@ async fn install_local_url_mode_async(
             skill.name.clone()
         };
         let effective_subpath = join_scoped_subpath(&scope_subpath, &skill.subpath);
+        let existing_skill = config
+            .skills
+            .iter()
+            .find(|existing| existing.id == skill_id)
+            .cloned();
+        let target_override =
+            resolve_url_mode_install_targets(&req.target, existing_skill.as_ref(), ui).await?;
         upsert_mode_a_skill(
             &mut config,
             &skill_id,
             &url_source.repo,
             &effective_subpath,
             &source_ref,
-            &resolved_targets,
+            target_override,
             requested_install_mode(req.copy),
         )?;
         selected_ids.push(skill_id);
@@ -609,7 +641,8 @@ async fn install_local_url_mode_async(
     let mut execution_summary = InstallExecutionSummary::default();
     for skill_id in &selected_ids {
         let single = select_single_skill_config(&selected_config, skill_id)?;
-        let skill_summary = install_local_source_skill(&single, &config_dir, req.options.strict)?;
+        let skill_summary =
+            install_local_source_skill_async(&single, &config_dir, req.options.strict).await?;
         execution_summary.merge(skill_summary);
     }
 
@@ -632,6 +665,7 @@ async fn install_local_url_mode_async(
             unique_agent_count(&selected_config),
             execution_summary.conflicts,
         );
+        print_docker_cp_hints(ui, &execution_summary.docker_cp_hint_containers);
     }
 
     Ok(())
@@ -1396,6 +1430,29 @@ fn print_indented_block(content: &str, indent: usize) {
     }
 }
 
+async fn execute_install_plan_async(
+    single_skill_config: &Config,
+    config_dir: &Path,
+    strict: bool,
+) -> Result<InstallExecutionSummary, EdenError> {
+    if single_skill_config.skills.iter().all(|skill| {
+        skill
+            .targets
+            .iter()
+            .all(|target| target.environment == "local")
+    }) {
+        return execute_install_plan(single_skill_config, config_dir, strict);
+    }
+
+    let skill = single_skill_config
+        .skills
+        .first()
+        .ok_or_else(|| EdenError::Runtime("install skill is missing".to_string()))?;
+    let storage_root = resolve_path_string(&single_skill_config.storage_root, config_dir)?;
+    let source_path = resolve_skill_source_path(&storage_root, skill);
+    execute_single_skill_targets_async(skill, &source_path, config_dir, strict).await
+}
+
 fn execute_install_plan(
     single_skill_config: &Config,
     config_dir: &Path,
@@ -1426,7 +1483,7 @@ fn execute_install_plan(
     Ok(summary)
 }
 
-fn install_local_source_skill(
+async fn install_local_source_skill_async(
     single_skill_config: &Config,
     config_dir: &Path,
     strict: bool,
@@ -1449,8 +1506,37 @@ fn install_local_source_skill(
         )));
     }
 
+    execute_single_skill_targets_async(skill, &source_path, config_dir, strict).await
+}
+
+async fn execute_single_skill_targets_async(
+    skill: &SkillConfig,
+    source_path: &Path,
+    config_dir: &Path,
+    strict: bool,
+) -> Result<InstallExecutionSummary, EdenError> {
     let mut summary = InstallExecutionSummary::default();
     for target in &skill.targets {
+        if let Some(container_name) = target.environment.strip_prefix("docker:") {
+            let docker = DockerAdapter::new(container_name).map_err(EdenError::from)?;
+            let target_root = resolve_docker_target_root(target, &docker).await?;
+            let target_path = normalize_lexical(&target_root.join(&skill.id));
+            let uses_bind_mount = docker.bind_mount_for_path(&target_path).await?.is_some();
+            docker
+                .install(source_path, &target_path, skill.install.mode)
+                .await
+                .map_err(EdenError::from)?;
+            summary.installed_targets.push(InstallTargetLine {
+                skill_id: skill.id.clone(),
+                target_path: target_path.display().to_string(),
+                mode: skill.install.mode.as_str().to_string(),
+            });
+            if !uses_bind_mount {
+                summary.record_docker_cp_hint(container_name.to_string());
+            }
+            continue;
+        }
+
         let target_root = resolve_target_path(target, config_dir)?;
         let target_path = normalize_lexical(&target_root.join(&skill.id));
         match fs::symlink_metadata(&target_path) {
@@ -1473,15 +1559,10 @@ fn install_local_source_skill(
             Err(err) => return Err(EdenError::Io(err)),
         }
 
-        let item = eden_skills_core::plan::PlanItem {
-            skill_id: skill.id.clone(),
-            source_path: source_path.display().to_string(),
-            target_path: target_path.display().to_string(),
-            install_mode: skill.install.mode,
-            action: Action::Update,
-            reasons: vec![],
-        };
-        apply_plan_item(&item)?;
+        LocalAdapter::new()
+            .install(source_path, &target_path, skill.install.mode)
+            .await
+            .map_err(EdenError::from)?;
         summary.installed_targets.push(InstallTargetLine {
             skill_id: skill.id.clone(),
             target_path: target_path.display().to_string(),
@@ -1497,6 +1578,22 @@ fn install_local_source_skill(
     }
 
     Ok(summary)
+}
+
+async fn resolve_docker_target_root(
+    target: &TargetConfig,
+    docker: &DockerAdapter,
+) -> Result<PathBuf, EdenError> {
+    if let Some(path) = &target.path {
+        return Ok(PathBuf::from(path));
+    }
+    if let Some(expected_path) = &target.expected_path {
+        return Ok(PathBuf::from(expected_path));
+    }
+    docker
+        .default_target_root_for_agent(&target.agent)
+        .await
+        .map_err(EdenError::from)
 }
 
 fn stage_local_source_into_storage(
@@ -1535,18 +1632,10 @@ fn upsert_mode_b_skill(
     skill_name: &str,
     version_constraint: &str,
     registry: Option<&str>,
-    target_specs: &[String],
+    target_override: Option<Vec<TargetConfig>>,
     install_mode_override: Option<InstallMode>,
 ) -> Result<(), EdenError> {
     let install_mode = install_mode_override.unwrap_or_else(default_install_mode);
-    let target_override = match target_specs {
-        [] => None,
-        [spec] => Some(parse_install_target_spec(spec)?),
-        _ => return Err(EdenError::InvalidArguments(
-            "registry-mode install accepts at most one --target (`local` or `docker:<container>`)"
-                .to_string(),
-        )),
-    };
     if let Some(skill) = config
         .skills
         .iter_mut()
@@ -1560,17 +1649,13 @@ fn upsert_mode_b_skill(
         skill.install.mode = install_mode;
         skill.verify.enabled = true;
         skill.verify.checks = default_verify_checks_for_mode(install_mode);
-        if let Some(target) = target_override {
-            skill.targets = vec![target];
+        if let Some(targets) = target_override {
+            skill.targets = targets;
         }
         return Ok(());
     }
 
-    let targets = if let Some(target) = target_override {
-        vec![target]
-    } else {
-        vec![default_install_target()]
-    };
+    let targets = target_override.unwrap_or_else(|| vec![default_install_target()]);
 
     config.skills.push(SkillConfig {
         id: skill_name.to_string(),
@@ -1598,15 +1683,10 @@ fn upsert_mode_a_skill(
     repo: &str,
     subpath: &str,
     reference: &str,
-    targets: &[TargetConfig],
+    target_override: Option<Vec<TargetConfig>>,
     install_mode_override: Option<InstallMode>,
 ) -> Result<(), EdenError> {
     let install_mode = install_mode_override.unwrap_or_else(default_install_mode);
-    let effective_targets = if targets.is_empty() {
-        vec![default_install_target()]
-    } else {
-        targets.to_vec()
-    };
     if let Some(skill) = config.skills.iter_mut().find(|skill| skill.id == skill_id) {
         skill.source = SourceConfig {
             repo: repo.to_string(),
@@ -1616,9 +1696,13 @@ fn upsert_mode_a_skill(
         skill.install.mode = install_mode;
         skill.verify.enabled = true;
         skill.verify.checks = default_verify_checks_for_mode(install_mode);
-        skill.targets = effective_targets;
+        if let Some(targets) = target_override {
+            skill.targets = targets;
+        }
         return Ok(());
     }
+
+    let effective_targets = target_override.unwrap_or_else(|| vec![default_install_target()]);
 
     config.skills.push(SkillConfig {
         id: skill_id.to_string(),
@@ -1646,6 +1730,15 @@ fn default_install_target() -> TargetConfig {
         expected_path: None,
         path: None,
         environment: "local".to_string(),
+    }
+}
+
+fn default_docker_install_target(container_name: &str) -> TargetConfig {
+    TargetConfig {
+        agent: AgentKind::ClaudeCode,
+        expected_path: None,
+        path: None,
+        environment: format!("docker:{container_name}"),
     }
 }
 
@@ -1848,24 +1941,108 @@ fn cleanup_windows_junction_probe(probe_root: &Path, junction_path: &Path) -> bo
     junction_deleted && root_deleted
 }
 
-fn resolve_url_mode_install_targets(
+async fn resolve_registry_mode_install_targets(
     target_specs: &[String],
     ui: &UiContext,
-) -> Result<Vec<TargetConfig>, EdenError> {
+) -> Result<Option<Vec<TargetConfig>>, EdenError> {
+    match target_specs {
+        [] => Ok(None),
+        [spec] => Ok(Some(resolve_install_special_target_spec(spec, ui).await?)),
+        _ => Err(EdenError::InvalidArguments(
+            "registry-mode install accepts at most one --target (`local` or `docker:<container>`)"
+                .to_string(),
+        )),
+    }
+}
+
+fn should_preserve_existing_targets(skill: &SkillConfig) -> bool {
+    skill.targets.iter().any(|target| {
+        target.environment != "local" || target.path.is_some() || target.expected_path.is_some()
+    })
+}
+
+async fn resolve_url_mode_install_targets(
+    target_specs: &[String],
+    existing_skill: Option<&SkillConfig>,
+    ui: &UiContext,
+) -> Result<Option<Vec<TargetConfig>>, EdenError> {
     if !target_specs.is_empty() {
-        return parse_target_specs(target_specs);
+        return resolve_explicit_install_targets(target_specs, ui).await;
+    }
+
+    if existing_skill.is_some_and(should_preserve_existing_targets) {
+        return Ok(None);
     }
 
     let detected = detect_installed_agent_targets()?;
     if !detected.is_empty() {
-        return Ok(detected);
+        return Ok(Some(detected));
     }
 
     print_warning(
         ui,
         "No installed agents detected; defaulting to claude-code (~/.claude/skills/)",
     );
-    Ok(vec![default_install_target()])
+    Ok(Some(vec![default_install_target()]))
+}
+
+async fn resolve_explicit_install_targets(
+    target_specs: &[String],
+    ui: &UiContext,
+) -> Result<Option<Vec<TargetConfig>>, EdenError> {
+    match target_specs {
+        [spec] if spec == "local" || spec.starts_with("docker:") => {
+            Ok(Some(resolve_install_special_target_spec(spec, ui).await?))
+        }
+        specs if specs
+            .iter()
+            .any(|spec| spec == "local" || spec.starts_with("docker:")) =>
+        {
+            Err(EdenError::InvalidArguments(
+                "`--target local` and `--target docker:<container>` cannot be combined with other target specs"
+                    .to_string(),
+            ))
+        }
+        _ => parse_target_specs(target_specs).map(Some),
+    }
+}
+
+async fn resolve_install_special_target_spec(
+    spec: &str,
+    ui: &UiContext,
+) -> Result<Vec<TargetConfig>, EdenError> {
+    if spec == "local" {
+        return Ok(vec![default_install_target()]);
+    }
+    if let Some(container_name) = spec.strip_prefix("docker:") {
+        if container_name.trim().is_empty() {
+            return Err(EdenError::InvalidArguments(
+                "invalid --target `docker:`: container name is required".to_string(),
+            ));
+        }
+        return detect_docker_install_targets(container_name, ui).await;
+    }
+    Err(EdenError::InvalidArguments(format!(
+        "invalid --target `{spec}` (expected `local` or `docker:<container>`)"
+    )))
+}
+
+async fn detect_docker_install_targets(
+    container_name: &str,
+    ui: &UiContext,
+) -> Result<Vec<TargetConfig>, EdenError> {
+    let adapter = DockerAdapter::new(container_name).map_err(EdenError::from)?;
+    let detected = adapter.detect_agents().await.map_err(EdenError::from)?;
+    if !detected.is_empty() {
+        return Ok(detected);
+    }
+    print_warning(
+        ui,
+        &format!(
+            "No installed agents detected in container '{container_name}'; defaulting to claude-code."
+        ),
+    );
+    Ok(vec![default_docker_install_target(container_name)])
 }
 
 fn unique_agent_count(config: &Config) -> usize {
@@ -1924,6 +2101,24 @@ fn print_install_result_summary(
     );
 }
 
+fn print_docker_cp_hints(ui: &UiContext, containers: &[String]) {
+    if containers.is_empty() {
+        return;
+    }
+    println!();
+    for container_name in containers {
+        println!(
+            "  {} Tip: add bind mounts for live sync. Run 'eden-skills docker mount-hint {}'.",
+            if ui.colors_enabled() {
+                "→".dimmed().to_string()
+            } else {
+                "→".to_string()
+            },
+            container_name
+        );
+    }
+}
+
 fn style_skill_id(ui: &UiContext, skill_id: &str) -> String {
     if ui.colors_enabled() {
         skill_id.bold().to_string()
@@ -1959,26 +2154,4 @@ fn group_install_targets(targets: &[InstallTargetLine]) -> Vec<(String, Vec<&Ins
         }
     }
     groups
-}
-
-fn parse_install_target_spec(spec: &str) -> Result<TargetConfig, EdenError> {
-    if spec == "local" {
-        return Ok(default_install_target());
-    }
-    if let Some(container_name) = spec.strip_prefix("docker:") {
-        if container_name.trim().is_empty() {
-            return Err(EdenError::InvalidArguments(
-                "invalid --target `docker:`: container name is required".to_string(),
-            ));
-        }
-        return Ok(TargetConfig {
-            agent: AgentKind::ClaudeCode,
-            expected_path: None,
-            path: None,
-            environment: spec.to_string(),
-        });
-    }
-    Err(EdenError::InvalidArguments(format!(
-        "invalid --target `{spec}` (expected `local` or `docker:<container>`)"
-    )))
 }
