@@ -1,5 +1,5 @@
 phase: phase295_performance_platform_reach
-status: batch1_completed
+status: batch2_completed
 started_at: "2026-03-06"
 
 spec_files:
@@ -31,7 +31,7 @@ batches:
     name: "Remove All Symbol"
     work_packages: [WP-2]
     requirements: [RMA-001, RMA-002, RMA-003, RMA-004]
-    status: pending
+    status: completed
   batch3:
     name: "Windows Junction Fallback"
     work_packages: [WP-3]
@@ -76,3 +76,19 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 349
+  batch_2_remove_all_symbol:
+    status: completed
+    started_at: "2026-03-06"
+    completed_at: "2026-03-06"
+    requirements: RMA-001, RMA-002, RMA-003, RMA-004
+    scenarios: TM-P295-010, TM-P295-011, TM-P295-012, TM-P295-013, TM-P295-014, TM-P295-015
+    notes:
+      - updated `crates/eden-skills-cli/src/commands/remove.rs` so interactive `remove` recognizes `*` as a wildcard that expands to all configured skill IDs in config order
+      - reject mixed wildcard selections like `* 2 foo` with a dedicated invalid-arguments error while keeping positional `remove <id>...` semantics unchanged
+      - strengthened wildcard confirmation flow with warning-style wording, preserved `-y/--yes` skip behavior, and updated the interactive prompt hint to advertise `* for all`
+      - expanded `crates/eden-skills-cli/tests/remove_enhanced_tests.rs` with TM-P295-010 through TM-P295-015 coverage and added focused unit tests in `crates/eden-skills-cli/src/commands/remove.rs` for wildcard parsing and prompt helpers
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 358

@@ -79,19 +79,19 @@ pub async fn remove_many_async(
 
     let config_dir = config_dir_from_path(config_path);
     let mut config = loaded.config;
-    let removal_ids = match resolve_remove_ids(&config, skill_ids, &ui)? {
+    let (removal_ids, wildcard_all) = match resolve_remove_ids(&config, skill_ids, &ui)? {
         RemoveSelection::Cancelled => {
             print_remove_cancelled(&ui);
             return Ok(());
         }
-        RemoveSelection::SkillIds(ids) => ids,
+        RemoveSelection::SkillIds { ids, wildcard_all } => (ids, wildcard_all),
     };
     if removal_ids.is_empty() {
         return Ok(());
     }
     validate_remove_ids(&config, &removal_ids, skill_ids.len() == 1)?;
 
-    match confirm_remove_execution(&removal_ids, skip_confirmation, &ui)? {
+    match confirm_remove_execution(&removal_ids, wildcard_all, skip_confirmation, &ui)? {
         PromptOutcome::Cancelled | PromptOutcome::Value(false) => {
             print_remove_cancelled(&ui);
             return Ok(());
@@ -143,7 +143,10 @@ pub async fn remove_many_async(
 }
 
 enum RemoveSelection {
-    SkillIds(Vec<String>),
+    SkillIds {
+        ids: Vec<String>,
+        wildcard_all: bool,
+    },
     Cancelled,
 }
 
@@ -152,20 +155,32 @@ enum PromptOutcome<T> {
     Cancelled,
 }
 
+#[derive(Debug)]
+struct ParsedRemoveSelection {
+    ids: Vec<String>,
+    wildcard_all: bool,
+}
+
 fn resolve_remove_ids(
     config: &Config,
     skill_ids: &[String],
     ui: &UiContext,
 ) -> Result<RemoveSelection, EdenError> {
     if !skill_ids.is_empty() {
-        return Ok(RemoveSelection::SkillIds(unique_ids(skill_ids)));
+        return Ok(RemoveSelection::SkillIds {
+            ids: unique_ids(skill_ids),
+            wildcard_all: false,
+        });
     }
 
     if config.skills.is_empty() {
         println!("{}   0 configured", ui.action_prefix("Skills"));
         println!();
         println!("  Nothing to remove.");
-        return Ok(RemoveSelection::SkillIds(Vec::new()));
+        return Ok(RemoveSelection::SkillIds {
+            ids: Vec::new(),
+            wildcard_all: false,
+        });
     }
 
     if !ui.interactive_enabled() {
@@ -181,13 +196,16 @@ fn resolve_remove_ids(
         PromptOutcome::Value(selection) => selection,
     };
     let selected = parse_remove_selection(config, &selection)?;
-    if selected.is_empty() {
+    if selected.ids.is_empty() {
         return Err(EdenError::InvalidArguments(with_hint(
             "no skill IDs specified",
             "Usage: eden-skills remove <SKILL_ID>...",
         )));
     }
-    Ok(RemoveSelection::SkillIds(selected))
+    Ok(RemoveSelection::SkillIds {
+        ids: selected.ids,
+        wildcard_all: selected.wildcard_all,
+    })
 }
 
 fn validate_remove_ids(
@@ -231,6 +249,7 @@ fn validate_remove_ids(
 
 fn confirm_remove_execution(
     removal_ids: &[String],
+    wildcard_all: bool,
     skip_confirmation: bool,
     ui: &UiContext,
 ) -> Result<PromptOutcome<bool>, EdenError> {
@@ -251,7 +270,7 @@ fn confirm_remove_execution(
 
     let _interrupt_guard = crate::signal::PromptInterruptGuard::new();
     match Confirm::new()
-        .with_prompt(format!("Remove {}?", removal_ids.join(", ")))
+        .with_prompt(remove_confirmation_prompt(removal_ids, wildcard_all, ui))
         .default(false)
         .interact()
     {
@@ -323,7 +342,27 @@ fn print_remove_candidates(config: &Config, ui: &UiContext) {
     }
     println!("{table}");
     println!();
-    println!("  Enter skill numbers or names to remove (space-separated):");
+    println!("{}", remove_selection_prompt());
+}
+
+fn remove_selection_prompt() -> &'static str {
+    "  Enter skill numbers or names to remove (space-separated, * for all):"
+}
+
+fn remove_confirmation_prompt(
+    removal_ids: &[String],
+    wildcard_all: bool,
+    ui: &UiContext,
+) -> String {
+    if wildcard_all {
+        return format!(
+            "{} Remove ALL {} skills? This cannot be undone.",
+            ui.status_symbol(StatusSymbol::Warning),
+            removal_ids.len()
+        );
+    }
+
+    format!("Remove {}?", removal_ids.join(", "))
 }
 
 fn prompt_remove_selection() -> Result<PromptOutcome<String>, EdenError> {
@@ -380,13 +419,31 @@ fn style_skill_id(ui: &UiContext, skill_id: &str) -> String {
     }
 }
 
-fn parse_remove_selection(config: &Config, input: &str) -> Result<Vec<String>, EdenError> {
+fn parse_remove_selection(
+    config: &Config,
+    input: &str,
+) -> Result<ParsedRemoveSelection, EdenError> {
     let tokens = input
         .split_whitespace()
         .map(ToString::to_string)
         .collect::<Vec<_>>();
     if tokens.is_empty() {
-        return Ok(Vec::new());
+        return Ok(ParsedRemoveSelection {
+            ids: Vec::new(),
+            wildcard_all: false,
+        });
+    }
+
+    if tokens.iter().any(|token| token == "*") {
+        if tokens.len() > 1 {
+            return Err(EdenError::InvalidArguments(
+                "'*' cannot be combined with other selections".to_string(),
+            ));
+        }
+        return Ok(ParsedRemoveSelection {
+            ids: config.skills.iter().map(|skill| skill.id.clone()).collect(),
+            wildcard_all: true,
+        });
     }
 
     let mut selected = Vec::new();
@@ -410,11 +467,17 @@ fn parse_remove_selection(config: &Config, input: &str) -> Result<Vec<String>, E
 
     let selected = unique_ids(&selected);
     if unknown.is_empty() {
-        return Ok(selected);
+        return Ok(ParsedRemoveSelection {
+            ids: selected,
+            wildcard_all: false,
+        });
     }
 
     validate_remove_ids(config, &unknown, false)?;
-    Ok(selected)
+    Ok(ParsedRemoveSelection {
+        ids: selected,
+        wildcard_all: false,
+    })
 }
 
 async fn uninstall_skill_targets(
@@ -465,4 +528,93 @@ fn remove_from_storage_root(
         remove_path(&canonical_skill_dir)?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parse_remove_selection_returns_all_skill_ids_in_config_order_for_wildcard() {
+        let config = sample_config(&["a", "b", "c"]);
+
+        let parsed =
+            parse_remove_selection(&config, " * ").expect("wildcard selection should parse");
+
+        assert!(parsed.wildcard_all);
+        assert_eq!(
+            parsed.ids,
+            vec!["a".to_string(), "b".to_string(), "c".to_string()]
+        );
+    }
+
+    #[test]
+    fn parse_remove_selection_rejects_wildcard_mixed_with_other_tokens() {
+        let config = sample_config(&["a", "b", "c"]);
+
+        let err = parse_remove_selection(&config, "* 2")
+            .expect_err("mixed wildcard selection should fail");
+
+        assert_eq!(
+            err.to_string(),
+            "invalid arguments: '*' cannot be combined with other selections"
+        );
+    }
+
+    #[test]
+    fn remove_confirmation_prompt_uses_warning_prefix_for_wildcard() {
+        let ui = UiContext::from_env(false);
+        let prompt = remove_confirmation_prompt(
+            &["a".to_string(), "b".to_string(), "c".to_string()],
+            true,
+            &ui,
+        );
+
+        assert!(prompt.starts_with(&ui.status_symbol(StatusSymbol::Warning)));
+        assert!(prompt.contains("Remove ALL 3 skills? This cannot be undone."));
+    }
+
+    #[test]
+    fn remove_selection_prompt_mentions_wildcard_hint() {
+        assert_eq!(
+            remove_selection_prompt(),
+            "  Enter skill numbers or names to remove (space-separated, * for all):"
+        );
+    }
+
+    fn sample_config(ids: &[&str]) -> Config {
+        Config {
+            version: 1,
+            storage_root: "~/.eden-skills/skills".to_string(),
+            reactor: eden_skills_core::config::ReactorConfig::default(),
+            skills: ids.iter().map(|id| sample_skill(id)).collect(),
+        }
+    }
+
+    fn sample_skill(id: &&str) -> SkillConfig {
+        SkillConfig {
+            id: (*id).to_string(),
+            source: eden_skills_core::config::SourceConfig {
+                repo: "https://example.com/repo.git".to_string(),
+                subpath: ".".to_string(),
+                r#ref: "main".to_string(),
+            },
+            install: eden_skills_core::config::InstallConfig {
+                mode: eden_skills_core::config::InstallMode::Symlink,
+            },
+            targets: vec![eden_skills_core::config::TargetConfig {
+                agent: eden_skills_core::config::AgentKind::Custom,
+                expected_path: None,
+                path: None,
+                environment: "local".to_string(),
+            }],
+            verify: eden_skills_core::config::VerifyConfig {
+                enabled: true,
+                checks: Vec::new(),
+            },
+            safety: eden_skills_core::config::SafetyConfig {
+                no_exec_metadata_only: false,
+            },
+        }
+    }
 }

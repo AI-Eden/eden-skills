@@ -106,12 +106,126 @@ fn remove_without_args_on_tty_enters_interactive_selection_mode() {
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Skills   3 configured"), "stdout={stdout}");
     assert!(
-        stdout.contains("Enter skill numbers or names to remove"),
+        stdout.contains("Enter skill numbers or names to remove (space-separated, * for all):"),
         "stdout={stdout}"
     );
 
     let remaining = read_skill_ids(&config_path);
     assert_eq!(remaining, vec!["b".to_string()]);
+}
+
+#[test]
+fn remove_without_args_accepts_wildcard_selection_for_all_skills() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let config_path = temp.path().join("skills.toml");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("targets");
+    write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
+
+    let output = eden_command(&home_dir)
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "*")
+        .env("EDEN_SKILLS_TEST_CONFIRM", "y")
+        .args(["remove", "--color", "never", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run interactive remove wildcard");
+    assert_success(&output);
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let first = stdout
+        .find("  Remove  ✓ a")
+        .expect("summary should include first skill");
+    let second = stdout
+        .find("          ✓ b")
+        .expect("summary should include second skill");
+    let third = stdout
+        .find("          ✓ c")
+        .expect("summary should include third skill");
+    assert!(
+        first < second && second < third,
+        "wildcard removal should preserve config order in summary, stdout={stdout}"
+    );
+
+    let remaining = read_skill_ids(&config_path);
+    assert!(
+        remaining.is_empty(),
+        "wildcard selection should remove all configured skills"
+    );
+}
+
+#[test]
+fn remove_without_args_rejects_wildcard_mixed_with_other_tokens() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let config_path = temp.path().join("skills.toml");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("targets");
+    write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
+
+    let output = eden_command(&home_dir)
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "* 2")
+        .args(["remove", "--color", "never", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run interactive remove with mixed wildcard selection");
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "mixed wildcard input should fail, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("'*' cannot be combined with other selections"),
+        "stderr={stderr}"
+    );
+
+    let remaining = read_skill_ids(&config_path);
+    assert_eq!(
+        remaining,
+        vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        "mixed wildcard input should leave config unchanged"
+    );
+}
+
+#[test]
+fn remove_without_args_wildcard_empty_confirmation_uses_default_no_and_cancels() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let config_path = temp.path().join("skills.toml");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("targets");
+    write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
+
+    let output = eden_command(&home_dir)
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "*")
+        .env("EDEN_SKILLS_TEST_CONFIRM", "")
+        .args(["remove", "--color", "never", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run interactive wildcard remove with empty confirmation");
+    assert_success(&output);
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("  · Remove cancelled"),
+        "empty confirmation should use default no and cancel, stdout={stdout}"
+    );
+
+    let remaining = read_skill_ids(&config_path);
+    assert_eq!(
+        remaining,
+        vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        "empty confirmation should keep config unchanged"
+    );
 }
 
 #[test]
@@ -176,6 +290,32 @@ fn remove_yes_flag_skips_confirmation_prompt() {
 }
 
 #[test]
+fn remove_wildcard_yes_flag_skips_confirmation_prompt_and_removes_all() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let config_path = temp.path().join("skills.toml");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("targets");
+    write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
+
+    let output = eden_command(&home_dir)
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "*")
+        .args(["remove", "-y", "--color", "never", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run remove -y with wildcard selection");
+    assert_success(&output);
+
+    let remaining = read_skill_ids(&config_path);
+    assert!(
+        remaining.is_empty(),
+        "wildcard selection with -y should remove all configured skills"
+    );
+}
+
+#[test]
 fn remove_confirm_interrupt_is_handled_as_graceful_cancellation() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
@@ -204,6 +344,40 @@ fn remove_confirm_interrupt_is_handled_as_graceful_cancellation() {
         remaining,
         vec!["interrupt-me".to_string()],
         "interrupted confirmation should keep config unchanged"
+    );
+}
+
+#[test]
+fn remove_without_args_wildcard_declined_confirmation_cancels_removal() {
+    let temp = tempdir().expect("tempdir");
+    let home_dir = temp.path().join("home");
+    let config_path = temp.path().join("skills.toml");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("targets");
+    write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
+
+    let output = eden_command(&home_dir)
+        .env_remove("CI")
+        .env("EDEN_SKILLS_FORCE_TTY", "1")
+        .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "*")
+        .env("EDEN_SKILLS_TEST_CONFIRM", "n")
+        .args(["remove", "--color", "never", "--config"])
+        .arg(&config_path)
+        .output()
+        .expect("run interactive wildcard remove with declined confirmation");
+    assert_success(&output);
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout.contains("  · Remove cancelled"),
+        "declined wildcard confirmation should emit cancellation line, stdout={stdout}"
+    );
+
+    let remaining = read_skill_ids(&config_path);
+    assert_eq!(
+        remaining,
+        vec!["a".to_string(), "b".to_string(), "c".to_string()],
+        "declined wildcard confirmation should keep config unchanged"
     );
 }
 

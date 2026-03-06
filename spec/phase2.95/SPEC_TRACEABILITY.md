@@ -22,10 +22,10 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| RMA-001 | `SPEC_REMOVE_ALL.md` 2.1 | `*` wildcard returns all skill IDs | | | pending |
-| RMA-002 | `SPEC_REMOVE_ALL.md` 2.2 | `*` combined with other tokens MUST error | | | pending |
-| RMA-003 | `SPEC_REMOVE_ALL.md` 3 | Wildcard triggers strengthened confirmation | | | pending |
-| RMA-004 | `SPEC_REMOVE_ALL.md` 2.3 | Prompt includes `* for all` hint | | | pending |
+| RMA-001 | `SPEC_REMOVE_ALL.md` 2.1 | `*` wildcard returns all skill IDs | `crates/eden-skills-cli/src/commands/remove.rs` | `crates/eden-skills-cli/src/commands/remove.rs` (`parse_remove_selection_returns_all_skill_ids_in_config_order_for_wildcard`), `crates/eden-skills-cli/tests/remove_enhanced_tests.rs` (TM-P295-010) | completed |
+| RMA-002 | `SPEC_REMOVE_ALL.md` 2.2 | `*` combined with other tokens MUST error | `crates/eden-skills-cli/src/commands/remove.rs` | `crates/eden-skills-cli/src/commands/remove.rs` (`parse_remove_selection_rejects_wildcard_mixed_with_other_tokens`), `crates/eden-skills-cli/tests/remove_enhanced_tests.rs` (TM-P295-011) | completed |
+| RMA-003 | `SPEC_REMOVE_ALL.md` 3 | Wildcard triggers strengthened confirmation | `crates/eden-skills-cli/src/commands/remove.rs` | `crates/eden-skills-cli/src/commands/remove.rs` (`remove_confirmation_prompt_uses_warning_prefix_for_wildcard`), `crates/eden-skills-cli/tests/remove_enhanced_tests.rs` (TM-P295-012, TM-P295-014, TM-P295-015) | completed |
+| RMA-004 | `SPEC_REMOVE_ALL.md` 2.3 | Prompt includes `* for all` hint | `crates/eden-skills-cli/src/commands/remove.rs` | `crates/eden-skills-cli/src/commands/remove.rs` (`remove_selection_prompt_mentions_wildcard_hint`), `crates/eden-skills-cli/tests/remove_enhanced_tests.rs` (TM-P295-013) | completed |
 
 ## 3. Windows Junction Requirements
 
