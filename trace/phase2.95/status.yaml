@@ -120,6 +120,8 @@ builder_progress:
       - added `resolve_skill_storage_root()` and `resolve_skill_source_path()` so repo-cache paths are used consistently by `plan.rs`, `verify.rs`, `safety.rs`, `reconcile.rs`, and `update.rs`, while local source installs continue using per-skill staging under `storage_root/{skill_id}`
       - updated `crates/eden-skills-cli/src/commands/install.rs` to preserve the remote discovery checkout, move it into the repo cache when available, and fall back to a fresh cache clone when the move cannot be completed
       - added `crates/eden-skills-core/tests/perf_sync_tests.rs` and `crates/eden-skills-cli/tests/perf_sync_tests.rs` for TM-P295-024 through TM-P295-030, TM-P295-035, and TM-P295-038, then migrated affected legacy tests to the new repo-cache layout
+      - post-Batch-4 Windows CI follow-up: added the cross-platform `EDEN_SKILLS_TEST_GIT_CLONE_LOG` hook in `crates/eden-skills-core/src/source.rs` and `crates/eden-skills-cli/src/commands/install.rs`, and updated `crates/eden-skills-cli/tests/perf_sync_tests.rs` to stop relying on PATH/git.cmd interception for clone counting on Windows
+      - post-Batch-4 Windows CI follow-up: updated `crates/eden-skills-core/tests/junction_tests.rs` to build its source fixture from `resolve_skill_source_path()` so the WJN-004 junction noop assertion follows the repo-cache layout introduced in Batch 4
     quality_gate:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed

@@ -79,6 +79,8 @@ Started: 2026-03-06
   - Updated `crates/eden-skills-cli/src/commands/install.rs` to preserve the remote discovery checkout, move it into the repo cache when possible, and fall back to a fresh cache clone when the move fails across filesystems.
   - Preserved local-source install semantics: local installs still stage under `storage_root/{skill_id}`, and old per-skill remote directories are left untouched instead of being deleted.
   - Added `crates/eden-skills-core/tests/perf_sync_tests.rs` and `crates/eden-skills-cli/tests/perf_sync_tests.rs` for `TM-P295-024` through `TM-P295-030`, `TM-P295-035`, and `TM-P295-038`, then updated affected existing tests to the repo-cache layout.
+  - Post-merge Windows CI follow-up 1: fixed clone-count observability on Windows by adding the explicit `EDEN_SKILLS_TEST_GIT_CLONE_LOG` hook in `crates/eden-skills-core/src/source.rs` and `crates/eden-skills-cli/src/commands/install.rs`, and simplified `crates/eden-skills-cli/tests/perf_sync_tests.rs` to stop depending on PATH/git.cmd interception.
+  - Post-merge Windows CI follow-up 2: fixed `crates/eden-skills-core/tests/junction_tests.rs` so the WJN-004 junction noop fixture resolves its expected source path through `resolve_skill_source_path()` instead of the pre-Batch-4 per-skill layout.
 - Validation:
   - `cargo fmt --all -- --check` ✅
   - `cargo clippy --workspace -- -D warnings` ✅
@@ -87,3 +89,4 @@ Started: 2026-03-06
   - Test inventory: `375`
 - Notes:
   - Batch 5 remains next: remote install batching (`PSY-004`), lock-diff skip logic (`PSY-005`), remaining repo-cache migration closeout, and the optional copy fast path (`PSY-008`).
+  - The two Windows CI regressions after Batch 4 were both test-layer issues; no Batch 4 repo-cache or junction runtime contract change was required.
