@@ -19,6 +19,10 @@ Windows (PowerShell):
 irm https://raw.githubusercontent.com/AI-Eden/eden-skills/main/install.ps1 | iex
 ```
 
+On Linux and macOS, the installer updates the selected shell rc file automatically
+when `~/.eden-skills/bin` is missing from `PATH`. Open a new terminal, or reload
+the rc file it reports, before running `eden-skills`.
+
 Alternative:
 
 ```bash
@@ -50,7 +54,7 @@ eden-skills doctor
 
 Expected `doctor` output when everything is healthy:
 
-```
+```txt
 Doctor   ✓ no issues detected
 ```
 
@@ -128,7 +132,7 @@ eden-skills apply
 
 Expected output:
 
-```
+```txt
 Syncing   1 cloned, 0 updated, 0 skipped, 0 failed
 Safety    1 permissive, 0 non-permissive, 0 unknown
 Install   ✓ frontend-design → ~/.claude/skills/frontend-design (symlink)

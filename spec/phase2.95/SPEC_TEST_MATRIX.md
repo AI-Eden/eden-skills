@@ -17,7 +17,7 @@ Phase 2.95 acceptance test scenarios.
 | TM-P295-002 | `install.sh` detects macOS arm64 and downloads correct archive | ISC-001 | script | pending |
 | TM-P295-003 | `install.sh` aborts on unsupported platform with clear error | ISC-003 | script | pending |
 | TM-P295-004 | `install.sh` aborts on SHA-256 mismatch | ISC-004 | script | pending |
-| TM-P295-005 | `install.sh` prints PATH instructions when dir not in PATH | ISC-005 | script | pending |
+| TM-P295-005 | `install.sh` updates the selected shell rc file when dir not in PATH (without duplicate PATH entries) | ISC-005 | script | pending |
 | TM-P295-006 | `install.ps1` detects Windows x86_64 and installs binary | ISC-002 | script | pending |
 | TM-P295-007 | `install.ps1` aborts on SHA-256 mismatch | ISC-004 | script | pending |
 | TM-P295-008 | `EDEN_SKILLS_VERSION` env var pins install to specific version | ISC-007 | script | pending |

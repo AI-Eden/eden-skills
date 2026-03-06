@@ -21,7 +21,8 @@ irm https://raw.githubusercontent.com/AI-Eden/eden-skills/main/install.ps1 | iex
 ```
 
 The install scripts place the binary in `~/.eden-skills/bin/` on Linux/macOS or
-`$env:USERPROFILE\.eden-skills\bin\` on Windows and print PATH guidance when needed.
+`$env:USERPROFILE\.eden-skills\bin\` on Windows. When PATH updates are needed, `install.sh`
+updates the selected shell rc file automatically and `install.ps1` updates the user Path.
 
 **Alternative: cargo install**
 

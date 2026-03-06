@@ -51,13 +51,19 @@ curl -fsSL https://raw.githubusercontent.com/AI-Eden/eden-skills/main/install.sh
 6. **Installation:** Place the binary in `EDEN_SKILLS_INSTALL_DIR`
    (default: `~/.eden-skills/bin/`). Create the directory if needed.
 
-7. **PATH check:** If the install directory is not in `$PATH`, print
-   instructions for adding it to the user's shell config:
-   ```
-   export PATH="$HOME/.eden-skills/bin:$PATH"
-   ```
-   Name the appropriate rc file (`.bashrc`, `.zshrc`, `.profile`)
-   based on `$SHELL`.
+7. **PATH check:** If the install directory is not in `$PATH`, `install.sh`
+   MUST select the appropriate shell rc file (`.zshrc`, `.bashrc`, or
+   `.profile`) based on `$SHELL` and check whether the PATH export is
+   already configured there.
+   - If the PATH export is already present, do not append a duplicate.
+   - If it is missing, append the export line automatically:
+     ```
+     export PATH="$HOME/.eden-skills/bin:$PATH"
+     ```
+   - After detection or update, print a note explaining how to reload the
+     shell config so the new PATH takes effect immediately.
+   - If the rc file cannot be updated automatically, print the same export
+     command as a manual fallback.
 
 8. **Prerequisite check:** Verify `git` is available. If not, print
    a warning (eden-skills requires git for source operations).
@@ -188,7 +194,7 @@ Update the prerequisites section to reflect the new install method.
 | **ISC-002** | Builder | **P0** | `install.ps1` MUST detect architecture, download the correct binary, verify SHA-256, and install to `$USERPROFILE\.eden-skills\bin\`. | Script runs successfully on Windows x86_64. |
 | **ISC-003** | Builder | **P0** | Platform detection MUST map to correct Rust target triples per Section 2.1. | Unsupported platform produces clear error. |
 | **ISC-004** | Builder | **P0** | SHA-256 integrity verification MUST abort on mismatch. | Tampered archive produces error and non-zero exit. |
-| **ISC-005** | Builder | **P1** | Both scripts MUST check PATH and print shell-specific instructions if needed. | PATH hint printed when install dir not in PATH. |
+| **ISC-005** | Builder | **P1** | Both scripts MUST ensure PATH is configured when needed. `install.sh` MUST use the shell-selected rc file without duplicating entries and print reload guidance; `install.ps1` MUST continue to update the user-level `Path`. | `install.sh` updates the expected rc file or prints fallback guidance; `install.ps1` updates the user `Path`. |
 | **ISC-006** | Builder | **P1** | `cargo-binstall` metadata MUST be added to `Cargo.toml`. | `cargo binstall eden-skills` downloads pre-built binary. |
 | **ISC-007** | Builder | **P2** | Both scripts MUST support `EDEN_SKILLS_VERSION` env var for version pinning. | Setting env var installs specified version. |
 

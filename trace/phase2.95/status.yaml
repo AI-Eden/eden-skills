@@ -179,6 +179,7 @@ builder_progress:
       - "confirmed `rg '\\x1b\\[' crates/` returns zero matches, so no hardcoded ANSI escape sequences remain in source"
       - "synced `spec/phase2.95/SPEC_TRACEABILITY.md`, `trace/phase2.95/tracker.md`, `README.md`, `spec/README.md`, `STATUS.yaml`, `EXECUTION_TRACKER.md`, and `AGENTS.md` to the Phase 2.95 closeout state"
       - "removed cross-target warning noise in `crates/eden-skills-cli/tests/install_script_tests.rs` by gating Unix-only imports and helpers behind `cfg(not(windows))`"
+      - "post-closeout follow-up: `install.sh` now appends the PATH export to the shell-selected rc file when needed, avoids duplicate entries, and prints reload guidance; related docs and installer tests were updated"
     quality_gate:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed
@@ -187,4 +188,4 @@ builder_progress:
       no_hardcoded_ansi_escape_in_source: passed
       json_contract_regression: passed
       exit_code_semantics_0_1_2_3: passed
-      current_test_inventory: 392
+      current_test_inventory: 393

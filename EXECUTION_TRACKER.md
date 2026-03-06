@@ -37,9 +37,9 @@ Progress score (roadmap action items, Builder scope): `10 / 10 = 100%`
 ### 3.2 Verification and Testing
 
 - [x] CI gate setup for Linux + macOS + Windows (`.github/workflows/ci.yml`)
-- [x] Phase 2.95 closeout matrix re-verified (`fmt`, `clippy`, `test --all-targets`, Windows target check, ANSI scan)
+- [x] Phase 2.95 closeout matrix re-verified (`fmt`, `clippy`, `test --all-targets`, Windows target check, ANSI scan); post-closeout `install.sh` PATH auto-rc follow-up revalidated on the full suite
 
-Current automated tests: `392` (workspace unit/integration-style tests).
+Current automated tests: `393` (workspace unit/integration-style tests).
 
 ## 4. Pending Tasks with Planned LLM Ownership
 

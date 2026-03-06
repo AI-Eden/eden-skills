@@ -135,7 +135,7 @@ Completed: 2026-03-07
 - Closeout validation:
   - `cargo fmt --all -- --check` ✅
   - `cargo clippy --workspace -- -D warnings` ✅
-  - `cargo test --workspace --all-targets` ✅ (test inventory: `392`)
+  - `cargo test --workspace --all-targets` ✅ (test inventory: `393`)
   - `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc` ✅
   - `rg '\x1b\[' crates/` ✅ (no hardcoded ANSI escape sequence matches)
 - Contract regression checks:
@@ -147,3 +147,4 @@ Completed: 2026-03-07
   - `README.md`, `spec/README.md`, `STATUS.yaml`, `EXECUTION_TRACKER.md`, and `AGENTS.md` synced to the Phase 2.95 closeout state.
 - Minor cleanup:
   - Removed cross-target warning noise in `crates/eden-skills-cli/tests/install_script_tests.rs` by gating Unix-only imports/helpers behind `cfg(not(windows))`.
+  - Post-closeout follow-up: `install.sh` now appends the PATH export to the shell-selected rc file when needed, skips duplicate PATH entries, and prints reload guidance; `README.md`, `docs/01-quickstart.md`, and installer spec/tests were synced to match.

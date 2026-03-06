@@ -162,11 +162,12 @@ fn tm_p295_004_install_sh_aborts_on_sha256_mismatch() {
 
 #[cfg(not(windows))]
 #[test]
-fn tm_p295_005_install_sh_prints_path_instructions_when_dir_not_in_path() {
+fn tm_p295_005_install_sh_updates_selected_shell_rc_when_dir_not_in_path() {
     let temp = tempdir().expect("tempdir");
     let fixture = write_unix_release_fixture(temp.path(), "0.9.0", "x86_64-unknown-linux-gnu");
     let home_dir = temp.path().join("home");
     let install_dir = home_dir.join(".eden-skills/bin");
+    let rc_path = home_dir.join(".zshrc");
     fs::create_dir_all(&home_dir).expect("create home");
 
     let output = run_install_sh(
@@ -183,13 +184,25 @@ fn tm_p295_005_install_sh_prints_path_instructions_when_dir_not_in_path() {
 
     assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
+    let rc_contents = fs::read_to_string(&rc_path).expect("read rc file");
     assert!(
-        stdout.contains(".zshrc"),
-        "expected zsh PATH hint, stdout={stdout}"
+        stdout.contains("Added") && stdout.contains("~/.zshrc"),
+        "expected installer to report rc update, stdout={stdout}"
     );
     assert!(
-        stdout.contains("export PATH=\"$HOME/.eden-skills/bin:$PATH\""),
-        "expected export command in stdout={stdout}"
+        stdout.contains(". ~/.zshrc"),
+        "expected reload hint in stdout={stdout}"
+    );
+    assert!(
+        rc_contents.contains("export PATH=\"$HOME/.eden-skills/bin:$PATH\""),
+        "expected PATH export in rc file, contents={rc_contents}"
+    );
+    assert_eq!(
+        rc_contents
+            .matches("export PATH=\"$HOME/.eden-skills/bin:$PATH\"")
+            .count(),
+        1,
+        "expected PATH export to be appended exactly once, contents={rc_contents}"
     );
 }
 
@@ -228,6 +241,49 @@ fn tm_p295_007_install_ps1_declares_sha256_mismatch_guard() {
             "install.ps1 missing SHA-256 verification snippet `{required}`"
         );
     }
+}
+
+#[cfg(not(windows))]
+#[test]
+fn install_sh_does_not_duplicate_existing_path_entry_in_shell_rc() {
+    let temp = tempdir().expect("tempdir");
+    let fixture = write_unix_release_fixture(temp.path(), "0.9.1", "x86_64-unknown-linux-gnu");
+    let home_dir = temp.path().join("home");
+    let install_dir = home_dir.join(".eden-skills/bin");
+    let rc_path = home_dir.join(".zshrc");
+    fs::create_dir_all(&home_dir).expect("create home");
+    fs::write(
+        &rc_path,
+        "# existing config\nexport PATH=\"$HOME/.eden-skills/bin:$PATH\"\n",
+    )
+    .expect("seed rc file");
+
+    let output = run_install_sh(
+        temp.path(),
+        &home_dir,
+        &install_dir,
+        &fixture,
+        Some("0.9.1"),
+        "Linux",
+        "x86_64",
+        "/bin/zsh",
+        "/usr/bin:/bin",
+    );
+
+    assert_success(&output);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let rc_contents = fs::read_to_string(&rc_path).expect("read rc file");
+    assert!(
+        stdout.contains("already appears to be configured in ~/.zshrc"),
+        "expected existing-config message, stdout={stdout}"
+    );
+    assert_eq!(
+        rc_contents
+            .matches("export PATH=\"$HOME/.eden-skills/bin:$PATH\"")
+            .count(),
+        1,
+        "expected installer to avoid duplicate PATH exports, contents={rc_contents}"
+    );
 }
 
 #[cfg(not(windows))]

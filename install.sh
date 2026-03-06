@@ -165,17 +165,94 @@ path_contains() {
     esac
 }
 
+shell_rc_path() {
+    case "${SHELL:-}" in
+        */zsh)
+            printf '%s\n' "${HOME}/.zshrc"
+            ;;
+        */bash)
+            printf '%s\n' "${HOME}/.bashrc"
+            ;;
+        *)
+            printf '%s\n' "${HOME}/.profile"
+            ;;
+    esac
+}
+
+path_export_line() {
+    install_dir="$1"
+
+    if [ "$install_dir" = "${HOME}/.eden-skills/bin" ]; then
+        printf '%s\n' 'export PATH="$HOME/.eden-skills/bin:$PATH"'
+    else
+        printf '%s\n' "export PATH=\"${install_dir}:\$PATH\""
+    fi
+}
+
+path_configured_in_rc() {
+    rc_path="$1"
+    install_dir="$2"
+
+    if [ ! -f "$rc_path" ]; then
+        return 1
+    fi
+
+    if grep -F "$install_dir" "$rc_path" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    if [ "$install_dir" = "${HOME}/.eden-skills/bin" ] && grep -F '$HOME/.eden-skills/bin' "$rc_path" >/dev/null 2>&1; then
+        return 0
+    fi
+
+    return 1
+}
+
+print_reload_hint() {
+    rc_file="$1"
+    info "Open a new shell or run:"
+    info ". ${rc_file}"
+}
+
 print_path_hint() {
     install_dir="$1"
     rc_file=$(shell_rc_file)
+    export_line=$(path_export_line "$install_dir")
 
     info ""
     info "Add ${install_dir} to your PATH by appending this line to ${rc_file}:"
-    if [ "$install_dir" = "${HOME}/.eden-skills/bin" ]; then
-        info 'export PATH="$HOME/.eden-skills/bin:$PATH"'
-    else
-        info "export PATH=\"${install_dir}:\$PATH\""
+    info "$export_line"
+    print_reload_hint "$rc_file"
+}
+
+ensure_path_configured() {
+    install_dir="$1"
+    rc_file=$(shell_rc_file)
+    rc_path=$(shell_rc_path)
+    export_line=$(path_export_line "$install_dir")
+
+    if path_configured_in_rc "$rc_path" "$install_dir"; then
+        info ""
+        info "PATH already appears to be configured in ${rc_file}."
+        print_reload_hint "$rc_file"
+        return
     fi
+
+    if {
+        if [ -s "$rc_path" ]; then
+            printf '\n'
+        fi
+        printf '%s\n' "# Added by eden-skills installer"
+        printf '%s\n' "$export_line"
+    } >> "$rc_path" 2>/dev/null; then
+        info ""
+        info "Added ${install_dir} to PATH in ${rc_file}."
+        print_reload_hint "$rc_file"
+        return
+    fi
+
+    warn "Failed to update ${rc_file} automatically."
+    print_path_hint "$install_dir"
 }
 
 main() {
@@ -237,7 +314,7 @@ main() {
     fi
 
     if ! path_contains "$install_dir"; then
-        print_path_hint "$install_dir"
+        ensure_path_configured "$install_dir"
     fi
 }
 
