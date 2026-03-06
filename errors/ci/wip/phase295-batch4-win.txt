@@ -1,23 +1,17 @@
-     Running tests\perf_sync_tests.rs (target\debug\deps\perf_sync_tests-99dbd74cf44716df.exe)
+     Running tests\junction_tests.rs (target\debug\deps\junction_tests-99e24532c6999c14.exe)
 running 3 tests
-test local_path_install_keeps_using_per_skill_storage_without_repo_cache ... ok
-test remote_install_falls_back_to_fresh_clone_when_cache_move_fails ... FAILED
-test remote_install_reuses_discovery_clone_when_repo_cache_is_empty ... FAILED
+test windows::junction_crate_round_trip_smoke_test ... ok
+test windows::plan_treats_matching_junction_as_noop_for_symlink_mode ... FAILED
+test windows::local_adapter_reinstall_replaces_existing_junction_without_touching_source ... ok
 failures:
----- remote_install_falls_back_to_fresh_clone_when_cache_move_fails stdout ----
-thread 'remote_install_falls_back_to_fresh_clone_when_cache_move_fails' (3056) panicked at crates\eden-skills-cli\tests\perf_sync_tests.rs:96:5:
-assertion `left == right` failed: forced rename failure should fall back to a fresh cache clone, stderr=  warning: No installed agents detected; defaulting to claude-code (~/.claude/skills/)
-  left: 0
- right: 2
+---- windows::plan_treats_matching_junction_as_noop_for_symlink_mode stdout ----
+thread 'windows::plan_treats_matching_junction_as_noop_for_symlink_mode' (2200) panicked at crates\eden-skills-core\tests\junction_tests.rs:35:9:
+assertion `left == right` failed: junction-backed target should be treated like a valid symlink target
+  left: Conflict
+ right: Noop
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
----- remote_install_reuses_discovery_clone_when_repo_cache_is_empty stdout ----
-thread 'remote_install_reuses_discovery_clone_when_repo_cache_is_empty' (4360) panicked at crates\eden-skills-cli\tests\perf_sync_tests.rs:50:5:
-assertion `left == right` failed: expected discovery clone reuse, stderr=  warning: No installed agents detected; defaulting to claude-code (~/.claude/skills/)
-  left: 0
- right: 1
 failures:
-    remote_install_falls_back_to_fresh_clone_when_cache_move_fails
-    remote_install_reuses_discovery_clone_when_repo_cache_is_empty
-test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.42s
-error: test failed, to rerun pass `-p eden-skills --test perf_sync_tests`
+    windows::plan_treats_matching_junction_as_noop_for_symlink_mode
+test result: FAILED. 2 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+error: test failed, to rerun pass `-p eden-skills-core --test junction_tests`
 Error: Process completed with exit code 1.

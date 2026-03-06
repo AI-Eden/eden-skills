@@ -9,6 +9,7 @@ mod windows {
         SourceConfig, TargetConfig, VerifyConfig,
     };
     use eden_skills_core::plan::{build_plan, Action};
+    use eden_skills_core::source::resolve_skill_source_path;
     use tempfile::tempdir;
 
     #[test]
@@ -17,7 +18,8 @@ mod windows {
         let storage_root = temp.path().join("storage");
         let target_root = temp.path().join("target");
         let skill_id = "tm-p295-020";
-        let source_path = storage_root.join(skill_id);
+        let config = symlink_mode_config(&storage_root, &target_root, skill_id);
+        let source_path = resolve_skill_source_path(&storage_root, &config.skills[0]);
         let target_path = target_root.join(skill_id);
 
         fs::create_dir_all(&source_path).expect("create source");
@@ -29,7 +31,6 @@ mod windows {
             "test precondition: target should be a junction"
         );
 
-        let config = symlink_mode_config(&storage_root, &target_root, skill_id);
         let plan = build_plan(&config, temp.path()).expect("build plan");
         assert_eq!(plan.len(), 1);
         assert_eq!(
