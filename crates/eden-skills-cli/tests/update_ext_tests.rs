@@ -2,6 +2,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use eden_skills_core::source::resolve_repo_cache_root;
 use serde_json::Value;
 use tempfile::{tempdir, TempDir};
 
@@ -58,7 +59,7 @@ fn tm_p29_007_update_without_apply_does_not_mutate_local_state() {
         "upstream update",
     );
 
-    let local_repo = fixture.storage_root.join("mode-a-skill");
+    let local_repo = mode_a_repo_dir(&fixture);
     let local_head_before = git_head(&local_repo);
     let update_output = run_command(&fixture, "never", false, &["update"]);
     assert_success(&update_output);
@@ -110,7 +111,7 @@ fn tm_p29_008_update_apply_reconciles_skills_with_new_commits() {
         "update --apply should transition into install/reconcile output, stdout={stdout}"
     );
 
-    let local_repo_head = git_head(&fixture.storage_root.join("mode-a-skill"));
+    let local_repo_head = git_head(&mode_a_repo_dir(&fixture));
     assert_eq!(
         local_repo_head, origin_head,
         "update --apply should advance local source repo HEAD to latest upstream commit"
@@ -413,6 +414,14 @@ fn eden_command(home_dir: &Path) -> Command {
     #[cfg(windows)]
     command.env("USERPROFILE", home_dir);
     command
+}
+
+fn mode_a_repo_dir(fixture: &ModeAFixture) -> PathBuf {
+    resolve_repo_cache_root(
+        &fixture.storage_root,
+        &as_file_url(&fixture.skill_repo),
+        "main",
+    )
 }
 
 fn init_git_repo(base: &Path, name: &str, files: &[(&str, &str)]) -> PathBuf {

@@ -6,7 +6,7 @@ use eden_skills_core::config::{
     AgentKind, Config, InstallConfig, InstallMode, ReactorConfig, SafetyConfig, SkillConfig,
     SourceConfig, TargetConfig, VerifyConfig,
 };
-use eden_skills_core::source::{sync_sources, SyncFailureStage};
+use eden_skills_core::source::{resolve_repo_cache_root, sync_sources, SyncFailureStage};
 use tempfile::tempdir;
 
 const SKILL_ID: &str = "demo-skill";
@@ -68,11 +68,12 @@ fn sync_sources_reports_fetch_failure_stage() {
     let temp = tempdir().expect("tempdir");
     let origin_repo = init_origin_repo(temp.path());
     let storage_root = temp.path().join("storage");
-    let repo_dir = storage_root.join(SKILL_ID);
+    let repo_url = as_file_url(&origin_repo);
+    let repo_dir = resolve_repo_cache_root(&storage_root, &repo_url, "main");
     fs::create_dir_all(&repo_dir).expect("create fake repo dir");
     fs::write(repo_dir.join(".git"), "not-a-repo").expect("write fake .git marker");
 
-    let config = test_config(&storage_root, &as_file_url(&origin_repo), "main");
+    let config = test_config(&storage_root, &repo_url, "main");
     let summary = sync_sources(&config, temp.path()).expect("sync summary");
 
     assert_eq!(summary.failed, 1);
@@ -109,6 +110,7 @@ fn sync_sources_continues_after_failure_and_aggregates_results() {
     fs::create_dir_all(&storage_root).expect("create storage");
 
     let missing_repo = temp.path().join("missing-origin");
+    let good_repo_url = as_file_url(&origin_repo);
     let config = Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
@@ -117,7 +119,7 @@ fn sync_sources_continues_after_failure_and_aggregates_results() {
             SkillConfig {
                 id: "good-skill".to_string(),
                 source: SourceConfig {
-                    repo: as_file_url(&origin_repo),
+                    repo: good_repo_url.clone(),
                     subpath: ".".to_string(),
                     r#ref: "main".to_string(),
                 },
@@ -174,7 +176,9 @@ fn sync_sources_continues_after_failure_and_aggregates_results() {
     assert_eq!(summary.failures[0].skill_id, "bad-skill");
     assert_eq!(summary.failures[0].stage, SyncFailureStage::Clone);
     assert!(
-        storage_root.join("good-skill").join(".git").exists(),
+        resolve_repo_cache_root(&storage_root, &good_repo_url, "main")
+            .join(".git")
+            .exists(),
         "successful skill should still be cloned when another skill fails"
     );
 }

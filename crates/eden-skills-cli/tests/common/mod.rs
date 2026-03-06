@@ -86,7 +86,35 @@ pub fn write_config_with_safety(
 }
 
 pub fn expected_source_path(storage_root: &Path) -> PathBuf {
+    let repo_cache_root = storage_root.join(".repos");
+    if let Ok(entries) = fs::read_dir(&repo_cache_root) {
+        let mut cache_dirs = entries
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| path.is_dir())
+            .collect::<Vec<_>>();
+        cache_dirs.sort();
+        if let [cache_dir] = cache_dirs.as_slice() {
+            return cache_dir.join("packages").join("browser");
+        }
+    }
     storage_root.join(SKILL_ID).join("packages").join("browser")
+}
+
+pub fn expected_safety_metadata_path(storage_root: &Path) -> PathBuf {
+    let repo_cache_root = storage_root.join(".repos");
+    if let Ok(entries) = fs::read_dir(&repo_cache_root) {
+        let mut cache_dirs = entries
+            .filter_map(Result::ok)
+            .map(|entry| entry.path())
+            .filter(|path| path.is_dir())
+            .collect::<Vec<_>>();
+        cache_dirs.sort();
+        if let [cache_dir] = cache_dirs.as_slice() {
+            return cache_dir.join(".eden-safety.toml");
+        }
+    }
+    storage_root.join(SKILL_ID).join(".eden-safety.toml")
 }
 
 pub fn expected_target_path(target_root: &Path) -> PathBuf {

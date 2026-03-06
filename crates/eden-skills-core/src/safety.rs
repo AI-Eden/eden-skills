@@ -9,7 +9,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::config::Config;
 use crate::error::EdenError;
-use crate::paths::{normalize_lexical, resolve_path_string};
+use crate::paths::resolve_path_string;
+use crate::source::{resolve_skill_source_path, resolve_skill_storage_root};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum LicenseStatus {
@@ -51,8 +52,8 @@ pub fn analyze_skills(
     let retrieved_at_unix = unix_now()?;
 
     for skill in &config.skills {
-        let repo_path = normalize_lexical(&storage_root.join(&skill.id));
-        let source_path = normalize_lexical(&repo_path.join(&skill.source.subpath));
+        let repo_path = resolve_skill_storage_root(&storage_root, skill);
+        let source_path = resolve_skill_source_path(&storage_root, skill);
         let metadata_path = repo_path.join(".eden-safety.toml");
 
         let (license_status, license_hint) = detect_license_status(&repo_path);

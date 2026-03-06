@@ -1,5 +1,5 @@
 phase: phase295_performance_platform_reach
-status: batch3_completed
+status: batch4_completed
 started_at: "2026-03-06"
 
 spec_files:
@@ -41,7 +41,7 @@ batches:
     name: "Performance Part 1: Repo-Level Cache"
     work_packages: [WP-1-pt1]
     requirements: [PSY-001, PSY-002, PSY-003, PSY-006, PSY-007]
-    status: pending
+    status: completed
   batch5:
     name: "Performance Part 2: Batch Sync + Migration"
     work_packages: [WP-1-pt2]
@@ -109,3 +109,20 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 363
+  batch_4_perf_part1_repo_cache:
+    status: completed
+    started_at: "2026-03-06"
+    completed_at: "2026-03-06"
+    requirements: PSY-001, PSY-002, PSY-003, PSY-006 (partial), PSY-007
+    scenarios: TM-P295-024, TM-P295-025, TM-P295-026, TM-P295-027, TM-P295-028, TM-P295-029, TM-P295-030, TM-P295-035, TM-P295-038
+    notes:
+      - refactored `crates/eden-skills-core/src/source.rs` to derive repo cache keys from normalized repo URLs plus sanitized refs, group remote sync work by `(repo_url, ref)`, and store shared checkouts under `storage_root/.repos/{cache_key}`
+      - added `resolve_skill_storage_root()` and `resolve_skill_source_path()` so repo-cache paths are used consistently by `plan.rs`, `verify.rs`, `safety.rs`, `reconcile.rs`, and `update.rs`, while local source installs continue using per-skill staging under `storage_root/{skill_id}`
+      - updated `crates/eden-skills-cli/src/commands/install.rs` to preserve the remote discovery checkout, move it into the repo cache when available, and fall back to a fresh cache clone when the move cannot be completed
+      - added `crates/eden-skills-core/tests/perf_sync_tests.rs` and `crates/eden-skills-cli/tests/perf_sync_tests.rs` for TM-P295-024 through TM-P295-030, TM-P295-035, and TM-P295-038, then migrated affected legacy tests to the new repo-cache layout
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      windows_check_x86_64_pc_windows_msvc: passed
+      current_test_inventory: 375

@@ -10,11 +10,39 @@ use eden_skills_core::config::{
     SourceConfig, TargetConfig, VerifyConfig,
 };
 use eden_skills_core::plan::{build_plan, Action};
+use eden_skills_core::source::resolve_skill_source_path;
 use tempfile::tempdir;
 
 fn write_bytes(path: &Path, size: usize, value: u8) {
     let buf = vec![value; size];
     fs::write(path, buf).expect("write bytes");
+}
+
+fn copy_mode_skill(skill_id: &str, target_root: &Path) -> SkillConfig {
+    SkillConfig {
+        id: skill_id.to_string(),
+        source: SourceConfig {
+            repo: "file:///tmp/placeholder".to_string(),
+            subpath: ".".to_string(),
+            r#ref: "main".to_string(),
+        },
+        install: InstallConfig {
+            mode: InstallMode::Copy,
+        },
+        targets: vec![TargetConfig {
+            agent: AgentKind::Custom,
+            expected_path: None,
+            path: Some(target_root.display().to_string()),
+            environment: "local".to_string(),
+        }],
+        verify: VerifyConfig {
+            enabled: false,
+            checks: vec![],
+        },
+        safety: SafetyConfig {
+            no_exec_metadata_only: false,
+        },
+    }
 }
 
 #[cfg(windows)]
@@ -68,7 +96,8 @@ fn copy_mode_plan_noop_streams_large_file() {
     fs::create_dir_all(&target_root).expect("create target");
 
     let skill_id = "copy-large";
-    let source_path = storage_root.join(skill_id);
+    let skill = copy_mode_skill(skill_id, &target_root);
+    let source_path = resolve_skill_source_path(&storage_root, &skill);
     let target_path = target_root.join(skill_id);
     fs::create_dir_all(&source_path).expect("create source");
     fs::create_dir_all(&target_path).expect("create target skill");
@@ -81,30 +110,7 @@ fn copy_mode_plan_noop_streams_large_file() {
         version: 1,
         storage_root: storage_root.display().to_string(),
         reactor: ReactorConfig::default(),
-        skills: vec![SkillConfig {
-            id: skill_id.to_string(),
-            source: SourceConfig {
-                repo: "file:///tmp/placeholder".to_string(),
-                subpath: ".".to_string(),
-                r#ref: "main".to_string(),
-            },
-            install: InstallConfig {
-                mode: InstallMode::Copy,
-            },
-            targets: vec![TargetConfig {
-                agent: AgentKind::Custom,
-                expected_path: None,
-                path: Some(target_root.display().to_string()),
-                environment: "local".to_string(),
-            }],
-            verify: VerifyConfig {
-                enabled: false,
-                checks: vec![],
-            },
-            safety: SafetyConfig {
-                no_exec_metadata_only: false,
-            },
-        }],
+        skills: vec![skill],
     };
 
     let plan = build_plan(&config, temp.path()).expect("build plan");
@@ -124,7 +130,8 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
     fs::create_dir_all(&target_root).expect("create target");
 
     let skill_id = "copy-perms";
-    let source_path = storage_root.join(skill_id);
+    let skill = copy_mode_skill(skill_id, &target_root);
+    let source_path = resolve_skill_source_path(&storage_root, &skill);
     let target_path = target_root.join(skill_id);
     fs::create_dir_all(&source_path).expect("create source");
     fs::create_dir_all(&target_path).expect("create target skill");
@@ -142,30 +149,7 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
         version: 1,
         storage_root: storage_root.display().to_string(),
         reactor: ReactorConfig::default(),
-        skills: vec![SkillConfig {
-            id: skill_id.to_string(),
-            source: SourceConfig {
-                repo: "file:///tmp/placeholder".to_string(),
-                subpath: ".".to_string(),
-                r#ref: "main".to_string(),
-            },
-            install: InstallConfig {
-                mode: InstallMode::Copy,
-            },
-            targets: vec![TargetConfig {
-                agent: AgentKind::Custom,
-                expected_path: None,
-                path: Some(target_root.display().to_string()),
-                environment: "local".to_string(),
-            }],
-            verify: VerifyConfig {
-                enabled: false,
-                checks: vec![],
-            },
-            safety: SafetyConfig {
-                no_exec_metadata_only: false,
-            },
-        }],
+        skills: vec![skill],
     };
 
     let plan = build_plan(&config, temp.path()).expect("build plan");
@@ -191,7 +175,8 @@ fn copy_mode_plan_conflict_on_symlink_in_tree() {
     fs::create_dir_all(&target_root).expect("create target");
 
     let skill_id = "copy-symlink";
-    let source_path = storage_root.join(skill_id);
+    let skill = copy_mode_skill(skill_id, &target_root);
+    let source_path = resolve_skill_source_path(&storage_root, &skill);
     let target_path = target_root.join(skill_id);
     fs::create_dir_all(&source_path).expect("create source");
     fs::create_dir_all(&target_path).expect("create target skill");
@@ -207,30 +192,7 @@ fn copy_mode_plan_conflict_on_symlink_in_tree() {
         version: 1,
         storage_root: storage_root.display().to_string(),
         reactor: ReactorConfig::default(),
-        skills: vec![SkillConfig {
-            id: skill_id.to_string(),
-            source: SourceConfig {
-                repo: "file:///tmp/placeholder".to_string(),
-                subpath: ".".to_string(),
-                r#ref: "main".to_string(),
-            },
-            install: InstallConfig {
-                mode: InstallMode::Copy,
-            },
-            targets: vec![TargetConfig {
-                agent: AgentKind::Custom,
-                expected_path: None,
-                path: Some(target_root.display().to_string()),
-                environment: "local".to_string(),
-            }],
-            verify: VerifyConfig {
-                enabled: false,
-                checks: vec![],
-            },
-            safety: SafetyConfig {
-                no_exec_metadata_only: false,
-            },
-        }],
+        skills: vec![skill],
     };
 
     let plan = build_plan(&config, temp.path()).expect("build plan");
@@ -256,7 +218,8 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
     fs::create_dir_all(&target_root).expect("create target");
 
     let skill_id = "copy-perms";
-    let source_path = storage_root.join(skill_id);
+    let skill = copy_mode_skill(skill_id, &target_root);
+    let source_path = resolve_skill_source_path(&storage_root, &skill);
     let target_path = target_root.join(skill_id);
     fs::create_dir_all(&source_path).expect("create source");
     fs::create_dir_all(&target_path).expect("create target skill");
@@ -275,30 +238,7 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
         version: 1,
         storage_root: storage_root.display().to_string(),
         reactor: ReactorConfig::default(),
-        skills: vec![SkillConfig {
-            id: skill_id.to_string(),
-            source: SourceConfig {
-                repo: "file:///tmp/placeholder".to_string(),
-                subpath: ".".to_string(),
-                r#ref: "main".to_string(),
-            },
-            install: InstallConfig {
-                mode: InstallMode::Copy,
-            },
-            targets: vec![TargetConfig {
-                agent: AgentKind::Custom,
-                expected_path: None,
-                path: Some(target_root.display().to_string()),
-                environment: "local".to_string(),
-            }],
-            verify: VerifyConfig {
-                enabled: false,
-                checks: vec![],
-            },
-            safety: SafetyConfig {
-                no_exec_metadata_only: false,
-            },
-        }],
+        skills: vec![skill],
     };
 
     let plan = build_plan(&config, temp.path()).expect("build plan");
@@ -324,7 +264,8 @@ fn copy_mode_plan_conflict_on_symlink_in_tree() {
     fs::create_dir_all(&target_root).expect("create target");
 
     let skill_id = "copy-symlink";
-    let source_path = storage_root.join(skill_id);
+    let skill = copy_mode_skill(skill_id, &target_root);
+    let source_path = resolve_skill_source_path(&storage_root, &skill);
     let target_path = target_root.join(skill_id);
     fs::create_dir_all(&source_path).expect("create source");
     fs::create_dir_all(&target_path).expect("create target skill");
@@ -339,30 +280,7 @@ fn copy_mode_plan_conflict_on_symlink_in_tree() {
         version: 1,
         storage_root: storage_root.display().to_string(),
         reactor: ReactorConfig::default(),
-        skills: vec![SkillConfig {
-            id: skill_id.to_string(),
-            source: SourceConfig {
-                repo: "file:///tmp/placeholder".to_string(),
-                subpath: ".".to_string(),
-                r#ref: "main".to_string(),
-            },
-            install: InstallConfig {
-                mode: InstallMode::Copy,
-            },
-            targets: vec![TargetConfig {
-                agent: AgentKind::Custom,
-                expected_path: None,
-                path: Some(target_root.display().to_string()),
-                environment: "local".to_string(),
-            }],
-            verify: VerifyConfig {
-                enabled: false,
-                checks: vec![],
-            },
-            safety: SafetyConfig {
-                no_exec_metadata_only: false,
-            },
-        }],
+        skills: vec![skill],
     };
 
     let plan = build_plan(&config, temp.path()).expect("build plan");

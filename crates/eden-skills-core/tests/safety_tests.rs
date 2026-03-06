@@ -7,6 +7,7 @@ use eden_skills_core::config::{
     SourceConfig, TargetConfig, VerifyConfig,
 };
 use eden_skills_core::safety::{analyze_skills, persist_reports, LicenseStatus};
+use eden_skills_core::source::resolve_repo_cache_root;
 use tempfile::tempdir;
 
 const SKILL_ID: &str = "demo-skill";
@@ -15,9 +16,10 @@ const SKILL_ID: &str = "demo-skill";
 fn analyze_and_persist_reports_detects_permissive_license_and_risk_labels() {
     let temp = tempdir().expect("tempdir");
     let origin_repo = init_origin_repo(temp.path(), true);
+    let repo_url = as_file_url(&origin_repo);
 
     let storage_root = temp.path().join("storage");
-    let repo_path = storage_root.join(SKILL_ID);
+    let repo_path = resolve_repo_cache_root(&storage_root, &repo_url, "main");
     fs::create_dir_all(&storage_root).expect("create storage");
     run_git(
         temp.path(),
@@ -28,7 +30,7 @@ fn analyze_and_persist_reports_detects_permissive_license_and_risk_labels() {
         ],
     );
 
-    let config = test_config(&storage_root);
+    let config = test_config(&storage_root, &repo_url);
     let reports = analyze_skills(&config, temp.path()).expect("analyze safety");
     assert_eq!(reports.len(), 1);
     assert_eq!(reports[0].license_status, LicenseStatus::Permissive);
@@ -52,9 +54,10 @@ fn analyze_and_persist_reports_detects_permissive_license_and_risk_labels() {
 fn analyze_reports_unknown_license_when_no_license_file() {
     let temp = tempdir().expect("tempdir");
     let origin_repo = init_origin_repo(temp.path(), false);
+    let repo_url = as_file_url(&origin_repo);
 
     let storage_root = temp.path().join("storage");
-    let repo_path = storage_root.join(SKILL_ID);
+    let repo_path = resolve_repo_cache_root(&storage_root, &repo_url, "main");
     fs::create_dir_all(&storage_root).expect("create storage");
     run_git(
         temp.path(),
@@ -65,7 +68,7 @@ fn analyze_reports_unknown_license_when_no_license_file() {
         ],
     );
 
-    let config = test_config(&storage_root);
+    let config = test_config(&storage_root, &repo_url);
     let reports = analyze_skills(&config, temp.path()).expect("analyze safety");
     assert_eq!(reports.len(), 1);
     assert_eq!(reports[0].license_status, LicenseStatus::Unknown);
@@ -76,9 +79,10 @@ fn analyze_reports_unknown_license_when_no_license_file() {
 fn windows_safety_detection_skips_unix_exec_bit_and_keeps_other_risk_labels() {
     let temp = tempdir().expect("tempdir");
     let origin_repo = init_windows_risk_origin_repo(temp.path());
+    let repo_url = as_file_url(&origin_repo);
 
     let storage_root = temp.path().join("storage");
-    let repo_path = storage_root.join(SKILL_ID);
+    let repo_path = resolve_repo_cache_root(&storage_root, &repo_url, "main");
     fs::create_dir_all(&storage_root).expect("create storage");
     run_git(
         temp.path(),
@@ -89,7 +93,7 @@ fn windows_safety_detection_skips_unix_exec_bit_and_keeps_other_risk_labels() {
         ],
     );
 
-    let config = test_config(&storage_root);
+    let config = test_config(&storage_root, &repo_url);
     let reports = analyze_skills(&config, temp.path()).expect("analyze safety");
     assert_eq!(reports.len(), 1);
     let labels = &reports[0].risk_labels;
@@ -162,7 +166,7 @@ fn init_windows_risk_origin_repo(base: &Path) -> std::path::PathBuf {
     repo
 }
 
-fn test_config(storage_root: &Path) -> Config {
+fn test_config(storage_root: &Path, repo_url: &str) -> Config {
     Config {
         version: 1,
         storage_root: storage_root.display().to_string(),
@@ -170,7 +174,7 @@ fn test_config(storage_root: &Path) -> Config {
         skills: vec![SkillConfig {
             id: SKILL_ID.to_string(),
             source: SourceConfig {
-                repo: "file:///tmp/origin.git".to_string(),
+                repo: repo_url.to_string(),
                 subpath: "packages/browser".to_string(),
                 r#ref: "main".to_string(),
             },
@@ -212,4 +216,16 @@ fn run_git(cwd: &Path, args: &[&str]) {
         String::from_utf8_lossy(&output.stderr).trim(),
         String::from_utf8_lossy(&output.stdout).trim()
     );
+}
+
+fn as_file_url(path: &Path) -> String {
+    let mut normalized = path.display().to_string().replace('\\', "/");
+    if normalized
+        .as_bytes()
+        .get(1)
+        .is_some_and(|candidate| *candidate == b':')
+    {
+        normalized.insert(0, '/');
+    }
+    format!("file://{normalized}")
 }

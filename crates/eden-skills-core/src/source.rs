@@ -1,7 +1,8 @@
+use std::collections::BTreeMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::config::Config;
+use crate::config::{Config, SkillConfig};
 use crate::error::ReactorError;
 use crate::paths::{normalize_lexical, resolve_path_string};
 use crate::reactor::SkillReactor;
@@ -77,6 +78,71 @@ struct GitOutput {
     stdout: String,
 }
 
+pub fn normalize_repo_url(url: &str) -> String {
+    let without_scheme = url.split_once("://").map_or(url, |(_, rest)| rest);
+    let scp_normalized = if let Some(rest) = without_scheme.strip_prefix("git@") {
+        if let Some((host, path)) = rest.split_once(':') {
+            format!("{host}/{path}")
+        } else {
+            rest.to_string()
+        }
+    } else {
+        without_scheme.to_string()
+    };
+    let without_git_suffix = scp_normalized
+        .strip_suffix(".git")
+        .unwrap_or(&scp_normalized);
+
+    without_git_suffix
+        .chars()
+        .map(|ch| match ch {
+            '/' | '\\' | ':' => '_',
+            _ => ch.to_ascii_lowercase(),
+        })
+        .collect()
+}
+
+pub fn sanitize_ref(reference: &str) -> String {
+    reference
+        .chars()
+        .filter_map(|ch| match ch {
+            '/' => Some('_'),
+            '.' | '_' | '-' => Some(ch),
+            _ if ch.is_ascii_alphanumeric() => Some(ch),
+            _ => None,
+        })
+        .collect()
+}
+
+pub fn repo_cache_key(repo_url: &str, reference: &str) -> String {
+    format!(
+        "{}@{}",
+        normalize_repo_url(repo_url),
+        sanitize_ref(reference)
+    )
+}
+
+pub fn resolve_repo_cache_root(storage_root: &Path, repo_url: &str, reference: &str) -> PathBuf {
+    normalize_lexical(
+        &storage_root
+            .join(".repos")
+            .join(repo_cache_key(repo_url, reference)),
+    )
+}
+
+pub fn resolve_skill_storage_root(storage_root: &Path, skill: &SkillConfig) -> PathBuf {
+    if is_local_source_repo(&skill.source.repo) {
+        normalize_lexical(&storage_root.join(&skill.id))
+    } else {
+        resolve_repo_cache_root(storage_root, &skill.source.repo, &skill.source.r#ref)
+    }
+}
+
+pub fn resolve_skill_source_path(storage_root: &Path, skill: &SkillConfig) -> PathBuf {
+    let source_root = resolve_skill_storage_root(storage_root, skill);
+    normalize_lexical(&source_root.join(&skill.source.subpath))
+}
+
 pub fn sync_sources(config: &Config, config_dir: &Path) -> Result<SyncSummary, ReactorError> {
     if tokio::runtime::Handle::try_current().is_ok() {
         return Err(ReactorError::RuntimeInitialization {
@@ -112,16 +178,29 @@ pub async fn sync_sources_async_with_reactor(
     })?;
     tokio::fs::create_dir_all(&storage_root).await?;
 
-    let tasks = config
-        .skills
-        .iter()
-        .map(|skill| SyncTask {
+    let mut grouped_tasks = BTreeMap::new();
+    for skill in &config.skills {
+        if is_local_source_repo(&skill.source.repo) {
+            continue;
+        }
+        let cache_key = repo_cache_key(&skill.source.repo, &skill.source.r#ref);
+        grouped_tasks.entry(cache_key).or_insert_with(|| SyncTask {
             skill_id: skill.id.clone(),
             repo_url: skill.source.repo.clone(),
             reference: skill.source.r#ref.clone(),
-            repo_dir: normalize_lexical(&storage_root.join(&skill.id)),
-        })
-        .collect::<Vec<_>>();
+            repo_dir: resolve_repo_cache_root(
+                &storage_root,
+                &skill.source.repo,
+                &skill.source.r#ref,
+            ),
+        });
+    }
+
+    if !grouped_tasks.is_empty() {
+        tokio::fs::create_dir_all(storage_root.join(".repos")).await?;
+    }
+
+    let tasks = grouped_tasks.into_values().collect::<Vec<_>>();
 
     let outcomes = reactor
         .run_phase_a(tasks, move |task| {
@@ -328,4 +407,8 @@ fn run_git(command: &mut Command, context: &str) -> Result<GitOutput, String> {
         "git command failed while trying to {context}: status={} stderr=`{}` stdout=`{}`",
         output.status, stderr, stdout
     ))
+}
+
+fn is_local_source_repo(repo_url: &str) -> bool {
+    Path::new(repo_url).is_absolute()
 }

@@ -14,6 +14,7 @@ use serde::Serialize;
 use crate::config::{Config, InstallMode};
 use crate::error::EdenError;
 use crate::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
+use crate::source::resolve_skill_source_path;
 
 /// The reconciliation action determined for a single skill target.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -50,8 +51,7 @@ pub fn build_plan(config: &Config, config_dir: &Path) -> Result<Vec<PlanItem>, E
     let mut items = Vec::new();
 
     for skill in &config.skills {
-        let source_repo_root = storage_root.join(&skill.id);
-        let source_path = normalize_lexical(&source_repo_root.join(&skill.source.subpath));
+        let source_path = resolve_skill_source_path(&storage_root, skill);
 
         for target in &skill.targets {
             let target_root = resolve_target_path(target, config_dir)?;

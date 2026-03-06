@@ -11,8 +11,8 @@ use serde_json::Value;
 use tempfile::tempdir;
 
 use common::{
-    as_file_url, default_options, expected_source_path, expected_target_path, init_origin_repo,
-    run_git_cmd, write_config, write_config_with_safety, SKILL_ID,
+    as_file_url, default_options, expected_safety_metadata_path, expected_source_path,
+    expected_target_path, init_origin_repo, run_git_cmd, write_config, write_config_with_safety,
 };
 
 #[test]
@@ -51,7 +51,7 @@ fn apply_no_exec_metadata_only_skips_target_mutation_and_writes_metadata() {
     let source_path = expected_source_path(&storage_root);
     assert!(source_path.exists(), "source should still be synchronized");
 
-    let metadata_path = storage_root.join(SKILL_ID).join(".eden-safety.toml");
+    let metadata_path = expected_safety_metadata_path(&storage_root);
     let metadata = fs::read_to_string(&metadata_path).expect("read safety metadata");
     assert!(metadata.contains("version = 1"));
     assert!(metadata.contains("no_exec_metadata_only = true"));
@@ -150,7 +150,7 @@ fn apply_sync_failure_still_writes_safety_metadata() {
         "apply should fail with source sync error, stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
-    let metadata_path = storage_root.join(SKILL_ID).join(".eden-safety.toml");
+    let metadata_path = expected_safety_metadata_path(&storage_root);
     let metadata = fs::read_to_string(&metadata_path).expect("read safety metadata");
     assert!(metadata.contains("version = 1"));
     assert!(metadata.contains("license_status = \"unknown\""));

@@ -18,7 +18,7 @@ use eden_skills_core::plan::{build_plan, Action};
 use eden_skills_core::reactor::SkillReactor;
 use eden_skills_core::registry::{parse_registry_specs_from_toml, sort_registry_specs_by_priority};
 use eden_skills_core::safety::{analyze_skills, persist_reports, SkillSafetyReport};
-use eden_skills_core::source::sync_sources_async_with_reactor;
+use eden_skills_core::source::{resolve_skill_storage_root, sync_sources_async_with_reactor};
 use eden_skills_core::verify::verify_config_state;
 use owo_colors::OwoColorize;
 
@@ -464,7 +464,7 @@ fn build_mode_a_refresh_tasks(config: &Config, storage_root: &Path) -> Vec<Skill
         .map(|skill| SkillRefreshTask {
             id: skill.id.clone(),
             reference: skill.source.r#ref.clone(),
-            local_dir: storage_root.join(&skill.id),
+            local_dir: resolve_skill_storage_root(storage_root, skill),
         })
         .collect()
 }
@@ -714,7 +714,7 @@ fn collect_resolved_commits(config: &Config, config_dir: &Path) -> HashMap<Strin
     };
     let mut commits = HashMap::new();
     for skill in &config.skills {
-        let repo_dir = storage_root.join(&skill.id);
+        let repo_dir = resolve_skill_storage_root(&storage_root, skill);
         if let Some(sha) = read_head_sha(&repo_dir) {
             commits.insert(skill.id.clone(), sha);
         }
@@ -725,7 +725,7 @@ fn collect_resolved_commits(config: &Config, config_dir: &Path) -> HashMap<Strin
 fn materialize_fetch_heads(config: &Config, config_dir: &Path) -> Result<(), EdenError> {
     let storage_root = resolve_path_string(&config.storage_root, config_dir)?;
     for skill in &config.skills {
-        let repo_dir = storage_root.join(&skill.id);
+        let repo_dir = resolve_skill_storage_root(&storage_root, skill);
         if !repo_dir.join(".git").exists() {
             continue;
         }

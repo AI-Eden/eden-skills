@@ -87,6 +87,8 @@ Phase 2.95 acceptance test scenarios.
 Regression tests are not individually numbered. The following MUST
 pass after all Phase 2.95 changes:
 
+- `cargo fmt --all -- --check` MUST pass.
+- `cargo clippy --workspace -- -D warnings` MUST pass.
 - `cargo test --workspace` — all existing Phase 1/2/2.5/2.7/2.8/2.9
   tests MUST continue to pass.
 - For any batch that touches `cfg(windows)` code or Windows-only

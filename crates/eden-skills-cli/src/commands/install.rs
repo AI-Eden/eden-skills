@@ -23,7 +23,7 @@ use eden_skills_core::discovery::{discover_skills, DiscoveredSkill};
 use eden_skills_core::error::EdenError;
 use eden_skills_core::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action};
-use eden_skills_core::source::sync_sources_async;
+use eden_skills_core::source::{resolve_repo_cache_root, sync_sources_async};
 use eden_skills_core::source_format::{
     derive_skill_id_from_source_repo, detect_install_source, DetectedInstallSource,
     UrlInstallSource,
@@ -340,33 +340,33 @@ async fn install_remote_url_mode_async(
         "Cloning",
         format!("{}@{} ({})", url_source.repo, source_ref, scope_subpath),
     );
-    let mut discovered =
+    let mut remote_discovery =
         match discover_remote_skills_via_temp_clone(&url_source.repo, &source_ref, &scope_subpath)
             .await
         {
-            Ok(skills) => {
+            Ok(discovery) => {
                 clone_spinner.finish_success(ui);
-                skills
+                discovery
             }
             Err(err) => {
                 clone_spinner.finish_failure(ui, &err.to_string());
                 return Err(err);
             }
         };
-    if discovered.is_empty() {
+    if remote_discovery.discovered.is_empty() {
         print_warning(ui, "No SKILL.md found; installing directory as-is.");
     }
 
     if req.list && !req.dry_run {
         if req.options.json {
-            print_discovery_json(&discovered)?;
+            print_discovery_json(&remote_discovery.discovered)?;
         } else {
-            print_discovery_preview(ui, &discovered, true);
+            print_discovery_preview(ui, &remote_discovery.discovered, true);
         }
         return Ok(());
     }
 
-    if discovered.is_empty() {
+    if remote_discovery.discovered.is_empty() {
         if !req.all && !req.skill.is_empty() {
             return Err(EdenError::InvalidArguments(format!(
                 "unknown skill name(s): {}; available: (none discovered)",
@@ -378,14 +378,20 @@ async fn install_remote_url_mode_async(
             .clone()
             .map(Ok)
             .unwrap_or_else(|| derive_skill_id_from_source_repo(&url_source.repo))?;
-        discovered.push(DiscoveredSkill {
+        remote_discovery.discovered.push(DiscoveredSkill {
             name: fallback_name,
             description: String::new(),
             subpath: ".".to_string(),
         });
     }
 
-    let selected = resolve_local_install_selection(&discovered, req.all, &req.skill, req.yes, ui)?;
+    let selected = resolve_local_install_selection(
+        &remote_discovery.discovered,
+        req.all,
+        &req.skill,
+        req.yes,
+        ui,
+    )?;
     if selected.is_empty() {
         return Ok(());
     }
@@ -434,6 +440,13 @@ async fn install_remote_url_mode_async(
     }
 
     write_normalized_config(config_path, &config)?;
+    let storage_root = resolve_path_string(&selected_config.storage_root, &config_dir)?;
+    seed_repo_cache_from_discovery_checkout(
+        remote_discovery.temp_checkout.take(),
+        &storage_root,
+        &url_source.repo,
+        &source_ref,
+    )?;
 
     let mut execution_summary = InstallExecutionSummary::default();
     let mut sync_progress = SourceSyncProgress::new(ui, selected_ids.len());
@@ -624,7 +637,7 @@ async fn discover_remote_skills_via_temp_clone(
     repo_url: &str,
     reference: &str,
     scoped_subpath: &str,
-) -> Result<Vec<DiscoveredSkill>, EdenError> {
+) -> Result<RemoteDiscoveryResult, EdenError> {
     let repo_url = repo_url.to_string();
     let reference = reference.to_string();
     let scoped_subpath = scoped_subpath.to_string();
@@ -639,27 +652,50 @@ fn discover_remote_skills_via_temp_clone_blocking(
     repo_url: &str,
     reference: &str,
     scoped_subpath: &str,
-) -> Result<Vec<DiscoveredSkill>, EdenError> {
+) -> Result<RemoteDiscoveryResult, EdenError> {
     let temp_checkout = create_discovery_temp_checkout()?;
-    let repo_dir = temp_checkout.path.join("repo");
-    clone_repo_for_discovery(repo_url, reference, &repo_dir)?;
-    let discovery_root = normalize_lexical(&repo_dir.join(scoped_subpath));
+    clone_repo_for_discovery(repo_url, reference, temp_checkout.path())?;
+    let discovery_root = normalize_lexical(&temp_checkout.path().join(scoped_subpath));
     if !discovery_root.exists() {
         return Err(EdenError::Runtime(format!(
             "discovery path does not exist: {}",
             discovery_root.display()
         )));
     }
-    discover_skills(&discovery_root)
+    Ok(RemoteDiscoveryResult {
+        discovered: discover_skills(&discovery_root)?,
+        temp_checkout: Some(temp_checkout),
+    })
 }
 
+#[derive(Debug)]
+struct RemoteDiscoveryResult {
+    discovered: Vec<DiscoveredSkill>,
+    temp_checkout: Option<TempDiscoveryCheckout>,
+}
+
+#[derive(Debug)]
 struct TempDiscoveryCheckout {
-    path: PathBuf,
+    path: Option<PathBuf>,
+}
+
+impl TempDiscoveryCheckout {
+    fn path(&self) -> &Path {
+        self.path
+            .as_deref()
+            .expect("temp discovery checkout path should be present")
+    }
+
+    fn disarm(&mut self) {
+        self.path = None;
+    }
 }
 
 impl Drop for TempDiscoveryCheckout {
     fn drop(&mut self) {
-        let _ = fs::remove_dir_all(&self.path);
+        if let Some(path) = &self.path {
+            let _ = fs::remove_dir_all(path);
+        }
     }
 }
 
@@ -674,7 +710,11 @@ fn create_discovery_temp_checkout() -> Result<TempDiscoveryCheckout, EdenError> 
             std::process::id()
         ));
         match fs::create_dir(&candidate) {
-            Ok(()) => return Ok(TempDiscoveryCheckout { path: candidate }),
+            Ok(()) => {
+                return Ok(TempDiscoveryCheckout {
+                    path: Some(candidate),
+                })
+            }
             Err(err) if err.kind() == std::io::ErrorKind::AlreadyExists => continue,
             Err(err) => return Err(EdenError::Io(err)),
         }
@@ -682,6 +722,43 @@ fn create_discovery_temp_checkout() -> Result<TempDiscoveryCheckout, EdenError> 
     Err(EdenError::Runtime(
         "failed to create temporary directory for remote discovery".to_string(),
     ))
+}
+
+fn seed_repo_cache_from_discovery_checkout(
+    temp_checkout: Option<TempDiscoveryCheckout>,
+    storage_root: &Path,
+    repo_url: &str,
+    reference: &str,
+) -> Result<(), EdenError> {
+    let Some(mut temp_checkout) = temp_checkout else {
+        return Ok(());
+    };
+
+    let cache_root = resolve_repo_cache_root(storage_root, repo_url, reference);
+    if cache_root.exists() {
+        return Ok(());
+    }
+    if let Some(parent) = cache_root.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    if let Ok(()) = rename_discovery_checkout_for_cache(temp_checkout.path(), &cache_root) {
+        temp_checkout.disarm()
+    }
+    Ok(())
+}
+
+fn rename_discovery_checkout_for_cache(from: &Path, to: &Path) -> std::io::Result<()> {
+    if std::env::var("EDEN_SKILLS_TEST_FORCE_DISCOVERY_RENAME_FAIL")
+        .ok()
+        .as_deref()
+        == Some("1")
+    {
+        return Err(std::io::Error::other(
+            "forced discovery checkout rename failure",
+        ));
+    }
+    fs::rename(from, to)
 }
 
 fn clone_repo_for_discovery(

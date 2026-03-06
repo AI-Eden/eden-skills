@@ -19,7 +19,7 @@ use eden_skills_core::paths::{known_default_agent_paths, resolve_path_string};
 use eden_skills_core::plan::{build_plan, Action};
 use eden_skills_core::reactor::SkillReactor;
 use eden_skills_core::safety::{analyze_skills, persist_reports, SkillSafetyReport};
-use eden_skills_core::source::sync_sources_async_with_reactor;
+use eden_skills_core::source::{resolve_skill_storage_root, sync_sources_async_with_reactor};
 use eden_skills_core::verify::verify_config_state;
 use owo_colors::OwoColorize;
 
@@ -387,7 +387,7 @@ fn collect_resolved_commits(config: &Config, config_dir: &Path) -> HashMap<Strin
     };
     let mut commits = HashMap::new();
     for skill in &config.skills {
-        let repo_dir = storage_root.join(&skill.id);
+        let repo_dir = resolve_skill_storage_root(&storage_root, skill);
         if let Some(sha) = read_head_sha(&repo_dir) {
             commits.insert(skill.id.clone(), sha);
         }

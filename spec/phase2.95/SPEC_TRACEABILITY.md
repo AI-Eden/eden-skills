@@ -3,19 +3,19 @@
 Requirement-to-implementation mapping for Phase 2.95.
 Use this file to recover accurate context after compression.
 
-**Status:** PENDING — Populated by Builder during implementation.
+**Status:** IN PROGRESS — Batch 4 repo-cache core completed; Batch 5 perf follow-up pending.
 
 ## 1. Performance Sync Requirements
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| PSY-001 | `SPEC_PERF_SYNC.md` 2.1 | Source sync MUST use repo-level cache at `.repos/` | | | pending |
-| PSY-002 | `SPEC_PERF_SYNC.md` 2.2 | Cache key from normalized URL + sanitized ref | | | pending |
-| PSY-003 | `SPEC_PERF_SYNC.md` 3.2 | Discovery clone MUST be reused via move | | | pending |
+| PSY-001 | `SPEC_PERF_SYNC.md` 2.1 | Source sync MUST use repo-level cache at `.repos/` | `crates/eden-skills-core/src/source.rs`, `crates/eden-skills-core/src/plan.rs`, `crates/eden-skills-core/src/verify.rs`, `crates/eden-skills-core/src/safety.rs` | `crates/eden-skills-core/tests/perf_sync_tests.rs` (TM-P295-024, TM-P295-025, TM-P295-026), `crates/eden-skills-cli/tests/perf_sync_tests.rs` (TM-P295-038) | completed |
+| PSY-002 | `SPEC_PERF_SYNC.md` 2.2 | Cache key from normalized URL + sanitized ref | `crates/eden-skills-core/src/source.rs` | `crates/eden-skills-core/tests/perf_sync_tests.rs` (TM-P295-027, TM-P295-028) | completed |
+| PSY-003 | `SPEC_PERF_SYNC.md` 3.2 | Discovery clone MUST be reused via move | `crates/eden-skills-cli/src/commands/install.rs`, `crates/eden-skills-core/src/source.rs` | `crates/eden-skills-cli/tests/perf_sync_tests.rs` (TM-P295-029, TM-P295-030) | completed |
 | PSY-004 | `SPEC_PERF_SYNC.md` 4.2 | Install sync MUST batch into one reactor call | | | pending |
 | PSY-005 | `SPEC_PERF_SYNC.md` 5.2 | Apply SHOULD skip sync for unchanged repos | | | pending |
-| PSY-006 | `SPEC_PERF_SYNC.md` 7 | update/apply/repair MUST use repo cache | | | pending |
-| PSY-007 | `SPEC_PERF_SYNC.md` 6.2 | Migration MUST be gradual and non-destructive | | | pending |
+| PSY-006 | `SPEC_PERF_SYNC.md` 7 | update/apply/repair MUST use repo cache | `crates/eden-skills-core/src/source.rs`, `crates/eden-skills-core/src/plan.rs`, `crates/eden-skills-core/src/verify.rs`, `crates/eden-skills-core/src/safety.rs`, `crates/eden-skills-cli/src/commands/reconcile.rs`, `crates/eden-skills-cli/src/commands/update.rs` | `crates/eden-skills-core/tests/symlink_canonical_tests.rs`, `crates/eden-skills-cli/tests/apply_repair.rs`, `crates/eden-skills-cli/tests/lock_diff_tests.rs`, `crates/eden-skills-cli/tests/update_ext_tests.rs` | in_progress |
+| PSY-007 | `SPEC_PERF_SYNC.md` 6.2 | Migration MUST be gradual and non-destructive | `crates/eden-skills-core/src/source.rs`, `crates/eden-skills-cli/src/commands/install.rs` | `crates/eden-skills-core/tests/perf_sync_tests.rs` (TM-P295-035), `crates/eden-skills-cli/tests/perf_sync_tests.rs` (TM-P295-038) | completed |
 | PSY-008 | `SPEC_PERF_SYNC.md` 8 | Copy-mode mtime+size fast path | | | pending |
 
 ## 2. Remove All Requirements

@@ -1,7 +1,7 @@
 # Phase 2.95 Execution Tracker
 
 Phase: Performance, Platform Reach & UX Completeness
-Status: Batch 3 Completed
+Status: Batch 4 Completed
 Started: 2026-03-06
 
 ## Batch Plan
@@ -11,7 +11,7 @@ Started: 2026-03-06
 | 1 | Install Scripts | WP-5 | ISC-001~007 | completed |
 | 2 | Remove All Symbol | WP-2 | RMA-001~004 | completed |
 | 3 | Windows Junction Fallback | WP-3 | WJN-001~006 | completed |
-| 4 | Performance Part 1: Repo-Level Cache | WP-1 pt1 | PSY-001~003, PSY-006~007 | pending |
+| 4 | Performance Part 1: Repo-Level Cache | WP-1 pt1 | PSY-001~003, PSY-006~007 | completed |
 | 5 | Performance Part 2: Batch Sync + Migration | WP-1 pt2 | PSY-004~006, PSY-008 | pending |
 | 6 | Docker Bind Mount + Agent Auto-Detection | WP-4 | DBM-001~007 | pending |
 | 7 | Regression + Closeout | — | TM regression | pending |
@@ -69,3 +69,21 @@ Started: 2026-03-06
   - `cargo clippy --workspace --all-targets --all-features --locked -- -D warnings` ✅
   - `cargo test --workspace` ✅
   - Test inventory: `363`
+
+### Batch 4 — Performance Part 1: Repo-Level Cache (Completed 2026-03-06)
+
+- Requirements: `PSY-001`, `PSY-002`, `PSY-003`, `PSY-006` (partial), `PSY-007`
+- Completed in this pass:
+  - Refactored `crates/eden-skills-core/src/source.rs` to normalize remote repo URLs, sanitize refs, derive shared repo-cache keys, group sync work by `(repo_url, ref)`, and store remote checkouts under `storage_root/.repos/{cache_key}`.
+  - Added `resolve_skill_storage_root()` and `resolve_skill_source_path()` so repo-cache paths are used consistently by `crates/eden-skills-core/src/plan.rs`, `crates/eden-skills-core/src/verify.rs`, `crates/eden-skills-core/src/safety.rs`, `crates/eden-skills-cli/src/commands/reconcile.rs`, and `crates/eden-skills-cli/src/commands/update.rs`.
+  - Updated `crates/eden-skills-cli/src/commands/install.rs` to preserve the remote discovery checkout, move it into the repo cache when possible, and fall back to a fresh cache clone when the move fails across filesystems.
+  - Preserved local-source install semantics: local installs still stage under `storage_root/{skill_id}`, and old per-skill remote directories are left untouched instead of being deleted.
+  - Added `crates/eden-skills-core/tests/perf_sync_tests.rs` and `crates/eden-skills-cli/tests/perf_sync_tests.rs` for `TM-P295-024` through `TM-P295-030`, `TM-P295-035`, and `TM-P295-038`, then updated affected existing tests to the repo-cache layout.
+- Validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace --all-targets` ✅
+  - `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc` ✅
+  - Test inventory: `375`
+- Notes:
+  - Batch 5 remains next: remote install batching (`PSY-004`), lock-diff skip logic (`PSY-005`), remaining repo-cache migration closeout, and the optional copy fast path (`PSY-008`).

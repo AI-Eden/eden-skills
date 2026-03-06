@@ -4,6 +4,7 @@ use std::path::{Path, PathBuf};
 use crate::config::{Config, InstallMode};
 use crate::error::EdenError;
 use crate::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
+use crate::source::resolve_skill_source_path;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct VerifyIssue {
@@ -25,8 +26,7 @@ pub fn verify_config_state(
             continue;
         }
 
-        let source_path =
-            normalize_lexical(&storage_root.join(&skill.id).join(&skill.source.subpath));
+        let source_path = resolve_skill_source_path(&storage_root, skill);
         for target in &skill.targets {
             let target_root = resolve_target_path(target, config_dir)?;
             let target_path = normalize_lexical(&target_root.join(&skill.id));

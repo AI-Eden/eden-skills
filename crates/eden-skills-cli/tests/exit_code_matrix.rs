@@ -4,6 +4,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use eden_skills_core::source::resolve_repo_cache_root;
 use tempfile::tempdir;
 
 use common::{as_file_url, init_origin_repo, remove_symlink, write_config};
@@ -116,7 +117,7 @@ fn apply_returns_exit_code_1_with_fetch_failure_diagnostics() {
         &target_root,
     );
 
-    let fake_repo_dir = storage_root.join(common::SKILL_ID);
+    let fake_repo_dir = resolve_repo_cache_root(&storage_root, &as_file_url(&origin_repo), "main");
     fs::create_dir_all(&fake_repo_dir).expect("create fake repo dir");
     fs::write(fake_repo_dir.join(".git"), "not-a-repo").expect("write fake .git marker");
 

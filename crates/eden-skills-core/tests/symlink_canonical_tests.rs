@@ -9,6 +9,7 @@ mod unix {
 
     use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions};
     use eden_skills_core::plan::{build_plan, Action};
+    use eden_skills_core::source::resolve_repo_cache_root;
     use eden_skills_core::verify::verify_config_state;
     use tempfile::tempdir;
 
@@ -21,7 +22,9 @@ mod unix {
 
         let skill_id = "x";
         let source_subpath = "src";
-        let source_real = storage_root.join(skill_id).join(source_subpath);
+        let repo_url = "file:///tmp/unused";
+        let source_real =
+            resolve_repo_cache_root(&storage_root, repo_url, "main").join(source_subpath);
         fs::create_dir_all(&source_real).expect("create source dir");
         fs::write(source_real.join("file.txt"), "ok\n").expect("write source file");
 
@@ -62,7 +65,9 @@ mod unix {
 
         let skill_id = "x";
         let source_subpath = "src";
-        let source_real = storage_root.join(skill_id).join(source_subpath);
+        let repo_url = "file:///tmp/unused";
+        let source_real =
+            resolve_repo_cache_root(&storage_root, repo_url, "main").join(source_subpath);
         fs::create_dir_all(&source_real).expect("create source dir");
         fs::write(source_real.join("file.txt"), "ok\n").expect("write source file");
 
@@ -108,6 +113,7 @@ mod windows {
 
     use eden_skills_core::config::{config_dir_from_path, load_from_file, LoadOptions};
     use eden_skills_core::plan::{build_plan, Action};
+    use eden_skills_core::source::resolve_repo_cache_root;
     use eden_skills_core::verify::verify_config_state;
     use tempfile::tempdir;
 
@@ -120,7 +126,9 @@ mod windows {
 
         let skill_id = "x";
         let source_subpath = "src";
-        let source_real = storage_root.join(skill_id).join(source_subpath);
+        let repo_url = "file:///tmp/unused";
+        let source_real =
+            resolve_repo_cache_root(&storage_root, repo_url, "main").join(source_subpath);
         fs::create_dir_all(&source_real).expect("create source dir");
         fs::write(source_real.join("file.txt"), "ok\n").expect("write source file");
 
@@ -161,7 +169,9 @@ mod windows {
 
         let skill_id = "x";
         let source_subpath = "src";
-        let source_real = storage_root.join(skill_id).join(source_subpath);
+        let repo_url = "file:///tmp/unused";
+        let source_real =
+            resolve_repo_cache_root(&storage_root, repo_url, "main").join(source_subpath);
         fs::create_dir_all(&source_real).expect("create source dir");
         fs::write(source_real.join("file.txt"), "ok\n").expect("write source file");
 
