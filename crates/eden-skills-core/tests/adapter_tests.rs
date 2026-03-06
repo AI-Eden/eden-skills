@@ -344,7 +344,7 @@ async fn docker_adapter_symlink_mode_emits_warning_and_falls_back_to_copy() {
 
 #[cfg(windows)]
 #[tokio::test]
-async fn local_adapter_windows_symlink_permission_denied_includes_remediation_hint() {
+async fn local_adapter_windows_symlink_and_junction_permission_denied_reports_guidance() {
     let temp = tempdir().expect("tempdir");
     let source = temp.path().join("source");
     fs::create_dir_all(&source).expect("create source");
@@ -367,6 +367,10 @@ async fn local_adapter_windows_symlink_permission_denied_includes_remediation_hi
     assert!(
         message.contains("Enable Developer Mode or run as Administrator"),
         "expected Windows remediation hint, got: {message}"
+    );
+    assert!(
+        message.contains("junction fallback failed"),
+        "expected compound fallback context in error message, got: {message}"
     );
 }
 

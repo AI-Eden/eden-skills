@@ -801,13 +801,12 @@ fn apply_symlink(source_path: &Path, target_path: &Path) -> Result<(), EdenError
                 Ok(()) => {}
                 Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
                     junction::create(source_path, target_path).map_err(|junction_err| {
-                        EdenError::Runtime(format!(
-                            "failed to create symlink `{}` -> `{}`: {}. junction fallback failed: {}",
-                            target_path.display(),
-                            source_path.display(),
+                        map_windows_symlink_fallback_error(
                             err,
-                            junction_err
-                        ))
+                            junction_err,
+                            source_path,
+                            target_path,
+                        )
                     })?;
                 }
                 Err(err) => return Err(map_windows_symlink_error(err, source_path, target_path)),
@@ -819,6 +818,22 @@ fn apply_symlink(source_path: &Path, target_path: &Path) -> Result<(), EdenError
     }
 
     Ok(())
+}
+
+#[cfg(windows)]
+fn map_windows_symlink_fallback_error(
+    symlink_err: std::io::Error,
+    junction_err: std::io::Error,
+    source_path: &Path,
+    target_path: &Path,
+) -> EdenError {
+    EdenError::Runtime(format!(
+        "failed to create symlink `{}` -> `{}`: {}. Enable Developer Mode or run as Administrator if symlink privileges are unavailable; otherwise verify write permissions for the target path. junction fallback failed: {}",
+        target_path.display(),
+        source_path.display(),
+        symlink_err,
+        junction_err
+    ))
 }
 
 #[cfg(windows)]

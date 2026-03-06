@@ -525,15 +525,7 @@ fn create_symlink(source: &Path, target: &Path, source_is_dir: bool) -> Result<(
                 Ok(()) => {}
                 Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => {
                     junction::create(source, target).map_err(|junction_err| {
-                        AdapterError::Runtime {
-                            detail: format!(
-                                "failed to create symlink `{}` -> `{}`: {}. junction fallback failed: {}",
-                                target.display(),
-                                source.display(),
-                                err,
-                                junction_err
-                            ),
-                        }
+                        map_windows_symlink_fallback_error(err, junction_err, source, target)
                     })?;
                 }
                 Err(err) => return Err(map_windows_symlink_error(err, source, target)),
@@ -543,6 +535,24 @@ fn create_symlink(source: &Path, target: &Path, source_is_dir: bool) -> Result<(
                 .map_err(|err| map_windows_symlink_error(err, source, target))?;
         }
         Ok(())
+    }
+}
+
+#[cfg(windows)]
+fn map_windows_symlink_fallback_error(
+    symlink_err: std::io::Error,
+    junction_err: std::io::Error,
+    source: &Path,
+    target: &Path,
+) -> AdapterError {
+    AdapterError::Runtime {
+        detail: format!(
+            "failed to create symlink `{}` -> `{}`: {}. Enable Developer Mode or run as Administrator if symlink privileges are unavailable; otherwise verify write permissions for the target path. junction fallback failed: {}",
+            target.display(),
+            source.display(),
+            symlink_err,
+            junction_err
+        ),
     }
 }
 
