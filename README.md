@@ -6,7 +6,24 @@
 
 ## Install
 
-**Prerequisites:** Rust toolchain (`cargo`) and Git. If you don't have `cargo`, see the [official install guide](https://www.rust-lang.org/tools/install).
+**Prerequisite:** Git
+
+**Linux / macOS:**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AI-Eden/eden-skills/main/install.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/AI-Eden/eden-skills/main/install.ps1 | iex
+```
+
+The install scripts place the binary in `~/.eden-skills/bin/` on Linux/macOS or
+`$env:USERPROFILE\.eden-skills\bin\` on Windows and print PATH guidance when needed.
+
+**Alternative: cargo install**
 
 ```bash
 cargo install eden-skills --locked
@@ -16,12 +33,6 @@ Verify:
 
 ```bash
 eden-skills --version
-```
-
-If `eden-skills` is not found, add Cargo bin to your `PATH`:
-
-```bash
-export PATH="$HOME/.cargo/bin:$PATH"
 ```
 
 <details> <!-- markdownlint-disable-line -->

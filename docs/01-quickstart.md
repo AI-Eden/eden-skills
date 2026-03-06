@@ -4,8 +4,26 @@ This guide gets you from a fresh install to working skills in under two minutes.
 
 ## Prerequisites
 
-- `eden-skills` binary installed — see [README](../README.md#install)
 - Git
+- `eden-skills` installed
+
+Linux / macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AI-Eden/eden-skills/main/install.sh | bash
+```
+
+Windows (PowerShell):
+
+```powershell
+irm https://raw.githubusercontent.com/AI-Eden/eden-skills/main/install.ps1 | iex
+```
+
+Alternative:
+
+```bash
+cargo install eden-skills --locked
+```
 
 ---
 

@@ -1,5 +1,5 @@
 phase: phase295_performance_platform_reach
-status: ready_for_implementation
+status: batch1_completed
 started_at: "2026-03-06"
 
 spec_files:
@@ -26,7 +26,7 @@ batches:
     name: "Install Scripts"
     work_packages: [WP-5]
     requirements: [ISC-001, ISC-002, ISC-003, ISC-004, ISC-005, ISC-006, ISC-007]
-    status: pending
+    status: completed
   batch2:
     name: "Remove All Symbol"
     work_packages: [WP-2]
@@ -58,4 +58,21 @@ batches:
     requirements: []
     status: pending
 
-builder_progress: {}
+builder_progress:
+  batch_1_install_scripts:
+    status: completed
+    started_at: "2026-03-06"
+    completed_at: "2026-03-06"
+    requirements: ISC-001, ISC-002, ISC-003, ISC-004, ISC-005, ISC-006, ISC-007
+    scenarios: TM-P295-001, TM-P295-002, TM-P295-003, TM-P295-004, TM-P295-005, TM-P295-006, TM-P295-007, TM-P295-008, TM-P295-009
+    notes:
+      - added root-level `install.sh` and `install.ps1` installers with release version resolution, target detection, SHA-256 verification, install-dir support, git warning, and post-install `--version` verification
+      - added deterministic installer test hooks (`EDEN_SKILLS_RELEASE_API_URL`, `EDEN_SKILLS_RELEASE_BASE_URL`, `EDEN_SKILLS_TEST_UNAME_S`, `EDEN_SKILLS_TEST_UNAME_M`) so script behavior can be validated without live network downloads
+      - added `cargo-binstall` metadata to `crates/eden-skills-cli/Cargo.toml` and updated `README.md` plus `docs/01-quickstart.md` to advertise the new one-line install flow
+      - added `crates/eden-skills-cli/tests/install_script_tests.rs` with Batch 1 coverage for target mapping, checksum failures, PATH hinting, version pinning, PowerShell contract snippets, and binstall metadata
+      - live `cargo binstall` end-to-end download was not executed in this environment; the release URL contract is asserted through manifest metadata tests instead
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 349

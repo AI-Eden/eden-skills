@@ -1,14 +1,14 @@
 # Phase 2.95 Execution Tracker
 
 Phase: Performance, Platform Reach & UX Completeness
-Status: Ready for Implementation
+Status: Batch 1 Completed
 Started: 2026-03-06
 
 ## Batch Plan
 
 | Batch | Name | WP | Requirements | Status |
 | --- | --- | --- | --- | --- |
-| 1 | Install Scripts | WP-5 | ISC-001~007 | pending |
+| 1 | Install Scripts | WP-5 | ISC-001~007 | completed |
 | 2 | Remove All Symbol | WP-2 | RMA-001~004 | pending |
 | 3 | Windows Junction Fallback | WP-3 | WJN-001~006 | pending |
 | 4 | Performance Part 1: Repo-Level Cache | WP-1 pt1 | PSY-001~003, PSY-006~007 | pending |
@@ -24,4 +24,19 @@ Started: 2026-03-06
 
 ## Completion Records
 
-(Populated by Builder after each batch.)
+### Batch 1 — Install Scripts (Completed 2026-03-06)
+
+- Requirements: `ISC-001`, `ISC-002`, `ISC-003`, `ISC-004`, `ISC-005`, `ISC-006`, `ISC-007`
+- Completed in this pass:
+  - Added root-level installers `install.sh` and `install.ps1` for GitHub Releases downloads with target detection, SHA-256 verification, install-dir support, git warning, and post-install `--version` verification.
+  - Added test-only installer overrides (`EDEN_SKILLS_RELEASE_API_URL`, `EDEN_SKILLS_RELEASE_BASE_URL`, `EDEN_SKILLS_TEST_UNAME_S`, `EDEN_SKILLS_TEST_UNAME_M`) so script behavior can be validated without live network traffic.
+  - Added `cargo-binstall` metadata to `crates/eden-skills-cli/Cargo.toml`.
+  - Updated `README.md` and `docs/01-quickstart.md` to make the shell/PowerShell one-liners the primary install path, while preserving `cargo install` as the fallback.
+  - Added `crates/eden-skills-cli/tests/install_script_tests.rs` covering `TM-P295-001` through `TM-P295-009`.
+- Validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace` ✅
+  - Test inventory: `349`
+- Notes:
+  - Live `cargo binstall` end-to-end downloading was not executed in this environment; the release URL contract is asserted via automated manifest tests.

@@ -54,10 +54,10 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| ISC-001 | `SPEC_INSTALL_SCRIPT.md` 2.1 | install.sh for Linux/macOS | | | pending |
-| ISC-002 | `SPEC_INSTALL_SCRIPT.md` 2.2 | install.ps1 for Windows | | | pending |
-| ISC-003 | `SPEC_INSTALL_SCRIPT.md` 2.1 | Platform detection and triple mapping | | | pending |
-| ISC-004 | `SPEC_INSTALL_SCRIPT.md` 2.1 | SHA-256 integrity verification | | | pending |
-| ISC-005 | `SPEC_INSTALL_SCRIPT.md` 2.1 | PATH check and shell-specific hint | | | pending |
-| ISC-006 | `SPEC_INSTALL_SCRIPT.md` 3 | cargo-binstall metadata | | | pending |
-| ISC-007 | `SPEC_INSTALL_SCRIPT.md` 2.1 | EDEN_SKILLS_VERSION version pinning | | | pending |
+| ISC-001 | `SPEC_INSTALL_SCRIPT.md` 2.1 | install.sh for Linux/macOS | `install.sh`, `README.md`, `docs/01-quickstart.md` | `crates/eden-skills-cli/tests/install_script_tests.rs` (TM-P295-001, TM-P295-002) | completed |
+| ISC-002 | `SPEC_INSTALL_SCRIPT.md` 2.2 | install.ps1 for Windows | `install.ps1`, `README.md`, `docs/01-quickstart.md` | `crates/eden-skills-cli/tests/install_script_tests.rs` (TM-P295-006) | completed |
+| ISC-003 | `SPEC_INSTALL_SCRIPT.md` 2.1 | Platform detection and triple mapping | `install.sh`, `install.ps1` | `crates/eden-skills-cli/tests/install_script_tests.rs` (TM-P295-001, TM-P295-002, TM-P295-003, TM-P295-006) | completed |
+| ISC-004 | `SPEC_INSTALL_SCRIPT.md` 2.1 | SHA-256 integrity verification | `install.sh`, `install.ps1` | `crates/eden-skills-cli/tests/install_script_tests.rs` (TM-P295-004, TM-P295-007) | completed |
+| ISC-005 | `SPEC_INSTALL_SCRIPT.md` 2.1 | PATH check and shell-specific hint | `install.sh`, `install.ps1` | `crates/eden-skills-cli/tests/install_script_tests.rs` (TM-P295-005, TM-P295-006) | completed |
+| ISC-006 | `SPEC_INSTALL_SCRIPT.md` 3 | cargo-binstall metadata | `crates/eden-skills-cli/Cargo.toml` | `crates/eden-skills-cli/tests/install_script_tests.rs` (TM-P295-009) | completed |
+| ISC-007 | `SPEC_INSTALL_SCRIPT.md` 2.1 | EDEN_SKILLS_VERSION version pinning | `install.sh`, `install.ps1` | `crates/eden-skills-cli/tests/install_script_tests.rs` (TM-P295-006, TM-P295-008) | completed |
