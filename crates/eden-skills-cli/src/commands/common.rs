@@ -899,6 +899,11 @@ fn remove_symlink_path(path: &Path) -> Result<(), EdenError> {
                 path.display()
             ))
         })?;
+        match fs::remove_dir(path) {
+            Ok(()) => {}
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => return Err(EdenError::Io(err)),
+        }
         return Ok(());
     }
 

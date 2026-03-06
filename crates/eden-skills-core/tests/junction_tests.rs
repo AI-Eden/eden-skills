@@ -91,8 +91,16 @@ mod windows {
 
         junction::delete(&target).expect("delete junction");
         assert!(
-            !target.exists(),
-            "junction target should be removed after delete"
+            target.exists(),
+            "junction::delete removes the reparse point but leaves the directory path behind"
+        );
+        assert!(
+            !junction::exists(&target).unwrap_or(false),
+            "junction path should no longer report as a junction after delete"
+        );
+        assert!(
+            !target.join("README.md").exists(),
+            "junction path should no longer resolve into the original target contents after delete"
         );
     }
 

@@ -504,6 +504,11 @@ async fn remove_symlink_or_junction(path: &Path) -> Result<(), AdapterError> {
         junction::delete(path).map_err(|err| AdapterError::Runtime {
             detail: format!("failed to delete junction `{}`: {err}", path.display()),
         })?;
+        match tokio::fs::remove_dir(path).await {
+            Ok(()) => {}
+            Err(err) if err.kind() == std::io::ErrorKind::NotFound => {}
+            Err(err) => return Err(AdapterError::Io(err)),
+        }
         return Ok(());
     }
 

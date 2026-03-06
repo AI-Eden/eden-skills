@@ -1,29 +1,19 @@
-     Running tests\adapter_tests.rs (target\debug\deps\adapter_tests-46806de5b33b379d.exe)
-
-running 9 tests
-test create_adapter_rejects_invalid_environment ... ok
-test docker_adapter_reports_missing_binary_at_construction ... ok
-test local_adapter_install_copy_and_path_exists_work ... ok
-test local_adapter_symlink_supports_directory_and_file_sources ... ok
-test parse_environment_is_deterministic ... ok
-test target_adapter_trait_object_can_be_spawned_via_joinset ... ok
-test local_adapter_uninstall_removes_existing_target ... ok
-test local_adapter_exec_runs_command ... ok
-test local_adapter_windows_symlink_permission_denied_includes_remediation_hint ... FAILED
-
+     Running tests\junction_tests.rs (target\debug\deps\junction_tests-99e24532c6999c14.exe)
+running 3 tests
+test windows::junction_crate_round_trip_smoke_test ... FAILED
+test windows::plan_treats_matching_junction_as_noop_for_symlink_mode ... ok
+test windows::local_adapter_reinstall_replaces_existing_junction_without_touching_source ... FAILED
 failures:
-
----- local_adapter_windows_symlink_permission_denied_includes_remediation_hint stdout ----
-
-thread 'local_adapter_windows_symlink_permission_denied_includes_remediation_hint' (8252) panicked at crates\eden-skills-core\tests\adapter_tests.rs:367:5:
-expected Windows remediation hint, got: adapter runtime error: failed to create symlink `C:\Users\RUNNER~1\AppData\Local\Temp\.tmpBXQhfd\restricted-target-root\demo-skill-link` -> `C:\Users\RUNNER~1\AppData\Local\Temp\.tmpBXQhfd\source`: Access is denied. (os error 5). junction fallback failed: Access is denied. (os error 5)
+---- windows::junction_crate_round_trip_smoke_test stdout ----
+thread 'windows::junction_crate_round_trip_smoke_test' (8816) panicked at crates\eden-skills-core\tests\junction_tests.rs:93:9:
+junction target should be removed after delete
 note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
-
-
+---- windows::local_adapter_reinstall_replaces_existing_junction_without_touching_source stdout ----
+thread 'windows::local_adapter_reinstall_replaces_existing_junction_without_touching_source' (2380) panicked at crates\eden-skills-core\tests\junction_tests.rs:64:14:
+reinstall over existing junction: Io(Os { code: 183, kind: AlreadyExists, message: "Cannot create a file when that file already exists." })
 failures:
-    local_adapter_windows_symlink_permission_denied_includes_remediation_hint
-
-test result: FAILED. 8 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
-
-error: test failed, to rerun pass `-p eden-skills-core --test adapter_tests`
+    windows::junction_crate_round_trip_smoke_test
+    windows::local_adapter_reinstall_replaces_existing_junction_without_touching_source
+test result: FAILED. 1 passed; 2 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+error: test failed, to rerun pass `-p eden-skills-core --test junction_tests`
 Error: Process completed with exit code 1.
