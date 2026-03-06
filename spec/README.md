@@ -189,6 +189,9 @@ Keywords are interpreted as:
 3. Implement code to match the spec.
 4. Add or update tests from the corresponding `SPEC_TEST_MATRIX.md`.
 5. Run `cargo fmt --all`, `cargo clippy --workspace`, and `cargo test --workspace`.
+   For changes that touch `cfg(windows)` code or Windows-only dependencies,
+   also run `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc`
+   when that target is installed.
 6. Fix clippy findings when possible; for unavoidable lints, use the smallest-scope `#[allow(...)]` with a brief justification.
 7. Update the corresponding `SPEC_TRACEABILITY.md` mappings.
 8. If behavior changed, update `STATUS.yaml`, `EXECUTION_TRACKER.md`, `README.md`, and `ROADMAP.md`.

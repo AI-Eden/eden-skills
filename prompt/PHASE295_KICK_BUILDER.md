@@ -303,6 +303,10 @@ spec/phase2.95/SPEC_TEST_MATRIX.md.
 - [ ] cargo fmt --all -- --check
 - [ ] cargo clippy --workspace -- -D warnings
 - [ ] cargo test --workspace
+- [ ] For batches touching `cfg(windows)` code or Windows-only dependencies:
+      cargo check --workspace --all-targets --target x86_64-pc-windows-msvc
+- [ ] If the Windows MSVC target is missing and the environment permits downloads:
+      rustup target add x86_64-pc-windows-msvc
 - [ ] No hardcoded ANSI escape sequences (\u{1b}[) in source code
       (outside of test assertions)
 - [ ] All Phase 1/2/2.5/2.7/2.8/2.9 integration tests pass

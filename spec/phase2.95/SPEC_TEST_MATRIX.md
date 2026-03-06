@@ -89,5 +89,8 @@ pass after all Phase 2.95 changes:
 
 - `cargo test --workspace` — all existing Phase 1/2/2.5/2.7/2.8/2.9
   tests MUST continue to pass.
+- For any batch that touches `cfg(windows)` code or Windows-only
+  dependencies, `cargo check --workspace --all-targets --target
+  x86_64-pc-windows-msvc` MUST pass when that target is installed.
 - All `--json` output contracts MUST remain unchanged.
 - Exit codes 0/1/2/3 MUST retain their semantics.
