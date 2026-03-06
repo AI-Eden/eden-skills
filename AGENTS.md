@@ -13,11 +13,11 @@ This file is designed for fast recovery after context compression.
 6. `spec/phase2.8/SPEC_*.md` (Phase 2.8 TUI deep optimization & code maintainability contracts)
 7. `spec/phase2.95/SPEC_*.md` (Phase 2.95 performance, platform reach & UX completeness contracts)
 8. Current phase's `SPEC_TRACEABILITY.md`
-8. `STATUS.yaml`
-9. `EXECUTION_TRACKER.md`
-10. `ROADMAP.md`
-11. `README.md`
-12. `trace/` (archived phase records — read only when historical context is needed)
+9. `STATUS.yaml`
+10. `EXECUTION_TRACKER.md`
+11. `ROADMAP.md`
+12. `README.md`
+13. `trace/` (archived phase records — read only when historical context is needed)
 
 ## 2. Authority Order
 
