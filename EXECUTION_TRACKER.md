@@ -5,7 +5,7 @@ This file quantifies implementation progress and enforces model responsibility b
 
 ## 1. Snapshot
 
-- Date: 2026-03-05
+- Date: 2026-03-06
 - Workspace: `eden-skills`
 
 ## 2. Responsibility Boundaries
@@ -66,4 +66,6 @@ Each directory contains `status.yaml` (machine-readable) and `tracker.md`
 | Phase 2 | Frozen | — | 2026-02-19 | [trace/phase2/](trace/phase2/) |
 | Phase 2.5 | Frozen | 2026-02-20 | 2026-02-20 | [trace/phase2.5/](trace/phase2.5/) |
 | Phase 2.7 | Frozen | 2026-02-21 | 2026-03-02 | [trace/phase2.7/](trace/phase2.7/) |
-| **Phase 2.8** | **Active** | 2026-03-04 | — | [trace/phase2.8/](trace/phase2.8/) |
+| Phase 2.8 | Frozen | 2026-03-04 | 2026-03-05 | [trace/phase2.8/](trace/phase2.8/) |
+| Phase 2.9 | Frozen | 2026-03-05 | 2026-03-06 | [trace/phase2.9/](trace/phase2.9/) |
+| **Phase 2.95** | **Active** | 2026-03-06 | — | [trace/phase2.95/](trace/phase2.95/) |

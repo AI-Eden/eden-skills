@@ -53,13 +53,22 @@ spec/
 │   ├── SPEC_CODE_STRUCTURE.md
 │   ├── SPEC_TEST_MATRIX.md
 │   └── SPEC_TRACEABILITY.md
-└── phase2.9/              (Phase 2.9: UX Polish, Update Semantics & Output Consistency)
+├── phase2.9/              (Phase 2.9: UX Polish, Update Semantics & Output Consistency)
+│   ├── README.md
+│   ├── SPEC_TABLE_FIX.md
+│   ├── SPEC_UPDATE_EXT.md
+│   ├── SPEC_INSTALL_UX.md
+│   ├── SPEC_OUTPUT_CONSISTENCY.md
+│   ├── SPEC_NEWLINE_POLICY.md
+│   ├── SPEC_TEST_MATRIX.md
+│   └── SPEC_TRACEABILITY.md
+└── phase2.95/             (Phase 2.95: Performance, Platform Reach & UX Completeness)
     ├── README.md
-    ├── SPEC_TABLE_FIX.md
-    ├── SPEC_UPDATE_EXT.md
-    ├── SPEC_INSTALL_UX.md
-    ├── SPEC_OUTPUT_CONSISTENCY.md
-    ├── SPEC_NEWLINE_POLICY.md
+    ├── SPEC_PERF_SYNC.md
+    ├── SPEC_REMOVE_ALL.md
+    ├── SPEC_WINDOWS_JUNCTION.md
+    ├── SPEC_DOCKER_BIND.md
+    ├── SPEC_INSTALL_SCRIPT.md
     ├── SPEC_TEST_MATRIX.md
     └── SPEC_TRACEABILITY.md
 ```
@@ -140,6 +149,20 @@ unifies remaining command output, and normalizes newline behavior.
 - `phase2.9/SPEC_NEWLINE_POLICY.md`: trailing newline elimination, section spacing, error format fix (NLP-001~006)
 - `phase2.9/SPEC_TEST_MATRIX.md`: Phase 2.9 acceptance test scenarios (TM-P29-001~040)
 - `phase2.9/SPEC_TRACEABILITY.md`: Phase 2.9 requirement-to-implementation mapping
+
+## Phase 2.95: Performance, Platform Reach & UX Completeness
+
+Phase 2.95 optimizes install sync performance, adds a Windows junction
+fallback, introduces Docker bind-mount support, provides cross-platform
+install scripts, and adds a remove-all wildcard.
+
+- `phase2.95/SPEC_PERF_SYNC.md`: repo-level cache, discovery clone reuse, batch sync, cross-command migration (PSY-001~008)
+- `phase2.95/SPEC_REMOVE_ALL.md`: `*` wildcard in interactive remove, strengthened confirmation (RMA-001~004)
+- `phase2.95/SPEC_WINDOWS_JUNCTION.md`: NTFS junction fallback chain, `junction` crate integration (WJN-001~006)
+- `phase2.95/SPEC_DOCKER_BIND.md`: bind-mount detection, `docker mount-hint`, doctor check (DBM-001~006)
+- `phase2.95/SPEC_INSTALL_SCRIPT.md`: `install.sh`, `install.ps1`, `cargo-binstall` metadata (ISC-001~007)
+- `phase2.95/SPEC_TEST_MATRIX.md`: Phase 2.95 acceptance test scenarios (TM-P295-001~045)
+- `phase2.95/SPEC_TRACEABILITY.md`: Phase 2.95 requirement-to-implementation mapping
 
 ## Rule of Authority
 

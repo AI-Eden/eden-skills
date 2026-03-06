@@ -1,0 +1,61 @@
+phase: phase295_performance_platform_reach
+status: ready_for_implementation
+started_at: "2026-03-06"
+
+spec_files:
+  - spec/phase2.95/README.md
+  - spec/phase2.95/SPEC_PERF_SYNC.md
+  - spec/phase2.95/SPEC_REMOVE_ALL.md
+  - spec/phase2.95/SPEC_WINDOWS_JUNCTION.md
+  - spec/phase2.95/SPEC_DOCKER_BIND.md
+  - spec/phase2.95/SPEC_INSTALL_SCRIPT.md
+  - spec/phase2.95/SPEC_TEST_MATRIX.md
+  - spec/phase2.95/SPEC_TRACEABILITY.md
+
+requirement_ids:
+  perf_sync: PSY-001 ~ PSY-008
+  remove_all: RMA-001 ~ RMA-004
+  windows_junction: WJN-001 ~ WJN-006
+  docker_bind: DBM-001 ~ DBM-006
+  install_script: ISC-001 ~ ISC-007
+
+test_scenarios: TM-P295-001 ~ TM-P295-048
+
+batches:
+  batch1:
+    name: "Install Scripts"
+    work_packages: [WP-5]
+    requirements: [ISC-001, ISC-002, ISC-003, ISC-004, ISC-005, ISC-006, ISC-007]
+    status: pending
+  batch2:
+    name: "Remove All Symbol"
+    work_packages: [WP-2]
+    requirements: [RMA-001, RMA-002, RMA-003, RMA-004]
+    status: pending
+  batch3:
+    name: "Windows Junction Fallback"
+    work_packages: [WP-3]
+    requirements: [WJN-001, WJN-002, WJN-003, WJN-004, WJN-005, WJN-006]
+    status: pending
+  batch4:
+    name: "Performance Part 1: Repo-Level Cache"
+    work_packages: [WP-1-pt1]
+    requirements: [PSY-001, PSY-002, PSY-003, PSY-006, PSY-007]
+    status: pending
+  batch5:
+    name: "Performance Part 2: Batch Sync + Migration"
+    work_packages: [WP-1-pt2]
+    requirements: [PSY-004, PSY-005, PSY-006, PSY-008]
+    status: pending
+  batch6:
+    name: "Docker Bind Mount"
+    work_packages: [WP-4]
+    requirements: [DBM-001, DBM-002, DBM-003, DBM-004, DBM-005, DBM-006, DBM-007]
+    status: pending
+  batch7:
+    name: "Regression + Closeout"
+    work_packages: []
+    requirements: []
+    status: pending
+
+builder_progress: {}

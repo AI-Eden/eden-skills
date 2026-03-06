@@ -1,9 +1,9 @@
 schema_version: 2
-updated_at: "2026-03-05"
+updated_at: "2026-03-06"
 project:
   name: eden-skills
-  phase: phase28_tui_optimization
-  status: active_implementation
+  phase: phase295_performance_platform_reach
+  status: ready_for_implementation
 
 authority_order:
   - spec
@@ -45,9 +45,17 @@ phases:
     completed_at: "2026-03-02"
     archive: trace/phase2.7/
   phase28:
-    status: active_implementation
-    started_at: "2026-03-04"
+    status: frozen
+    completed_at: "2026-03-05"
     archive: trace/phase2.8/
+  phase29:
+    status: frozen
+    completed_at: "2026-03-06"
+    archive: trace/phase2.9/
+  phase295:
+    status: ready_for_implementation
+    started_at: "2026-03-06"
+    archive: trace/phase2.95/
 
 next_execution_targets:
-  - phase28_batch2_table_infrastructure
+  - phase295_batch1_install_scripts

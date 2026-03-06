@@ -11,7 +11,8 @@ This file is designed for fast recovery after context compression.
 4. `spec/phase2.5/SPEC_*.md` (Phase 2.5 MVP launch contracts)
 5. `spec/phase2.7/SPEC_*.md` (Phase 2.7 UX polish & lock file contracts)
 6. `spec/phase2.8/SPEC_*.md` (Phase 2.8 TUI deep optimization & code maintainability contracts)
-7. Current phase's `SPEC_TRACEABILITY.md`
+7. `spec/phase2.95/SPEC_*.md` (Phase 2.95 performance, platform reach & UX completeness contracts)
+8. Current phase's `SPEC_TRACEABILITY.md`
 8. `STATUS.yaml`
 9. `EXECUTION_TRACKER.md`
 10. `ROADMAP.md`
@@ -79,6 +80,14 @@ When files disagree, follow:
 - If task is command output format, UiContext, or error hint format: start from `spec/phase2.8/SPEC_OUTPUT_UPGRADE.md`.
 - If task is `commands.rs` decomposition or doc comments: start from `spec/phase2.8/SPEC_CODE_STRUCTURE.md`.
 
+### Phase 2.95 (Performance, Platform Reach & UX Completeness)
+
+- If task is source sync performance or repo-level cache: start from `spec/phase2.95/SPEC_PERF_SYNC.md`.
+- If task is remove wildcard or remove-all: start from `spec/phase2.95/SPEC_REMOVE_ALL.md`.
+- If task is Windows junction or symlink fallback: start from `spec/phase2.95/SPEC_WINDOWS_JUNCTION.md`.
+- If task is Docker bind mount or `docker mount-hint`: start from `spec/phase2.95/SPEC_DOCKER_BIND.md`.
+- If task is install script or `cargo-binstall`: start from `spec/phase2.95/SPEC_INSTALL_SCRIPT.md`.
+
 ### General
 
 - If task is progress planning: use `STATUS.yaml` first, then `EXECUTION_TRACKER.md`.
@@ -89,6 +98,6 @@ When files disagree, follow:
 - Preserve `skills.toml` as source-of-truth config.
 - Keep command semantics deterministic and idempotent.
 - Do not introduce Phase 3 crawler/taxonomy implementation into any current phase specs.
-- Phase 1, 2, 2.5, and 2.7 spec files are frozen; changes require explicit user approval.
-- Phase 2.8 extends Phase 2.5 `SPEC_CLI_UX.md` visual design language with table rendering and full output upgrade.
+- Phase 1, 2, 2.5, 2.7, 2.8, and 2.9 spec files are frozen; changes require explicit user approval.
+- Phase 2.95 extends Phase 2 adapter/reactor, Phase 2.5 install flow, Phase 2.7 remove interactive mode, and Phase 2.9 update semantics.
 - Completed phase execution records are archived in `trace/<phase>/`. Root `STATUS.yaml` and `EXECUTION_TRACKER.md` only contain the active phase.
