@@ -770,6 +770,7 @@ fn clone_repo_for_discovery(
         fs::create_dir_all(parent)?;
     }
 
+    record_test_git_clone_if_configured();
     let branch_clone_result = run_git_command(
         Command::new("git")
             .arg("clone")
@@ -786,6 +787,7 @@ fn clone_repo_for_discovery(
     );
 
     if let Err(branch_error) = branch_clone_result {
+        record_test_git_clone_if_configured();
         let fallback_clone = run_git_command(
             Command::new("git").arg("clone").arg(repo_url).arg(repo_dir),
             &format!(
@@ -813,6 +815,20 @@ fn clone_repo_for_discovery(
     }
 
     Ok(())
+}
+
+fn record_test_git_clone_if_configured() {
+    let Some(log_path) = std::env::var_os("EDEN_SKILLS_TEST_GIT_CLONE_LOG") else {
+        return;
+    };
+    let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+    else {
+        return;
+    };
+    let _ = std::io::Write::write_all(&mut file, b"clone\n");
 }
 
 fn resolve_local_install_selection(

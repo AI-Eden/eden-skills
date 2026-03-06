@@ -1,9 +1,6 @@
 mod common;
 
-use std::ffi::OsString;
 use std::fs;
-#[cfg(unix)]
-use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -17,15 +14,11 @@ fn remote_install_reuses_discovery_clone_when_repo_cache_is_empty() {
     let repo_dir = init_remote_skill_repo(temp.path(), "remote-skill-repo", "remote-skill");
     let config_path = temp.path().join("skills.toml");
     let git_log = temp.path().join("git-clones.log");
-    let fake_bin_dir = temp.path().join("fake-bin");
-    install_git_wrapper(&fake_bin_dir);
     let repo_url = as_file_url(&repo_dir);
 
     let output = eden_command(&home_dir)
         .current_dir(temp.path())
-        .env("PATH", prepend_to_path(&fake_bin_dir))
-        .env("EDEN_SKILLS_TEST_REAL_GIT", real_git_path())
-        .env("EDEN_SKILLS_TEST_GIT_LOG", &git_log)
+        .env("EDEN_SKILLS_TEST_GIT_CLONE_LOG", &git_log)
         .args(["install", &repo_url, "--config"])
         .arg(&config_path)
         .output()
@@ -62,15 +55,11 @@ fn remote_install_falls_back_to_fresh_clone_when_cache_move_fails() {
     let repo_dir = init_remote_skill_repo(temp.path(), "rename-fallback-repo", "fallback-skill");
     let config_path = temp.path().join("skills.toml");
     let git_log = temp.path().join("git-clones.log");
-    let fake_bin_dir = temp.path().join("fake-bin");
-    install_git_wrapper(&fake_bin_dir);
     let repo_url = as_file_url(&repo_dir);
 
     let output = eden_command(&home_dir)
         .current_dir(temp.path())
-        .env("PATH", prepend_to_path(&fake_bin_dir))
-        .env("EDEN_SKILLS_TEST_REAL_GIT", real_git_path())
-        .env("EDEN_SKILLS_TEST_GIT_LOG", &git_log)
+        .env("EDEN_SKILLS_TEST_GIT_CLONE_LOG", &git_log)
         .env("EDEN_SKILLS_TEST_FORCE_DISCOVERY_RENAME_FAIL", "1")
         .args(["install", &repo_url, "--config"])
         .arg(&config_path)
@@ -182,89 +171,6 @@ fn clone_count(log_path: &Path) -> usize {
         .lines()
         .filter(|line| *line == "clone")
         .count()
-}
-
-fn real_git_path() -> String {
-    #[cfg(windows)]
-    let output = Command::new("where")
-        .arg("git.exe")
-        .output()
-        .expect("run where git");
-
-    #[cfg(not(windows))]
-    let output = Command::new("which")
-        .arg("git")
-        .output()
-        .expect("run which git");
-
-    assert!(
-        output.status.success(),
-        "failed to resolve git path: {}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-
-    String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .next()
-        .expect("git path output")
-        .trim()
-        .to_string()
-}
-
-fn prepend_to_path(prefix: &Path) -> OsString {
-    let existing = std::env::var_os("PATH").unwrap_or_default();
-    let mut merged = OsString::new();
-    merged.push(prefix.as_os_str());
-    merged.push(path_separator());
-    merged.push(existing);
-    merged
-}
-
-#[cfg(windows)]
-fn path_separator() -> &'static str {
-    ";"
-}
-
-#[cfg(not(windows))]
-fn path_separator() -> &'static str {
-    ":"
-}
-
-fn install_git_wrapper(fake_bin_dir: &Path) {
-    fs::create_dir_all(fake_bin_dir).expect("create fake bin dir");
-
-    #[cfg(windows)]
-    {
-        let script_path = fake_bin_dir.join("git.cmd");
-        fs::write(
-            script_path,
-            r#"@echo off
-if "%1"=="clone" echo clone>>"%EDEN_SKILLS_TEST_GIT_LOG%"
-"%EDEN_SKILLS_TEST_REAL_GIT%" %*
-"#,
-        )
-        .expect("write git wrapper");
-    }
-
-    #[cfg(not(windows))]
-    {
-        let script_path = fake_bin_dir.join("git");
-        fs::write(
-            &script_path,
-            r#"#!/bin/sh
-if [ "$1" = "clone" ]; then
-  printf 'clone\n' >> "$EDEN_SKILLS_TEST_GIT_LOG"
-fi
-exec "$EDEN_SKILLS_TEST_REAL_GIT" "$@"
-"#,
-        )
-        .expect("write git wrapper");
-        let mut permissions = fs::metadata(&script_path)
-            .expect("wrapper metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&script_path, permissions).expect("set wrapper permissions");
-    }
 }
 
 fn run_git(cwd: &Path, args: &[&str]) {

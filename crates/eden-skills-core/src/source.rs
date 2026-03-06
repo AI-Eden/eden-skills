@@ -277,6 +277,7 @@ fn clone_repo(
         })?;
     }
 
+    record_test_git_clone_if_configured();
     let branch_clone = run_git(
         Command::new("git")
             .arg("clone")
@@ -296,6 +297,7 @@ fn clone_repo(
         Err(err) => err,
     };
 
+    record_test_git_clone_if_configured();
     let fallback_clone = run_git(
         Command::new("git").arg("clone").arg(repo_url).arg(repo_dir),
         &format!(
@@ -411,4 +413,18 @@ fn run_git(command: &mut Command, context: &str) -> Result<GitOutput, String> {
 
 fn is_local_source_repo(repo_url: &str) -> bool {
     Path::new(repo_url).is_absolute()
+}
+
+fn record_test_git_clone_if_configured() {
+    let Some(log_path) = std::env::var_os("EDEN_SKILLS_TEST_GIT_CLONE_LOG") else {
+        return;
+    };
+    let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+    else {
+        return;
+    };
+    let _ = std::io::Write::write_all(&mut file, b"clone\n");
 }
