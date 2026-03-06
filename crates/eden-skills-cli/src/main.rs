@@ -36,7 +36,7 @@ fn print_error(err: &EdenError) {
     if let Some(hint) = hint {
         eprintln!();
         if colors_enabled {
-            eprintln!("  {} {hint}", "~>".purple());
+            eprintln!("  {} {hint}", "~>".magenta());
         } else {
             eprintln!("  ~> {hint}");
         }
