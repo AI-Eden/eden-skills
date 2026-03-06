@@ -110,6 +110,7 @@ eden-skills install vercel-labs/agent-skills --dry-run
 | `eden-skills update` | Sync registry indexes to latest |
 | `eden-skills apply` | Reconcile all skills to desired config state |
 | `eden-skills doctor` | Detect broken links, drift, and risk findings |
+| `eden-skills docker mount-hint <container>` | Show recommended bind mounts for Docker live sync |
 | `eden-skills repair` | Self-heal broken symlinks and drifted state |
 | `eden-skills plan` | Preview planned changes (read-only) |
 | `eden-skills init` | Initialize a new `skills.toml` config |
@@ -126,7 +127,7 @@ eden-skills install vercel-labs/agent-skills --dry-run
 
 **Config is code.** `skills.toml` is your single source of truth. Version it, share it with your team, and `apply` it anywhere.
 
-**Docker-aware.** Install skills directly into running containers with `--target docker:<container>`. Adapter health checks and cleanup are built in.
+**Docker-aware.** Install skills directly into running containers with `--target docker:<container>`, auto-detect installed agents inside the container, and use `eden-skills docker mount-hint <container>` to configure bind mounts for live sync.
 
 ## Config as Code
 
@@ -205,6 +206,7 @@ Agent directories are auto-detected on `install`. Override with `--target`:
 - Phase 2.7 (lock file, UX polish, batch remove): complete
 - Phase 2.8 (TUI deep optimization, table rendering, doc comments): complete
 - Phase 2.9 (UX polish, update semantics, output consistency): complete
+- Phase 2.95 (repo-cache sync, remove-all wildcard, Windows junctions, Docker bind mounts, install scripts): complete
 - Phase 3 (crawler / taxonomy / curation): not yet implemented
 
 `eden-skills` is under active development. Avoid production use where breaking changes are not tolerable.

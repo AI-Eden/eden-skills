@@ -1,12 +1,16 @@
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::path::PathBuf;
 
-use tempfile::tempdir;
 use toml::Value;
 
 #[cfg(not(windows))]
 use std::os::unix::fs::PermissionsExt;
+#[cfg(not(windows))]
+use std::path::Path;
+#[cfg(not(windows))]
+use std::process::{Command, Output};
+#[cfg(not(windows))]
+use tempfile::tempdir;
 
 #[cfg(not(windows))]
 struct UnixReleaseFixture {
@@ -444,6 +448,7 @@ fn install_ps1_path() -> PathBuf {
     workspace_root().join("install.ps1")
 }
 
+#[cfg(not(windows))]
 fn install_sh_path() -> PathBuf {
     workspace_root().join("install.sh")
 }
@@ -462,6 +467,7 @@ fn to_file_url(path: &Path) -> String {
     format!("file://{}", path.display())
 }
 
+#[cfg(not(windows))]
 fn assert_success(output: &Output) {
     assert_eq!(
         output.status.code(),
@@ -472,6 +478,7 @@ fn assert_success(output: &Output) {
     );
 }
 
+#[cfg(not(windows))]
 fn assert_failure(output: &Output) {
     assert_ne!(
         output.status.code(),

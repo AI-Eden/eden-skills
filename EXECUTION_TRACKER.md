@@ -5,7 +5,7 @@ This file quantifies implementation progress and enforces model responsibility b
 
 ## 1. Snapshot
 
-- Date: 2026-03-06
+- Date: 2026-03-07
 - Workspace: `eden-skills`
 
 ## 2. Responsibility Boundaries
@@ -37,9 +37,9 @@ Progress score (roadmap action items, Builder scope): `10 / 10 = 100%`
 ### 3.2 Verification and Testing
 
 - [x] CI gate setup for Linux + macOS + Windows (`.github/workflows/ci.yml`)
-- [x] Phase 2 closeout matrix re-verified on all targets
+- [x] Phase 2.95 closeout matrix re-verified (`fmt`, `clippy`, `test --all-targets`, Windows target check, ANSI scan)
 
-Current automated tests: `375` (workspace unit/integration-style tests).
+Current automated tests: `392` (workspace unit/integration-style tests).
 
 ## 4. Pending Tasks with Planned LLM Ownership
 
@@ -68,4 +68,4 @@ Each directory contains `status.yaml` (machine-readable) and `tracker.md`
 | Phase 2.7 | Frozen | 2026-02-21 | 2026-03-02 | [trace/phase2.7/](trace/phase2.7/) |
 | Phase 2.8 | Frozen | 2026-03-04 | 2026-03-05 | [trace/phase2.8/](trace/phase2.8/) |
 | Phase 2.9 | Frozen | 2026-03-05 | 2026-03-06 | [trace/phase2.9/](trace/phase2.9/) |
-| **Phase 2.95** | **Active — Batch 4 Completed** | 2026-03-06 | — | [trace/phase2.95/](trace/phase2.95/) |
+| **Phase 2.95** | **Closeout Completed** | 2026-03-06 | 2026-03-07 | [trace/phase2.95/](trace/phase2.95/) |

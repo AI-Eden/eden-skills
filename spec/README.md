@@ -159,9 +159,9 @@ install scripts, and adds a remove-all wildcard.
 - `phase2.95/SPEC_PERF_SYNC.md`: repo-level cache, discovery clone reuse, batch sync, cross-command migration (PSY-001~008)
 - `phase2.95/SPEC_REMOVE_ALL.md`: `*` wildcard in interactive remove, strengthened confirmation (RMA-001~004)
 - `phase2.95/SPEC_WINDOWS_JUNCTION.md`: NTFS junction fallback chain, `junction` crate integration (WJN-001~006)
-- `phase2.95/SPEC_DOCKER_BIND.md`: bind-mount detection, `docker mount-hint`, doctor check (DBM-001~006)
+- `phase2.95/SPEC_DOCKER_BIND.md`: bind-mount detection, `docker mount-hint`, doctor check, docker target agent auto-detection (DBM-001~007)
 - `phase2.95/SPEC_INSTALL_SCRIPT.md`: `install.sh`, `install.ps1`, `cargo-binstall` metadata (ISC-001~007)
-- `phase2.95/SPEC_TEST_MATRIX.md`: Phase 2.95 acceptance test scenarios (TM-P295-001~045)
+- `phase2.95/SPEC_TEST_MATRIX.md`: Phase 2.95 acceptance test scenarios (TM-P295-001~048)
 - `phase2.95/SPEC_TRACEABILITY.md`: Phase 2.95 requirement-to-implementation mapping
 
 ## Rule of Authority

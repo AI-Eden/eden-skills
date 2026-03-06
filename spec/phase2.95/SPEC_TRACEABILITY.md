@@ -3,7 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.95.
 Use this file to recover accurate context after compression.
 
-**Status:** IN PROGRESS — Batch 5 perf follow-up completed; Batch 6 docker bind pending.
+**Status:** COMPLETE — All Phase 2.95 requirements are mapped to implementation and tests; Batch 7 regression + closeout verified.
 
 ## 1. Performance Sync Requirements
 

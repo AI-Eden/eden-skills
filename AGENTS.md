@@ -100,4 +100,4 @@ When files disagree, follow:
 - Do not introduce Phase 3 crawler/taxonomy implementation into any current phase specs.
 - Phase 1, 2, 2.5, 2.7, 2.8, and 2.9 spec files are frozen; changes require explicit user approval.
 - Phase 2.95 extends Phase 2 adapter/reactor, Phase 2.5 install flow, Phase 2.7 remove interactive mode, and Phase 2.9 update semantics.
-- Completed phase execution records are archived in `trace/<phase>/`. Root `STATUS.yaml` and `EXECUTION_TRACKER.md` only contain the active phase.
+- Completed phase execution records are archived in `trace/<phase>/`. Root `STATUS.yaml` and `EXECUTION_TRACKER.md` only contain the current execution state (the active phase, or the most recently closed phase before the next phase starts).

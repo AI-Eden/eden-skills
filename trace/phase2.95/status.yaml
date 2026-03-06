@@ -1,6 +1,7 @@
 phase: phase295_performance_platform_reach
-status: batch6_completed
+status: closeout_completed
 started_at: "2026-03-06"
+completed_at: "2026-03-07"
 
 spec_files:
   - spec/phase2.95/README.md
@@ -56,7 +57,7 @@ batches:
     name: "Regression + Closeout"
     work_packages: []
     requirements: []
-    status: pending
+    status: completed
 
 builder_progress:
   batch_1_install_scripts:
@@ -165,4 +166,25 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       windows_check_x86_64_pc_windows_msvc: passed
+      current_test_inventory: 392
+  batch_7_regression_closeout:
+    status: completed
+    started_at: "2026-03-07"
+    completed_at: "2026-03-07"
+    requirements: closeout_regression
+    scenarios: TM-P295-001~TM-P295-048 (regression replay)
+    notes:
+      - "reran the full Phase 2.95 closeout quality gate: `cargo fmt --all -- --check`, `cargo clippy --workspace -- -D warnings`, `cargo test --workspace --all-targets`, and `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc`"
+      - "confirmed regression stability at 392 passing automated tests, with existing JSON contract suites still green and no exit-code semantic drift for `0/1/2/3`"
+      - "confirmed `rg '\\x1b\\[' crates/` returns zero matches, so no hardcoded ANSI escape sequences remain in source"
+      - "synced `spec/phase2.95/SPEC_TRACEABILITY.md`, `trace/phase2.95/tracker.md`, `README.md`, `spec/README.md`, `STATUS.yaml`, `EXECUTION_TRACKER.md`, and `AGENTS.md` to the Phase 2.95 closeout state"
+      - "removed cross-target warning noise in `crates/eden-skills-cli/tests/install_script_tests.rs` by gating Unix-only imports and helpers behind `cfg(not(windows))`"
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace_all_targets: passed
+      windows_check_x86_64_pc_windows_msvc: passed
+      no_hardcoded_ansi_escape_in_source: passed
+      json_contract_regression: passed
+      exit_code_semantics_0_1_2_3: passed
       current_test_inventory: 392

@@ -1,8 +1,9 @@
 # Phase 2.95 Execution Tracker
 
 Phase: Performance, Platform Reach & UX Completeness
-Status: Batch 6 Completed
+Status: Closeout Completed
 Started: 2026-03-06
+Completed: 2026-03-07
 
 ## Batch Plan
 
@@ -14,7 +15,7 @@ Started: 2026-03-06
 | 4 | Performance Part 1: Repo-Level Cache | WP-1 pt1 | PSY-001~003, PSY-006~007 | completed |
 | 5 | Performance Part 2: Batch Sync + Migration | WP-1 pt2 | PSY-004~006, PSY-008 | completed |
 | 6 | Docker Bind Mount + Agent Auto-Detection | WP-4 | DBM-001~007 | completed |
-| 7 | Regression + Closeout | — | TM regression | pending |
+| 7 | Regression + Closeout | — | TM regression | completed |
 
 ## Dependency Constraints
 
@@ -127,4 +128,22 @@ Started: 2026-03-06
   - `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc` ✅
   - Test inventory: `392`
 - Notes:
-  - Batch 7 regression + closeout remains pending.
+  - Batch 7 regression + closeout followed in the next pass.
+
+### Batch 7 — Regression + Closeout (Completed 2026-03-07)
+
+- Closeout validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace --all-targets` ✅ (test inventory: `392`)
+  - `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc` ✅
+  - `rg '\x1b\[' crates/` ✅ (no hardcoded ANSI escape sequence matches)
+- Contract regression checks:
+  - JSON contracts remain unchanged; existing JSON contract suites continue to pass with no schema assertion updates.
+  - Exit code semantics remain unchanged (`0`/`1`/`2`/`3`); `exit_code_matrix` and strict-mode command suites stay green.
+- Closeout sync:
+  - `spec/phase2.95/SPEC_TRACEABILITY.md` now reflects complete implementation/test mappings and closeout status.
+  - `trace/phase2.95/status.yaml` updated to `closeout_completed` with the Batch 7 completion record.
+  - `README.md`, `spec/README.md`, `STATUS.yaml`, `EXECUTION_TRACKER.md`, and `AGENTS.md` synced to the Phase 2.95 closeout state.
+- Minor cleanup:
+  - Removed cross-target warning noise in `crates/eden-skills-cli/tests/install_script_tests.rs` by gating Unix-only imports/helpers behind `cfg(not(windows))`.
