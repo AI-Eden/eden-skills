@@ -261,6 +261,41 @@ fn tm_p29_014_update_skill_refresh_uses_reactor_concurrency() {
     );
 }
 
+#[test]
+fn tm_p295_034_update_mode_a_refresh_uses_repo_cache_paths() {
+    let fixture = setup_mode_a_fixture("symlink", false);
+    let apply_output = run_command(&fixture, "never", false, &["apply"]);
+    assert_success(&apply_output);
+
+    let legacy_per_skill_dir = fixture.storage_root.join("mode-a-skill");
+    fs::create_dir_all(&legacy_per_skill_dir).expect("create legacy per-skill dir");
+    fs::write(
+        legacy_per_skill_dir.join(".git"),
+        "broken legacy git marker",
+    )
+    .expect("write broken legacy .git");
+
+    commit_file(
+        &fixture.skill_repo,
+        "packages/browser/README.md",
+        "upstream-v2\n",
+        "upstream update",
+    );
+
+    let update_output = run_command(&fixture, "never", false, &["update"]);
+    assert_success(&update_output);
+    let stdout = String::from_utf8_lossy(&update_output.stdout);
+
+    assert!(
+        stdout.contains("new commit"),
+        "update refresh should still use repo cache checkout even when legacy per-skill dir is broken, stdout={stdout}"
+    );
+    assert!(
+        mode_a_repo_dir(&fixture).join(".git").exists(),
+        "expected repo cache checkout to remain the active Mode A refresh source"
+    );
+}
+
 fn setup_mode_a_fixture(install_mode: &str, with_registries: bool) -> ModeAFixture {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");

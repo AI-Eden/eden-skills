@@ -19,7 +19,10 @@ use eden_skills_core::paths::{known_default_agent_paths, resolve_path_string};
 use eden_skills_core::plan::{build_plan, Action};
 use eden_skills_core::reactor::SkillReactor;
 use eden_skills_core::safety::{analyze_skills, persist_reports, SkillSafetyReport};
-use eden_skills_core::source::{resolve_skill_storage_root, sync_sources_async_with_reactor};
+use eden_skills_core::source::{
+    repo_cache_key, resolve_skill_storage_root, sync_sources_async_with_reactor,
+    sync_sources_async_with_reactor_skipping_repos,
+};
 use eden_skills_core::verify::verify_config_state;
 use owo_colors::OwoColorize;
 
@@ -96,8 +99,14 @@ pub async fn apply_async(
             .map(|target| target.environment.as_str())
     }))?;
 
-    let sync_config = filter_config_for_sync(&execution_config, &diff);
-    let sync_summary = sync_sources_async_with_reactor(&sync_config, &config_dir, reactor).await?;
+    let skip_repos = skip_repo_cache_keys_for_apply(&execution_config, &diff);
+    let sync_summary = sync_sources_async_with_reactor_skipping_repos(
+        &execution_config,
+        &config_dir,
+        reactor,
+        &skip_repos,
+    )
+    .await?;
     print_source_sync_summary_human(&ui, &sync_summary);
     let safety_reports = analyze_skills(&execution_config, &config_dir)?;
     persist_reports(&safety_reports)?;
@@ -358,26 +367,31 @@ fn no_exec_skill_ids(reports: &[SkillSafetyReport]) -> HashSet<&str> {
         .collect()
 }
 
-/// Create a config subset containing only skills that need source sync
-/// (Added or Changed per lock diff). Unchanged skills are skipped unless
-/// their storage directory is missing (reclassified as needing sync).
-fn filter_config_for_sync(
+/// Compute repo-cache keys that `apply` may skip during source sync.
+///
+/// Skip is decided at the repo cache level, not per skill: if any skill
+/// sharing the same `(repo_url, ref)` is Added/Changed, that repo must
+/// still sync. Only cache keys whose participating skills are all
+/// `Unchanged` are eligible for skip.
+fn skip_repo_cache_keys_for_apply(
     config: &Config,
     diff: &eden_skills_core::lock::LockDiffResult,
-) -> Config {
-    let mut sync_skills = Vec::new();
+) -> HashSet<String> {
+    let mut unchanged = HashSet::new();
+    let mut must_sync = HashSet::new();
     for skill in &config.skills {
-        let status = diff.statuses.get(&skill.id);
-        if !matches!(status, Some(SkillDiffStatus::Unchanged)) {
-            sync_skills.push(skill.clone());
+        let cache_key = repo_cache_key(&skill.source.repo, &skill.source.r#ref);
+        if matches!(
+            diff.statuses.get(&skill.id),
+            Some(SkillDiffStatus::Unchanged)
+        ) {
+            unchanged.insert(cache_key);
+        } else {
+            must_sync.insert(cache_key);
         }
     }
-    Config {
-        version: config.version,
-        storage_root: config.storage_root.clone(),
-        reactor: config.reactor,
-        skills: sync_skills,
-    }
+    unchanged.retain(|cache_key| !must_sync.contains(cache_key));
+    unchanged
 }
 
 fn collect_resolved_commits(config: &Config, config_dir: &Path) -> HashMap<String, String> {

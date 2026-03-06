@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
@@ -71,6 +71,7 @@ struct SyncTask {
     repo_url: String,
     reference: String,
     repo_dir: PathBuf,
+    skip: bool,
 }
 
 #[derive(Debug)]
@@ -163,13 +164,30 @@ pub async fn sync_sources_async(
     config: &Config,
     config_dir: &Path,
 ) -> Result<SyncSummary, ReactorError> {
-    sync_sources_async_with_reactor(config, config_dir, SkillReactor::default()).await
+    let skip_repos = HashSet::new();
+    sync_sources_async_with_reactor_skipping_repos(
+        config,
+        config_dir,
+        SkillReactor::default(),
+        &skip_repos,
+    )
+    .await
 }
 
 pub async fn sync_sources_async_with_reactor(
     config: &Config,
     config_dir: &Path,
     reactor: SkillReactor,
+) -> Result<SyncSummary, ReactorError> {
+    let skip_repos = HashSet::new();
+    sync_sources_async_with_reactor_skipping_repos(config, config_dir, reactor, &skip_repos).await
+}
+
+pub async fn sync_sources_async_with_reactor_skipping_repos(
+    config: &Config,
+    config_dir: &Path,
+    reactor: SkillReactor,
+    skip_repos: &HashSet<String>,
 ) -> Result<SyncSummary, ReactorError> {
     let storage_root = resolve_path_string(&config.storage_root, config_dir).map_err(|err| {
         ReactorError::Config {
@@ -193,6 +211,7 @@ pub async fn sync_sources_async_with_reactor(
                 &skill.source.repo,
                 &skill.source.r#ref,
             ),
+            skip: skip_repos.contains(&repo_cache_key(&skill.source.repo, &skill.source.r#ref)),
         });
     }
 
@@ -229,6 +248,10 @@ async fn sync_one_source(
     task: SyncTask,
     reactor: SkillReactor,
 ) -> Result<SyncOutcome, SyncFailure> {
+    if task.skip {
+        return Ok(SyncOutcome::Skipped);
+    }
+
     let repo_exists = task.repo_dir.join(".git").exists();
     let repo_dir_display = task.repo_dir.display().to_string();
     let skill_id = task.skill_id.clone();

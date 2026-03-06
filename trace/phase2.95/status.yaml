@@ -1,5 +1,5 @@
 phase: phase295_performance_platform_reach
-status: batch4_completed
+status: batch5_completed
 started_at: "2026-03-06"
 
 spec_files:
@@ -46,7 +46,7 @@ batches:
     name: "Performance Part 2: Batch Sync + Migration"
     work_packages: [WP-1-pt2]
     requirements: [PSY-004, PSY-005, PSY-006, PSY-008]
-    status: pending
+    status: completed
   batch6:
     name: "Docker Bind Mount"
     work_packages: [WP-4]
@@ -128,3 +128,21 @@ builder_progress:
       test_workspace: passed
       windows_check_x86_64_pc_windows_msvc: passed
       current_test_inventory: 375
+  batch_5_perf_part2_batch_sync_and_fast_path:
+    status: completed
+    started_at: "2026-03-06"
+    completed_at: "2026-03-06"
+    requirements: PSY-004, PSY-005, PSY-006, PSY-008
+    scenarios: TM-P295-031, TM-P295-032, TM-P295-033, TM-P295-034, TM-P295-036, TM-P295-037
+    notes:
+      - updated `crates/eden-skills-cli/src/commands/install.rs` so remote URL-mode installs batch the selected config into a single `sync_sources_async()` call before sequential install-plan execution, while preserving the existing TTY/non-TTY sync progress output contract
+      - extended `crates/eden-skills-core/src/source.rs` with repo-level skip support for grouped sync tasks, and updated `crates/eden-skills-cli/src/commands/reconcile.rs` so `apply` marks unchanged repo-cache keys as skipped without network fetch while `repair` continues to sync every repo
+      - completed the remaining repo-cache migration coverage by adding `TM-P295-034` in `crates/eden-skills-cli/tests/update_ext_tests.rs` and `TM-P295-036` in `crates/eden-skills-cli/tests/doctor_copy.rs`, proving `update` and `doctor` read from repo-cache-backed sources even when legacy per-skill paths are absent or broken
+      - added the `mtime + size` copy fast path in `crates/eden-skills-core/src/plan.rs`, plus `TM-P295-037` in `crates/eden-skills-core/tests/plan_copy_edge_tests.rs`, and adjusted older copy-plan fixtures so they continue to exercise unreadable-file conflict behavior outside the new fast-path
+      - added `TM-P295-031`, `TM-P295-032`, and `TM-P295-033` in `crates/eden-skills-cli/tests/perf_sync_tests.rs` using a portable git-subcommand probe to verify batched install fetches, apply skip summaries, and repair’s no-skip behavior
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      windows_check_x86_64_pc_windows_msvc: passed
+      current_test_inventory: 381

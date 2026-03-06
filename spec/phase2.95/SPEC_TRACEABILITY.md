@@ -3,7 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.95.
 Use this file to recover accurate context after compression.
 
-**Status:** IN PROGRESS — Batch 4 repo-cache core completed; Batch 5 perf follow-up pending.
+**Status:** IN PROGRESS — Batch 5 perf follow-up completed; Batch 6 docker bind pending.
 
 ## 1. Performance Sync Requirements
 
@@ -12,11 +12,11 @@ Use this file to recover accurate context after compression.
 | PSY-001 | `SPEC_PERF_SYNC.md` 2.1 | Source sync MUST use repo-level cache at `.repos/` | `crates/eden-skills-core/src/source.rs`, `crates/eden-skills-core/src/plan.rs`, `crates/eden-skills-core/src/verify.rs`, `crates/eden-skills-core/src/safety.rs` | `crates/eden-skills-core/tests/perf_sync_tests.rs` (TM-P295-024, TM-P295-025, TM-P295-026), `crates/eden-skills-cli/tests/perf_sync_tests.rs` (TM-P295-038) | completed |
 | PSY-002 | `SPEC_PERF_SYNC.md` 2.2 | Cache key from normalized URL + sanitized ref | `crates/eden-skills-core/src/source.rs` | `crates/eden-skills-core/tests/perf_sync_tests.rs` (TM-P295-027, TM-P295-028) | completed |
 | PSY-003 | `SPEC_PERF_SYNC.md` 3.2 | Discovery clone MUST be reused via move | `crates/eden-skills-cli/src/commands/install.rs`, `crates/eden-skills-core/src/source.rs` | `crates/eden-skills-cli/tests/perf_sync_tests.rs` (TM-P295-029, TM-P295-030) | completed |
-| PSY-004 | `SPEC_PERF_SYNC.md` 4.2 | Install sync MUST batch into one reactor call | | | pending |
-| PSY-005 | `SPEC_PERF_SYNC.md` 5.2 | Apply SHOULD skip sync for unchanged repos | | | pending |
-| PSY-006 | `SPEC_PERF_SYNC.md` 7 | update/apply/repair MUST use repo cache | `crates/eden-skills-core/src/source.rs`, `crates/eden-skills-core/src/plan.rs`, `crates/eden-skills-core/src/verify.rs`, `crates/eden-skills-core/src/safety.rs`, `crates/eden-skills-cli/src/commands/reconcile.rs`, `crates/eden-skills-cli/src/commands/update.rs` | `crates/eden-skills-core/tests/symlink_canonical_tests.rs`, `crates/eden-skills-cli/tests/apply_repair.rs`, `crates/eden-skills-cli/tests/lock_diff_tests.rs`, `crates/eden-skills-cli/tests/update_ext_tests.rs` | in_progress |
+| PSY-004 | `SPEC_PERF_SYNC.md` 4.2 | Install sync MUST batch into one reactor call | `crates/eden-skills-cli/src/commands/install.rs` | `crates/eden-skills-cli/tests/perf_sync_tests.rs` (TM-P295-031), `crates/eden-skills-cli/tests/install_discovery_tests.rs` (TM-P29-020, TM-P29-021, TM-P29-022) | completed |
+| PSY-005 | `SPEC_PERF_SYNC.md` 5.2 | Apply SHOULD skip sync for unchanged repos | `crates/eden-skills-core/src/source.rs`, `crates/eden-skills-cli/src/commands/reconcile.rs` | `crates/eden-skills-cli/tests/perf_sync_tests.rs` (TM-P295-032, TM-P295-033), `crates/eden-skills-cli/tests/exit_code_matrix.rs` (`apply_reports_skipped_source_sync_on_repeated_run`) | completed |
+| PSY-006 | `SPEC_PERF_SYNC.md` 7 | update/apply/repair MUST use repo cache | `crates/eden-skills-core/src/source.rs`, `crates/eden-skills-core/src/plan.rs`, `crates/eden-skills-core/src/verify.rs`, `crates/eden-skills-core/src/safety.rs`, `crates/eden-skills-cli/src/commands/reconcile.rs`, `crates/eden-skills-cli/src/commands/update.rs`, `crates/eden-skills-cli/src/commands/diagnose.rs` | `crates/eden-skills-core/tests/perf_sync_tests.rs` (`build_plan_uses_repo_cache_source_path_for_remote_skills`), `crates/eden-skills-core/tests/symlink_canonical_tests.rs`, `crates/eden-skills-cli/tests/apply_repair.rs`, `crates/eden-skills-cli/tests/lock_diff_tests.rs`, `crates/eden-skills-cli/tests/update_ext_tests.rs` (TM-P295-034), `crates/eden-skills-cli/tests/doctor_copy.rs` (TM-P295-036) | completed |
 | PSY-007 | `SPEC_PERF_SYNC.md` 6.2 | Migration MUST be gradual and non-destructive | `crates/eden-skills-core/src/source.rs`, `crates/eden-skills-cli/src/commands/install.rs` | `crates/eden-skills-core/tests/perf_sync_tests.rs` (TM-P295-035), `crates/eden-skills-cli/tests/perf_sync_tests.rs` (TM-P295-038) | completed |
-| PSY-008 | `SPEC_PERF_SYNC.md` 8 | Copy-mode mtime+size fast path | | | pending |
+| PSY-008 | `SPEC_PERF_SYNC.md` 8 | Copy-mode mtime+size fast path | `crates/eden-skills-core/src/plan.rs` | `crates/eden-skills-core/tests/plan_copy_edge_tests.rs` (TM-P295-037) | completed |
 
 ## 2. Remove All Requirements
 

@@ -1,7 +1,7 @@
 # Phase 2.95 Execution Tracker
 
 Phase: Performance, Platform Reach & UX Completeness
-Status: Batch 4 Completed
+Status: Batch 5 Completed
 Started: 2026-03-06
 
 ## Batch Plan
@@ -12,7 +12,7 @@ Started: 2026-03-06
 | 2 | Remove All Symbol | WP-2 | RMA-001~004 | completed |
 | 3 | Windows Junction Fallback | WP-3 | WJN-001~006 | completed |
 | 4 | Performance Part 1: Repo-Level Cache | WP-1 pt1 | PSY-001~003, PSY-006~007 | completed |
-| 5 | Performance Part 2: Batch Sync + Migration | WP-1 pt2 | PSY-004~006, PSY-008 | pending |
+| 5 | Performance Part 2: Batch Sync + Migration | WP-1 pt2 | PSY-004~006, PSY-008 | completed |
 | 6 | Docker Bind Mount + Agent Auto-Detection | WP-4 | DBM-001~007 | pending |
 | 7 | Regression + Closeout | — | TM regression | pending |
 
@@ -88,5 +88,23 @@ Started: 2026-03-06
   - `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc` ✅
   - Test inventory: `375`
 - Notes:
-  - Batch 5 remains next: remote install batching (`PSY-004`), lock-diff skip logic (`PSY-005`), remaining repo-cache migration closeout, and the optional copy fast path (`PSY-008`).
+  - Batch 5 followed in the next pass to finish remote-install batching, repo-level skip reporting, and the copy fast path on top of the Batch 4 repo-cache foundation.
   - The two Windows CI regressions after Batch 4 were both test-layer issues; no Batch 4 repo-cache or junction runtime contract change was required.
+
+### Batch 5 — Performance Part 2: Batch Sync + Migration (Completed 2026-03-06)
+
+- Requirements: `PSY-004`, `PSY-005`, `PSY-006`, `PSY-008`
+- Completed in this pass:
+  - Updated `crates/eden-skills-cli/src/commands/install.rs` so remote URL-mode installs batch the selected config into a single `sync_sources_async()` call before sequential install-plan execution, while preserving the existing TTY/non-TTY sync progress output contract.
+  - Extended `crates/eden-skills-core/src/source.rs` with repo-level skip support for grouped sync tasks and updated `crates/eden-skills-cli/src/commands/reconcile.rs` so `apply` reports skipped repo sync tasks for unchanged lock entries while `repair` still fetches every repo.
+  - Completed the remaining repo-cache migration coverage by adding `TM-P295-034` in `crates/eden-skills-cli/tests/update_ext_tests.rs` and `TM-P295-036` in `crates/eden-skills-cli/tests/doctor_copy.rs`, confirming `update` and `doctor` resolve remote sources from repo-cache-backed paths instead of legacy per-skill directories.
+  - Added the `mtime + size` copy fast path in `crates/eden-skills-core/src/plan.rs`, added `TM-P295-037` in `crates/eden-skills-core/tests/plan_copy_edge_tests.rs`, and refreshed older copy-plan fixtures so unreadable-file conflicts still test the non-fast-path branch.
+  - Added `TM-P295-031`, `TM-P295-032`, and `TM-P295-033` in `crates/eden-skills-cli/tests/perf_sync_tests.rs` using a portable git-subcommand probe to verify batched install fetches, apply skip summaries, and repair’s no-skip behavior.
+- Validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace --all-targets` ✅
+  - `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc` ✅
+  - Test inventory: `381`
+- Notes:
+  - Batch 6 is next: Docker bind mount support plus docker target auto-detection.

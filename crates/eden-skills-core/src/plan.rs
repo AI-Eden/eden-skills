@@ -211,6 +211,9 @@ fn copy_content_equal(source: &Path, target: &Path) -> Result<bool, CopyCompareE
         if source_meta.len() != target_meta.len() {
             return Ok(false);
         }
+        if file_metadata_matches_fast_path(&source_meta, &target_meta) {
+            return Ok(true);
+        }
         return file_content_equal_streaming(source, target);
     }
 
@@ -231,6 +234,13 @@ fn copy_content_equal(source: &Path, target: &Path) -> Result<bool, CopyCompareE
     }
 
     Ok(true)
+}
+
+fn file_metadata_matches_fast_path(source_meta: &fs::Metadata, target_meta: &fs::Metadata) -> bool {
+    match (source_meta.modified(), target_meta.modified()) {
+        (Ok(source_modified), Ok(target_modified)) => source_modified == target_modified,
+        _ => false,
+    }
 }
 
 fn read_dir_entry_names_no_symlink(

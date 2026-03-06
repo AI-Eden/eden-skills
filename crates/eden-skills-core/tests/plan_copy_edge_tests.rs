@@ -4,6 +4,7 @@ use std::path::Path;
 use std::path::PathBuf;
 #[cfg(windows)]
 use std::process::Command;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use eden_skills_core::config::{
     AgentKind, Config, InstallConfig, InstallMode, ReactorConfig, SafetyConfig, SkillConfig,
@@ -16,6 +17,18 @@ use tempfile::tempdir;
 fn write_bytes(path: &Path, size: usize, value: u8) {
     let buf = vec![value; size];
     fs::write(path, buf).expect("write bytes");
+}
+
+fn set_modified_time(path: &Path, modified: SystemTime) {
+    let file = fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(path)
+        .expect("open file for set_times");
+    let times = fs::FileTimes::new()
+        .set_accessed(modified)
+        .set_modified(modified);
+    file.set_times(times).expect("set file times");
 }
 
 fn copy_mode_skill(skill_id: &str, target_root: &Path) -> SkillConfig {
@@ -138,6 +151,12 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
 
     fs::write(source_path.join("secret.txt"), "x\n").expect("write source");
     fs::write(target_path.join("secret.txt"), "x\n").expect("write target");
+    let base_time = UNIX_EPOCH + Duration::from_secs(1_700_000_100);
+    set_modified_time(&source_path.join("secret.txt"), base_time);
+    set_modified_time(
+        &target_path.join("secret.txt"),
+        base_time + Duration::from_secs(1),
+    );
 
     let mut perms = fs::metadata(target_path.join("secret.txt"))
         .expect("metadata")
@@ -226,6 +245,12 @@ fn copy_mode_plan_conflict_on_unreadable_target_file() {
 
     fs::write(source_path.join("secret.txt"), "x\n").expect("write source");
     fs::write(target_path.join("secret.txt"), "x\n").expect("write target");
+    let base_time = UNIX_EPOCH + Duration::from_secs(1_700_000_100);
+    set_modified_time(&source_path.join("secret.txt"), base_time);
+    set_modified_time(
+        &target_path.join("secret.txt"),
+        base_time + Duration::from_secs(1),
+    );
 
     let protected_file = target_path.join("secret.txt");
     run_icacls(
@@ -292,6 +317,109 @@ fn copy_mode_plan_conflict_on_symlink_in_tree() {
             .iter()
             .any(|r| r == "copy comparison failed: symlink in tree"),
         "expected symlink-in-tree conflict, got {:?}",
+        plan[0].reasons
+    );
+}
+
+#[cfg(unix)]
+#[test]
+fn tm_p295_037_copy_mode_mtime_and_size_fast_path_avoids_byte_comparison() {
+    use std::os::unix::fs::PermissionsExt;
+
+    let temp = tempdir().expect("tempdir");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("target");
+    fs::create_dir_all(&storage_root).expect("create storage");
+    fs::create_dir_all(&target_root).expect("create target");
+
+    let skill_id = "copy-fast-path";
+    let skill = copy_mode_skill(skill_id, &target_root);
+    let source_path = resolve_skill_source_path(&storage_root, &skill);
+    let target_path = target_root.join(skill_id);
+    fs::create_dir_all(&source_path).expect("create source");
+    fs::create_dir_all(&target_path).expect("create target skill");
+
+    let source_file = source_path.join("data.bin");
+    let target_file = target_path.join("data.bin");
+    write_bytes(&source_file, 4096, 0xA5);
+    write_bytes(&target_file, 4096, 0xA5);
+
+    let shared_mtime = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
+    set_modified_time(&source_file, shared_mtime);
+    set_modified_time(&target_file, shared_mtime);
+
+    let mut source_perms = fs::metadata(&source_file)
+        .expect("source metadata")
+        .permissions();
+    source_perms.set_mode(0o000);
+    fs::set_permissions(&source_file, source_perms).expect("lock down source file");
+
+    let mut target_perms = fs::metadata(&target_file)
+        .expect("target metadata")
+        .permissions();
+    target_perms.set_mode(0o000);
+    fs::set_permissions(&target_file, target_perms).expect("lock down target file");
+
+    let config = Config {
+        version: 1,
+        storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
+        skills: vec![skill],
+    };
+
+    let plan = build_plan(&config, temp.path()).expect("build plan");
+    assert_eq!(plan.len(), 1);
+    assert_eq!(
+        plan[0].action,
+        Action::Noop,
+        "matching mtime+size should short-circuit byte reads even when files are unreadable, reasons={:?}",
+        plan[0].reasons
+    );
+}
+
+#[cfg(windows)]
+#[test]
+fn tm_p295_037_copy_mode_mtime_and_size_fast_path_avoids_byte_comparison() {
+    let temp = tempdir().expect("tempdir");
+    let storage_root = temp.path().join("storage");
+    let target_root = temp.path().join("target");
+    fs::create_dir_all(&storage_root).expect("create storage");
+    fs::create_dir_all(&target_root).expect("create target");
+
+    let skill_id = "copy-fast-path";
+    let skill = copy_mode_skill(skill_id, &target_root);
+    let source_path = resolve_skill_source_path(&storage_root, &skill);
+    let target_path = target_root.join(skill_id);
+    fs::create_dir_all(&source_path).expect("create source");
+    fs::create_dir_all(&target_path).expect("create target skill");
+
+    let source_file = source_path.join("data.bin");
+    let target_file = target_path.join("data.bin");
+    write_bytes(&source_file, 4096, 0xA5);
+    write_bytes(&target_file, 4096, 0xA5);
+
+    let shared_mtime = UNIX_EPOCH + Duration::from_secs(1_700_000_000);
+    set_modified_time(&source_file, shared_mtime);
+    set_modified_time(&target_file, shared_mtime);
+
+    run_icacls(&source_file, &["/inheritance:r", "/deny", "*S-1-1-0:(R)"]);
+    run_icacls(&target_file, &["/inheritance:r", "/deny", "*S-1-1-0:(R)"]);
+    let _source_acl_reset = AclResetGuard::new(source_file.clone());
+    let _target_acl_reset = AclResetGuard::new(target_file.clone());
+
+    let config = Config {
+        version: 1,
+        storage_root: storage_root.display().to_string(),
+        reactor: ReactorConfig::default(),
+        skills: vec![skill],
+    };
+
+    let plan = build_plan(&config, temp.path()).expect("build plan");
+    assert_eq!(plan.len(), 1);
+    assert_eq!(
+        plan[0].action,
+        Action::Noop,
+        "matching mtime+size should short-circuit byte reads even when files are unreadable, reasons={:?}",
         plan[0].reasons
     );
 }

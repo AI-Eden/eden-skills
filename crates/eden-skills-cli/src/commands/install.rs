@@ -450,24 +450,28 @@ async fn install_remote_url_mode_async(
 
     let mut execution_summary = InstallExecutionSummary::default();
     let mut sync_progress = SourceSyncProgress::new(ui, selected_ids.len());
-    let mut sync_error: Option<EdenError> = None;
-    for (index, skill_id) in selected_ids.iter().enumerate() {
-        sync_progress.start_step(skill_id);
-        let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
-        let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
-        sync_progress.record_step(ui, index, skill_id, sync_summary.failed > 0);
-        if let Some(err) = source_sync_failure_error(&sync_summary) {
-            sync_error = Some(err);
-            break;
+    if let Some(first_skill_id) = selected_ids.first() {
+        sync_progress.start_step(first_skill_id);
+    }
+    let sync_summary = sync_sources_async(&selected_config, &config_dir).await?;
+    if sync_summary.failed > 0 {
+        if let Some(first_skill_id) = selected_ids.first() {
+            sync_progress.record_step(ui, 0, first_skill_id, true);
         }
-        let skill_summary =
-            execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
-        execution_summary.merge(skill_summary);
+    } else {
+        for (index, skill_id) in selected_ids.iter().enumerate() {
+            sync_progress.start_step(skill_id);
+            sync_progress.record_step(ui, index, skill_id, false);
+            let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
+            let skill_summary =
+                execute_install_plan(&single_skill_config, &config_dir, req.options.strict)?;
+            execution_summary.merge(skill_summary);
+        }
     }
     if !req.options.json {
         sync_progress.finish(ui);
     }
-    if let Some(err) = sync_error {
+    if let Some(err) = source_sync_failure_error(&sync_summary) {
         return Err(err);
     }
 
