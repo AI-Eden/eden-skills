@@ -3,7 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.97.
 Use this file to recover accurate context after compression.
 
-**Status:** IN PROGRESS — Batches 1-3 populated by Builder during implementation.
+**Status:** IN PROGRESS — Batches 1-4 populated by Builder during implementation.
 
 ## 1. Update Fix Requirements
 
@@ -45,13 +45,13 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| CCL-001 | `SPEC_CACHE_CLEAN.md` 2.2 | Identify and remove orphaned .repos/ entries | — | TM-P297-029, TM-P297-033 | pending |
-| CCL-002 | `SPEC_CACHE_CLEAN.md` 2.2 | Remove stale discovery temp dirs | — | TM-P297-030 | pending |
-| CCL-003 | `SPEC_CACHE_CLEAN.md` 2.2 | Dry-run lists without deleting | — | TM-P297-031 | pending |
-| CCL-004 | `SPEC_CACHE_CLEAN.md` 2.4 | JSON output schema | — | TM-P297-032 | pending |
-| CCL-005 | `SPEC_CACHE_CLEAN.md` 3 | remove --auto-clean runs clean after removal | — | TM-P297-034 | pending |
-| CCL-006 | `SPEC_CACHE_CLEAN.md` 4 | Doctor reports ORPHAN_CACHE_ENTRY | — | TM-P297-035 | pending |
-| CCL-007 | `SPEC_CACHE_CLEAN.md` 2.3 | Report freed disk space | — | TM-P297-036 | pending |
+| CCL-001 | `SPEC_CACHE_CLEAN.md` 2.2 | Identify and remove orphaned .repos/ entries | `crates/eden-skills-cli/src/lib.rs`, `crates/eden-skills-cli/src/commands/clean.rs` | TM-P297-029, TM-P297-033 | completed |
+| CCL-002 | `SPEC_CACHE_CLEAN.md` 2.2 | Remove stale discovery temp dirs | `crates/eden-skills-cli/src/commands/clean.rs`, `crates/eden-skills-cli/src/commands/install.rs` | TM-P297-030 | completed |
+| CCL-003 | `SPEC_CACHE_CLEAN.md` 2.2 | Dry-run lists without deleting | `crates/eden-skills-cli/src/commands/clean.rs` | TM-P297-031 | completed |
+| CCL-004 | `SPEC_CACHE_CLEAN.md` 2.4 | JSON output schema | `crates/eden-skills-cli/src/lib.rs`, `crates/eden-skills-cli/src/commands/clean.rs` | TM-P297-032 | completed |
+| CCL-005 | `SPEC_CACHE_CLEAN.md` 3 | remove --auto-clean runs clean after removal | `crates/eden-skills-cli/src/lib.rs`, `crates/eden-skills-cli/src/commands/remove.rs`, `crates/eden-skills-cli/src/commands/clean.rs` | TM-P297-034 | completed |
+| CCL-006 | `SPEC_CACHE_CLEAN.md` 4 | Doctor reports ORPHAN_CACHE_ENTRY | `crates/eden-skills-cli/src/commands/diagnose.rs`, `crates/eden-skills-cli/src/commands/clean.rs` | TM-P297-035 | completed |
+| CCL-007 | `SPEC_CACHE_CLEAN.md` 2.3 | Report freed disk space | `crates/eden-skills-cli/src/commands/clean.rs` | TM-P297-036 | completed |
 
 ## 5. Docker Managed Requirements
 

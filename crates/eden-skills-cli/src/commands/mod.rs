@@ -4,6 +4,7 @@
 //! re-exports all public items so callers use `commands::install_async`,
 //! `commands::CommandOptions`, etc. without knowing the internal layout.
 
+mod clean;
 pub(crate) mod common;
 mod config_ops;
 mod diagnose;
@@ -14,6 +15,7 @@ mod reconcile;
 mod remove;
 mod update;
 
+pub use clean::*;
 pub use config_ops::*;
 pub use diagnose::*;
 pub use docker_cmd::*;

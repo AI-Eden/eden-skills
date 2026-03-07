@@ -86,8 +86,8 @@ fn doctor_json_has_required_schema() {
             .and_then(|v| v.as_str())
             .expect("severity str");
         assert!(
-            matches!(severity, "error" | "warning"),
-            "severity must be error|warning"
+            matches!(severity, "error" | "warning" | "info"),
+            "severity must be error|warning|info"
         );
     }
 }

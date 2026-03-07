@@ -19,6 +19,7 @@ use eden_skills_core::safety::{analyze_skills, LicenseStatus, SkillSafetyReport}
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
 use serde::Deserialize;
 
+use super::clean::{collect_orphan_repo_cache_entries, orphan_cache_target_path};
 use super::common::{
     doctor_docker_bin, load_config_with_context, resolve_config_path, REGISTRY_SYNC_MARKER_FILE,
 };
@@ -123,8 +124,31 @@ fn collect_phase2_doctor_findings(
         config,
         config_dir,
     )?);
+    findings.extend(collect_orphan_cache_findings(config, config_dir)?);
     findings.extend(collect_adapter_health_findings(config, config_dir));
     Ok(findings)
+}
+
+fn collect_orphan_cache_findings(
+    config: &Config,
+    config_dir: &Path,
+) -> Result<Vec<DoctorFinding>, EdenError> {
+    let storage_root = resolve_path_string(&config.storage_root, config_dir)?;
+    let orphan_paths = collect_orphan_repo_cache_entries(config, &storage_root)?;
+    Ok(orphan_paths
+        .into_iter()
+        .map(|path| {
+            let target_path = orphan_cache_target_path(&path);
+            DoctorFinding {
+                code: "ORPHAN_CACHE_ENTRY".to_string(),
+                severity: "info".to_string(),
+                skill_id: String::new(),
+                target_path,
+                message: "Orphaned cache entry not referenced by any configured skill".to_string(),
+                remediation: "Run `eden-skills clean` to free disk space.".to_string(),
+            }
+        })
+        .collect())
 }
 
 fn collect_registry_stale_findings(
@@ -624,13 +648,21 @@ fn print_doctor_text(ui: &UiContext, findings: &[DoctorFinding]) {
     }
 
     for (index, finding) in findings.iter().enumerate() {
-        println!(
-            "  {} [{}] {}",
-            doctor_severity_symbol(ui, &finding.severity),
-            finding.code,
-            ui.styled_skill_id(&finding.skill_id)
-        );
-        println!("    {}", doctor_message_with_styled_path(ui, finding));
+        if finding.skill_id.is_empty() {
+            println!(
+                "  {} [{}]",
+                doctor_severity_symbol(ui, &finding.severity),
+                finding.code,
+            );
+        } else {
+            println!(
+                "  {} [{}] {}",
+                doctor_severity_symbol(ui, &finding.severity),
+                finding.code,
+                ui.styled_skill_id(&finding.skill_id)
+            );
+        }
+        println!("    {}", doctor_display_message(ui, finding));
         println!(
             "    {} {}",
             doctor_remediation_prefix(ui),
@@ -662,7 +694,13 @@ fn doctor_remediation_prefix(ui: &UiContext) -> String {
     ui.hint_prefix()
 }
 
-fn doctor_message_with_styled_path(ui: &UiContext, finding: &DoctorFinding) -> String {
+fn doctor_display_message(ui: &UiContext, finding: &DoctorFinding) -> String {
+    if finding.code == "ORPHAN_CACHE_ENTRY" {
+        return format!(
+            "Orphaned cache entry: {}",
+            ui.styled_path(&finding.target_path)
+        );
+    }
     if finding.target_path.is_empty() {
         return finding.message.clone();
     }

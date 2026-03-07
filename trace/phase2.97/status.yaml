@@ -45,7 +45,7 @@ batches:
     name: "Cache Clean"
     work_packages: [WP-4]
     requirements: [CCL-001, CCL-002, CCL-003, CCL-004, CCL-005, CCL-006, CCL-007]
-    status: pending
+    status: completed
   batch5:
     name: "Docker Management Domain"
     work_packages: [WP-5]
@@ -113,3 +113,21 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 422
+  batch_4_cache_clean:
+    status: completed
+    started_at: "2026-03-08"
+    completed_at: "2026-03-08"
+    requirements: CCL-001, CCL-002, CCL-003, CCL-004, CCL-005, CCL-006, CCL-007
+    scenarios: TM-P297-029, TM-P297-030, TM-P297-031, TM-P297-032, TM-P297-033, TM-P297-034, TM-P297-035, TM-P297-036
+    notes:
+      - added a new `clean` subcommand in `crates/eden-skills-cli/src/lib.rs` and `crates/eden-skills-cli/src/commands/clean.rs` to scan `storage_root/.repos`, delete orphaned repo-cache entries, remove stale `eden-skills-discovery-*` temp directories, support `--dry-run` and `--json`, and report freed bytes in human mode
+      - shared the discovery temp-dir prefix between `crates/eden-skills-cli/src/commands/install.rs` and the new cleanup logic so orphan temp-directory detection matches the install-side naming convention exactly
+      - extended `crates/eden-skills-cli/src/commands/remove.rs` with `--auto-clean`, reusing the shared cleanup report for both human output and nested JSON payloads after config and lock updates complete
+      - extended `crates/eden-skills-cli/src/commands/diagnose.rs` with `ORPHAN_CACHE_ENTRY` info findings that point users at `eden-skills clean` when `.repos/` entries are no longer referenced by config
+      - added `crates/eden-skills-cli/tests/cache_clean_tests.rs` covering orphan repo-cache cleanup, stale discovery-dir cleanup, dry-run behavior, JSON output, no-op reporting, `remove --auto-clean`, doctor orphan detection, and freed-byte reporting
+      - relaxed `crates/eden-skills-cli/tests/doctor_json_contract.rs` severity validation to allow the new additive `info` doctor finding without changing the existing summary schema
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 430

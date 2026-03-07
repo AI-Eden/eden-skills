@@ -397,6 +397,24 @@ impl UiContext {
         }
     }
 
+    /// Style an agent name for table cells and other human-facing output.
+    pub fn styled_agent_name(&self, agent_name: &str) -> String {
+        if self.colors_enabled() {
+            agent_name.magenta().to_string()
+        } else {
+            agent_name.to_string()
+        }
+    }
+
+    /// Style a version string for table cells and other human-facing output.
+    pub fn styled_version(&self, version: &str) -> String {
+        if self.colors_enabled() {
+            version.yellow().to_string()
+        } else {
+            version.to_string()
+        }
+    }
+
     /// Style a semantic status label for table output.
     pub fn styled_status(&self, status: &str) -> String {
         if !self.colors_enabled() {

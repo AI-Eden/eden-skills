@@ -9,7 +9,10 @@ pub mod commands;
 pub mod signal;
 pub mod ui;
 
+use std::io::IsTerminal;
+
 use clap::builder::styling::{AnsiColor, Style, Styles};
+use clap::builder::StyledStr;
 use clap::{Args, ColorChoice, FromArgMatches, Parser, Subcommand};
 use commands::CommandOptions;
 use eden_skills_core::config::InstallMode;
@@ -18,59 +21,60 @@ use ui::{configure_color_output, ColorWhen};
 
 pub const DEFAULT_CONFIG_PATH: &str = "~/.eden-skills/skills.toml";
 
-pub async fn run() -> Result<(), EdenError> {
+/// Top-level CLI error preserving either domain failures or clap parse errors.
+#[derive(Debug)]
+pub enum CliError {
+    /// An eden-skills domain or runtime failure after argument parsing succeeded.
+    Domain(EdenError),
+    /// A clap parsing / help-rendering error emitted before command dispatch.
+    Clap(clap::Error),
+}
+
+impl From<EdenError> for CliError {
+    fn from(value: EdenError) -> Self {
+        Self::Domain(value)
+    }
+}
+
+impl From<clap::Error> for CliError {
+    fn from(value: clap::Error) -> Self {
+        Self::Clap(value)
+    }
+}
+
+pub async fn run() -> Result<(), CliError> {
     run_with_args(std::env::args().skip(1).collect()).await
 }
 
-pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
+pub async fn run_with_args(args: Vec<String>) -> Result<(), CliError> {
     let mut argv = Vec::with_capacity(args.len() + 1);
     argv.push("eden-skills".to_string());
     argv.extend(args);
+    let clap_color_choice = resolve_clap_color_choice(&argv);
+    configure_color_output(color_when_from_clap_choice(clap_color_choice), false);
 
     if argv.len() == 1 {
-        let _ = <Cli as clap::CommandFactory>::command()
-            .color(resolve_clap_color_choice(&argv))
-            .print_help();
+        let _ = build_cli_command(clap_color_choice).print_help();
         println!();
         return Ok(());
     }
 
-    let clap_color_choice = resolve_clap_color_choice(&argv);
-    let matches = match <Cli as clap::CommandFactory>::command()
-        .color(clap_color_choice)
-        .try_get_matches_from(&argv)
-    {
+    let matches = match build_cli_command(clap_color_choice).try_get_matches_from(&argv) {
         Ok(matches) => matches,
         Err(err) => match err.kind() {
             clap::error::ErrorKind::DisplayHelp
             | clap::error::ErrorKind::DisplayVersion
             | clap::error::ErrorKind::DisplayHelpOnMissingArgumentOrSubcommand => {
-                err.print().map_err(EdenError::Io)?;
+                err.print().map_err(EdenError::Io).map_err(CliError::from)?;
                 return Ok(());
             }
-            _ => {
-                let raw = err.to_string();
-                let msg = raw
-                    .strip_prefix("error: ")
-                    .unwrap_or(&raw)
-                    .trim_end()
-                    .to_string();
-                return Err(EdenError::InvalidArguments(msg));
-            }
+            _ => return Err(CliError::from(err)),
         },
     };
-    let cli = Cli::from_arg_matches(&matches).map_err(|err| {
-        let raw = err.to_string();
-        let msg = raw
-            .strip_prefix("error: ")
-            .unwrap_or(&raw)
-            .trim_end()
-            .to_string();
-        EdenError::InvalidArguments(msg)
-    })?;
+    let cli = Cli::from_arg_matches(&matches).map_err(CliError::from)?;
     configure_color_output(cli.color, cli.command.json_mode());
 
-    match cli.command {
+    let result = match cli.command {
         Commands::Install(args) => {
             commands::install_async(commands::InstallRequest {
                 config_path: args.config,
@@ -110,6 +114,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 &args.config,
                 &args.skill_ids,
                 args.yes,
+                args.auto_clean,
                 CommandOptions {
                     strict: args.strict,
                     json: args.json,
@@ -117,6 +122,14 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
             )
             .await
         }
+        Commands::Clean(args) => commands::clean(
+            &args.config,
+            args.dry_run,
+            CommandOptions {
+                strict: false,
+                json: args.json,
+            },
+        ),
         Commands::Plan(args) => commands::plan(
             &args.config,
             CommandOptions {
@@ -216,24 +229,60 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
                 },
             ),
         },
-    }
+    };
+    result.map_err(CliError::from)
 }
 
-pub fn exit_code_for_error(err: &EdenError) -> u8 {
+pub fn exit_code_for_error(err: &CliError) -> u8 {
     match err {
-        EdenError::InvalidArguments(_) | EdenError::Validation(_) => 2,
-        EdenError::Conflict(_) => 3,
-        EdenError::Runtime(_) | EdenError::Io(_) => 1,
+        CliError::Domain(EdenError::InvalidArguments(_))
+        | CliError::Domain(EdenError::Validation(_)) => 2,
+        CliError::Domain(EdenError::Conflict(_)) => 3,
+        CliError::Domain(EdenError::Runtime(_) | EdenError::Io(_)) => 1,
+        CliError::Clap(err) => err.exit_code() as u8,
     }
 }
 
-const EXAMPLE_AND_DOC: &str = r#"Examples:
-  eden-skills install vercel-labs/agent-skills    Install skills from GitHub
-  eden-skills install ./my-local-skill            Install from local path
-  eden-skills list                                Show configured skills
-  eden-skills doctor                              Check installation health
+const DOCS_URL: &str = "https://github.com/AI-Eden/eden-skills/blob/main/README.md";
 
-Documentation: https://github.com/AI-Eden/eden-skills"#;
+#[derive(Debug, Clone, Copy)]
+struct HelpExample {
+    subcommand: &'static str,
+    argument: Option<&'static str>,
+    description: &'static str,
+}
+
+impl HelpExample {
+    fn plain_command(self) -> String {
+        match self.argument {
+            Some(argument) => format!("eden-skills {} {}", self.subcommand, argument),
+            None => format!("eden-skills {}", self.subcommand),
+        }
+    }
+}
+
+const ROOT_HELP_EXAMPLES: &[HelpExample] = &[
+    HelpExample {
+        subcommand: "install",
+        argument: Some("vercel-labs/agent-skills"),
+        description: "Install skills from GitHub",
+    },
+    HelpExample {
+        subcommand: "install",
+        argument: Some("./my-local-skill"),
+        description: "Install from local path",
+    },
+    HelpExample {
+        subcommand: "list",
+        argument: None,
+        description: "Show configured skills",
+    },
+    HelpExample {
+        subcommand: "doctor",
+        argument: None,
+        description: "Check installation health",
+    },
+];
 
 fn help_styles() -> Styles {
     Styles::styled()
@@ -241,6 +290,116 @@ fn help_styles() -> Styles {
         .literal(Style::new().bold().fg_color(Some(AnsiColor::Cyan.into())))
         .placeholder(Style::new().fg_color(Some(AnsiColor::Magenta.into())))
         .usage(Style::new().bold().fg_color(Some(AnsiColor::Green.into())))
+}
+
+fn build_cli_command(clap_color_choice: ColorChoice) -> clap::Command {
+    <Cli as clap::CommandFactory>::command()
+        .color(clap_color_choice)
+        .after_help(render_root_help_footer(clap_color_choice))
+}
+
+fn render_root_help_footer(clap_color_choice: ColorChoice) -> StyledStr {
+    let styles = help_styles();
+    let colors_enabled = help_colors_enabled(clap_color_choice);
+    let command_width = ROOT_HELP_EXAMPLES
+        .iter()
+        .map(|example| example.plain_command().len())
+        .max()
+        .unwrap_or_default();
+
+    let mut footer = StyledStr::new();
+    push_help_span(
+        &mut footer,
+        "Examples:",
+        styles.get_header(),
+        colors_enabled,
+    );
+    footer.push_str("\n");
+
+    for example in ROOT_HELP_EXAMPLES {
+        footer.push_str("  ");
+        push_help_span(
+            &mut footer,
+            "eden-skills",
+            styles.get_literal(),
+            colors_enabled,
+        );
+        footer.push_str(" ");
+        push_help_span(
+            &mut footer,
+            example.subcommand,
+            styles.get_literal(),
+            colors_enabled,
+        );
+        if let Some(argument) = example.argument {
+            footer.push_str(" ");
+            push_help_span(
+                &mut footer,
+                argument,
+                styles.get_placeholder(),
+                colors_enabled,
+            );
+        }
+
+        let padding = command_width
+            .saturating_sub(example.plain_command().len())
+            .saturating_add(4);
+        footer.push_str(&" ".repeat(padding));
+        footer.push_str(example.description);
+        footer.push_str("\n");
+    }
+
+    footer.push_str("\n");
+    push_help_span(
+        &mut footer,
+        "Documentation:",
+        styles.get_header(),
+        colors_enabled,
+    );
+    footer.push_str(" ");
+    push_help_span(
+        &mut footer,
+        DOCS_URL,
+        styles.get_placeholder(),
+        colors_enabled,
+    );
+    footer
+}
+
+fn push_help_span(buffer: &mut StyledStr, text: &str, style: &Style, colors_enabled: bool) {
+    if !colors_enabled {
+        buffer.push_str(text);
+        return;
+    }
+
+    buffer.push_str(&format!("{}{text}{}", style.render(), style.render_reset()));
+}
+
+fn help_colors_enabled(clap_color_choice: ColorChoice) -> bool {
+    match clap_color_choice {
+        ColorChoice::Always => true,
+        ColorChoice::Never => false,
+        ColorChoice::Auto => {
+            if env_var_present("NO_COLOR") {
+                return false;
+            }
+            if env_var_present("FORCE_COLOR") {
+                return true;
+            }
+            if env_var_present("CI") {
+                return false;
+            }
+            std::env::var("EDEN_SKILLS_FORCE_TTY")
+                .ok()
+                .as_deref()
+                .is_some_and(|value| value != "0" && !value.is_empty())
+                || std::io::stdout().is_terminal()
+        }
+    }
+}
+
+fn env_var_present(name: &str) -> bool {
+    std::env::var_os(name).is_some_and(|value| !value.is_empty())
 }
 
 fn resolve_clap_color_choice(argv: &[String]) -> ColorChoice {
@@ -271,6 +430,14 @@ fn parse_clap_color_choice(value: &str) -> ColorChoice {
     }
 }
 
+fn color_when_from_clap_choice(choice: ColorChoice) -> ColorWhen {
+    match choice {
+        ColorChoice::Always => ColorWhen::Always,
+        ColorChoice::Never => ColorWhen::Never,
+        ColorChoice::Auto => ColorWhen::Auto,
+    }
+}
+
 #[derive(Debug, Parser)]
 #[command(name = "eden-skills")]
 #[command(version)]
@@ -279,9 +446,6 @@ fn parse_clap_color_choice(value: &str) -> ColorChoice {
 #[command(styles = help_styles())]
 #[command(
     long_about = "Deterministic & Blazing-Fast Skills Manager for AI Agents (Claude Code, Cursor, Codex & More)."
-)]
-#[command(
-    after_help = EXAMPLE_AND_DOC
 )]
 struct Cli {
     #[arg(
@@ -313,6 +477,11 @@ enum Commands {
         next_help_heading = "Quick Management"
     )]
     Remove(RemoveArgs),
+    #[command(
+        about = "Remove orphaned cache entries and stale discovery directories",
+        next_help_heading = "State Reconciliation"
+    )]
+    Clean(CleanArgs),
     #[command(
         about = "Preview planned actions without making changes",
         next_help_heading = "State Reconciliation"
@@ -371,6 +540,7 @@ impl Commands {
             Self::Install(args) => args.json,
             Self::Update(args) => args.json,
             Self::Remove(args) => args.json,
+            Self::Clean(args) => args.json,
             Self::Plan(args) => args.json,
             Self::Apply(args) => args.json,
             Self::Doctor(args) => args.json,
@@ -656,12 +826,29 @@ struct RemoveArgs {
     json: bool,
     #[arg(short = 'y', long, help = "Skip confirmation prompt")]
     yes: bool,
+    #[arg(long, help = "Run cache cleanup after removing the selected skills")]
+    auto_clean: bool,
 
     #[arg(
         value_name = "SKILL_ID",
         help = "One or more skill identifiers to remove"
     )]
     skill_ids: Vec<String>,
+}
+
+#[derive(Debug, Clone, Args)]
+struct CleanArgs {
+    #[arg(
+        long,
+        default_value = DEFAULT_CONFIG_PATH,
+        hide_default_value = true,
+        help = "Path to skills.toml config file [default: ~/.eden-skills/skills.toml]"
+    )]
+    config: String,
+    #[arg(long, help = "Output machine-readable JSON")]
+    json: bool,
+    #[arg(long, help = "List removals without deleting files")]
+    dry_run: bool,
 }
 
 #[derive(Debug, Clone, Args)]

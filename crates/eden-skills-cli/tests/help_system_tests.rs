@@ -36,8 +36,61 @@ fn root_help_contains_version_about_groups_and_examples() {
         "root help should include quickstart examples, stdout={stdout}"
     );
     assert!(
-        stdout.contains("Documentation: https://github.com/AI-Eden/eden-skills"),
+        stdout
+            .contains("Documentation: https://github.com/AI-Eden/eden-skills/blob/main/README.md"),
         "root help should include documentation link, stdout={stdout}"
+    );
+}
+
+#[test]
+fn root_help_colorizes_examples_and_documentation_footer() {
+    let output = run_eden(["--color", "always", "--help"]);
+    assert_success(&output);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    assert!(
+        stdout.contains("\u{1b}[1m\u{1b}[32mExamples:")
+            && stdout.contains("\u{1b}[1m\u{1b}[32mDocumentation:"),
+        "root help footer headings should be bold green, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("\u{1b}[1m\u{1b}[36meden-skills\u{1b}[0m \u{1b}[1m\u{1b}[36minstall")
+            && stdout.contains("\u{1b}[1m\u{1b}[36meden-skills\u{1b}[0m \u{1b}[1m\u{1b}[36mlist"),
+        "example command literals should be rendered token-by-token in bold cyan, stdout={stdout}"
+    );
+    assert!(
+        stdout.contains("\u{1b}[35mvercel-labs/agent-skills")
+            && stdout.contains("\u{1b}[35m./my-local-skill")
+            && stdout
+                .contains("\u{1b}[35mhttps://github.com/AI-Eden/eden-skills/blob/main/README.md"),
+        "example arguments and documentation URL should be magenta placeholders, stdout={stdout}"
+    );
+}
+
+#[test]
+fn invalid_subcommand_error_uses_custom_colorized_parse_renderer() {
+    let output = run_eden(["--color", "always", "li"]);
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "invalid subcommand should return clap usage exit code, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("\u{1b}[1m\u{1b}[35mtip:\u{1b}[39m\u{1b}[0m"),
+        "tip label should be bold magenta, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("\u{1b}[1m\u{1b}[32mUsage:\u{1b}[39m\u{1b}[0m"),
+        "usage heading should be bold green, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("\u{1b}[36m'li'\u{1b}[39m")
+            && stderr.contains("\u{1b}[36m'list'\u{1b}[39m")
+            && stderr.contains("\u{1b}[36m'--help'\u{1b}[39m"),
+        "quoted invalid token, suggestion, and help flag should be unbold cyan, stderr={stderr}"
     );
 }
 

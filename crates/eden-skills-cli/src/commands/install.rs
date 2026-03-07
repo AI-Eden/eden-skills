@@ -39,6 +39,7 @@ use crate::ui::{
 };
 use crate::DEFAULT_CONFIG_PATH;
 
+use super::clean::DISCOVERY_TEMP_DIR_PREFIX;
 use super::common::{
     agent_kind_label, apply_plan_item, copy_recursively, ensure_git_available, ensure_parent_dir,
     load_config_with_context, parse_target_specs, path_is_symlink_or_junction,
@@ -746,7 +747,7 @@ fn create_discovery_temp_checkout() -> Result<TempDiscoveryCheckout, EdenError> 
             .map_err(|err| EdenError::Runtime(format!("system clock before unix epoch: {err}")))?
             .as_nanos();
         let candidate = std::env::temp_dir().join(format!(
-            "eden-skills-discovery-{}-{unique}-{attempt}",
+            "{DISCOVERY_TEMP_DIR_PREFIX}{}-{unique}-{attempt}",
             std::process::id()
         ));
         match fs::create_dir(&candidate) {
@@ -1207,7 +1208,7 @@ fn print_install_dry_run(
         skill_table.add_row(vec![
             (index + 1).to_string(),
             ui.styled_skill_id(&row.skill_id),
-            row.version.clone(),
+            ui.styled_version(&row.version),
             ui.styled_cyan(&row.source),
         ]);
     }

@@ -19,6 +19,7 @@ use eden_skills_core::paths::{
     known_default_agent_paths, normalize_lexical, resolve_path_string, resolve_target_path,
 };
 
+use super::clean::{clean_with_loaded_config, print_clean_summary};
 use super::common::{
     block_on_command_future, ensure_docker_available_for_targets, format_quoted_ids,
     load_config_with_context, print_warning, remove_path, resolve_config_path, unique_ids,
@@ -33,7 +34,13 @@ use super::CommandOptions;
 /// Returns [`EdenError`] if the skill ID is not found or uninstall fails.
 pub fn remove(config_path: &str, skill_id: &str, options: CommandOptions) -> Result<(), EdenError> {
     let skill_ids = vec![skill_id.to_string()];
-    block_on_command_future(remove_many_async(config_path, &skill_ids, true, options))
+    block_on_command_future(remove_many_async(
+        config_path,
+        &skill_ids,
+        true,
+        false,
+        options,
+    ))
 }
 
 /// Async variant of [`remove`] for a single skill.
@@ -47,7 +54,7 @@ pub async fn remove_async(
     options: CommandOptions,
 ) -> Result<(), EdenError> {
     let skill_ids = vec![skill_id.to_string()];
-    remove_many_async(config_path, &skill_ids, true, options).await
+    remove_many_async(config_path, &skill_ids, true, false, options).await
 }
 
 /// Remove one or more skills by ID with optional interactive confirmation.
@@ -65,6 +72,7 @@ pub async fn remove_many_async(
     config_path: &str,
     skill_ids: &[String],
     skip_confirmation: bool,
+    auto_clean: bool,
     options: CommandOptions,
 ) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
@@ -131,13 +139,24 @@ pub async fn remove_many_async(
     validate_config(&config, &config_dir)?;
     write_normalized_config(config_path, &config)?;
     write_lock_for_config(config_path, &config, &config_dir)?;
+    let clean_report = if auto_clean {
+        Some(clean_with_loaded_config(&config, &config_dir, false)?)
+    } else {
+        None
+    };
 
     if options.json {
-        let payload = serde_json::json!({
+        let mut payload = serde_json::json!({
             "action": "remove",
             "config_path": config_path.display().to_string(),
             "removed": removed,
         });
+        if let Some(clean_report) = &clean_report {
+            payload
+                .as_object_mut()
+                .expect("remove payload should be an object")
+                .insert("clean".to_string(), clean_report.nested_json_value());
+        }
         let encoded = serde_json::to_string_pretty(&payload)
             .map_err(|err| EdenError::Runtime(format!("failed to serialize remove json: {err}")))?;
         println!("{encoded}");
@@ -145,6 +164,10 @@ pub async fn remove_many_async(
     }
 
     print_remove_summary(&ui, &removed);
+    if let Some(clean_report) = &clean_report {
+        println!();
+        print_clean_summary(&ui, clean_report);
+    }
     Ok(())
 }
 

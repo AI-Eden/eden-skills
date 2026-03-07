@@ -1,7 +1,7 @@
 # Phase 2.97 Execution Tracker
 
 Phase: Reliability, Interactive UX & Docker Safety
-Status: In Progress — Batches 1-3 Completed
+Status: In Progress — Batches 1-4 Completed
 Started: 2026-03-07
 Completed: —
 
@@ -12,7 +12,7 @@ Completed: —
 | 1 | Update Concurrency Fix | WP-1 | UFX-001~003 | completed |
 | 2 | Table Content Styling + Help Colorization + List Table + Hint Sync | WP-2 + WP-6 | TST-001~008, HSY-001~002 | completed |
 | 3 | Interactive UX (Remove + Install) | WP-3 | IUX-001~010 | completed |
-| 4 | Cache Clean | WP-4 | CCL-001~007 | pending |
+| 4 | Cache Clean | WP-4 | CCL-001~007 | completed |
 | 5 | Docker Management Domain | WP-5 | DMG-001~008 | pending |
 | 6 | Documentation + Regression + Closeout | WP-7 | DOC-001~002, TM regression | pending |
 
@@ -78,3 +78,20 @@ Completed: —
 - Notes:
   - The original `dialoguer::MultiSelect` theme approach produced stale-frame artifacts when inline descriptions could soft-wrap. The final implementation uses a shared custom renderer instead of `dialoguer`'s built-in list drawing so viewport clearing and overflow indicators stay deterministic in real terminals.
   - Real Windows validation has now been completed and confirmed that cloning-phase input suppression behaves equivalently to the Unix `/dev/tty` + termios path in practice.
+
+### Batch 4 — Cache Clean (Completed 2026-03-08)
+
+- Requirements: `CCL-001`, `CCL-002`, `CCL-003`, `CCL-004`, `CCL-005`, `CCL-006`, `CCL-007`
+- Completed in this pass:
+  - Added a new `clean` subcommand in `crates/eden-skills-cli/src/lib.rs` and `crates/eden-skills-cli/src/commands/clean.rs` to remove orphaned repo-cache directories under `storage/.repos`, delete stale `eden-skills-discovery-*` temp directories, support `--dry-run` and `--json`, and report freed disk space in human mode.
+  - Shared the discovery temp-directory prefix between `crates/eden-skills-cli/src/commands/install.rs` and the new cleanup logic so temp checkout creation and cleanup detection stay in sync.
+  - Extended `crates/eden-skills-cli/src/commands/remove.rs` with `--auto-clean`, reusing the shared cleanup report for both human output and nested JSON payloads after removal completes.
+  - Extended `crates/eden-skills-cli/src/commands/diagnose.rs` with additive `ORPHAN_CACHE_ENTRY` info findings that surface orphaned `.repos/` entries and point users at `eden-skills clean`.
+  - Added `crates/eden-skills-cli/tests/cache_clean_tests.rs` covering `TM-P297-029` through `TM-P297-036`, and updated `crates/eden-skills-cli/tests/doctor_json_contract.rs` so the doctor schema contract accepts the new additive `info` severity.
+- Validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace` ✅
+  - Test inventory: `430`
+- Notes:
+  - The cleanup pass intentionally tolerates paths that disappear between scan and delete so `clean` remains stable if another process or parallel test removes the same stale temp directory concurrently.

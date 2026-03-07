@@ -63,14 +63,14 @@ Phase 2.97 acceptance test scenarios.
 
 | ID | Scenario | Spec | Type | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| TM-P297-029 | `clean` removes orphaned `.repos/` entries not in config | CCL-001 | auto | pending |
-| TM-P297-030 | `clean` removes stale `eden-skills-discovery-*` temp dirs | CCL-002 | auto | pending |
-| TM-P297-031 | `clean --dry-run` lists removals without deleting | CCL-003 | auto | pending |
-| TM-P297-032 | `clean --json` outputs machine-readable report | CCL-004 | auto | pending |
-| TM-P297-033 | `clean` with no orphans reports nothing to clean | CCL-001 | auto | pending |
-| TM-P297-034 | `remove --auto-clean` runs clean after removal | CCL-005 | auto | pending |
-| TM-P297-035 | `doctor` reports `ORPHAN_CACHE_ENTRY` for orphaned cache | CCL-006 | auto | pending |
-| TM-P297-036 | `clean` reports freed disk space in human mode | CCL-007 | auto | pending |
+| TM-P297-029 | `clean` removes orphaned `.repos/` entries not in config | CCL-001 | auto | completed |
+| TM-P297-030 | `clean` removes stale `eden-skills-discovery-*` temp dirs | CCL-002 | auto | completed |
+| TM-P297-031 | `clean --dry-run` lists removals without deleting | CCL-003 | auto | completed |
+| TM-P297-032 | `clean --json` outputs machine-readable report | CCL-004 | auto | completed |
+| TM-P297-033 | `clean` with no orphans reports nothing to clean | CCL-001 | auto | completed |
+| TM-P297-034 | `remove --auto-clean` runs clean after removal | CCL-005 | auto | completed |
+| TM-P297-035 | `doctor` reports `ORPHAN_CACHE_ENTRY` for orphaned cache | CCL-006 | auto | completed |
+| TM-P297-036 | `clean` reports freed disk space in human mode | CCL-007 | auto | completed |
 
 ## 7. Docker Managed (WP-5)
 
