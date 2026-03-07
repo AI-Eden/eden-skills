@@ -12,6 +12,8 @@ use std::fs::File;
 #[cfg(unix)]
 use std::fs::OpenOptions;
 use std::io::IsTerminal;
+#[cfg(windows)]
+use std::iter::once;
 #[cfg(unix)]
 use std::os::fd::{AsRawFd, RawFd};
 use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
@@ -25,6 +27,19 @@ use dialoguer::console::{
 use eden_skills_core::error::EdenError;
 use indicatif::{ProgressBar, ProgressStyle};
 use owo_colors::OwoColorize;
+#[cfg(windows)]
+use windows_sys::Win32::Foundation::{
+    CloseHandle, GENERIC_READ, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE,
+};
+#[cfg(windows)]
+use windows_sys::Win32::Storage::FileSystem::{
+    CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
+};
+#[cfg(windows)]
+use windows_sys::Win32::System::Console::{
+    FlushConsoleInputBuffer, GetConsoleMode, GetStdHandle, SetConsoleMode, CONSOLE_MODE,
+    ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, STD_INPUT_HANDLE,
+};
 
 /// When to emit ANSI color sequences.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
@@ -633,6 +648,8 @@ impl Drop for CursorGuard<'_> {
 struct SpinnerInputGuard {
     #[cfg(unix)]
     _inner: Option<UnixSpinnerInputGuard>,
+    #[cfg(windows)]
+    _inner: Option<WindowsSpinnerInputGuard>,
 }
 
 impl SpinnerInputGuard {
@@ -640,6 +657,8 @@ impl SpinnerInputGuard {
         Self {
             #[cfg(unix)]
             _inner: UnixSpinnerInputGuard::new(),
+            #[cfg(windows)]
+            _inner: WindowsSpinnerInputGuard::new(),
         }
     }
 }
@@ -695,6 +714,60 @@ impl Drop for UnixSpinnerInputGuard {
         unsafe {
             libc::tcflush(self.fd, libc::TCIFLUSH);
             libc::tcsetattr(self.fd, libc::TCSADRAIN, &self.original_termios);
+        }
+    }
+}
+
+#[cfg(windows)]
+struct WindowsSpinnerInputGuard {
+    handle: HANDLE,
+    owns_handle: bool,
+    original_mode: CONSOLE_MODE,
+}
+
+#[cfg(windows)]
+impl WindowsSpinnerInputGuard {
+    fn new() -> Option<Self> {
+        let (handle, owns_handle) = open_windows_console_input_handle()?;
+        let mut original_mode = 0;
+        let get_result = unsafe { GetConsoleMode(handle, &mut original_mode) };
+        if get_result == 0 {
+            if owns_handle {
+                unsafe {
+                    CloseHandle(handle);
+                }
+            }
+            return None;
+        }
+
+        let muted_mode = original_mode & !ENABLE_ECHO_INPUT & !ENABLE_LINE_INPUT;
+        let set_result = unsafe { SetConsoleMode(handle, muted_mode) };
+        if set_result == 0 {
+            if owns_handle {
+                unsafe {
+                    CloseHandle(handle);
+                }
+            }
+            return None;
+        }
+
+        Some(Self {
+            handle,
+            owns_handle,
+            original_mode,
+        })
+    }
+}
+
+#[cfg(windows)]
+impl Drop for WindowsSpinnerInputGuard {
+    fn drop(&mut self) {
+        unsafe {
+            FlushConsoleInputBuffer(self.handle);
+            SetConsoleMode(self.handle, self.original_mode);
+            if self.owns_handle {
+                CloseHandle(self.handle);
+            }
         }
     }
 }
@@ -1012,6 +1085,46 @@ fn preserve_skill_select_prefix(
 
 fn render_skill_select_frame_text(lines: &[String]) -> String {
     lines.join("\n")
+}
+
+#[cfg(windows)]
+fn open_windows_console_input_handle() -> Option<(HANDLE, bool)> {
+    let std_handle = unsafe { GetStdHandle(STD_INPUT_HANDLE) };
+    if windows_console_handle_supports_mode(std_handle) {
+        return Some((std_handle, false));
+    }
+
+    let conin = "CONIN$".encode_utf16().chain(once(0)).collect::<Vec<_>>();
+    let handle = unsafe {
+        CreateFileW(
+            conin.as_ptr(),
+            GENERIC_READ | GENERIC_WRITE,
+            FILE_SHARE_READ | FILE_SHARE_WRITE,
+            std::ptr::null(),
+            OPEN_EXISTING,
+            0,
+            std::ptr::null_mut(),
+        )
+    };
+    if windows_console_handle_supports_mode(handle) {
+        Some((handle, true))
+    } else {
+        if handle != INVALID_HANDLE_VALUE && !handle.is_null() {
+            unsafe {
+                CloseHandle(handle);
+            }
+        }
+        None
+    }
+}
+
+#[cfg(windows)]
+fn windows_console_handle_supports_mode(handle: HANDLE) -> bool {
+    if handle.is_null() || handle == INVALID_HANDLE_VALUE {
+        return false;
+    }
+    let mut mode = 0;
+    unsafe { GetConsoleMode(handle, &mut mode) != 0 }
 }
 
 fn truncate_to_char_limit(text: &str, max_chars: usize) -> String {

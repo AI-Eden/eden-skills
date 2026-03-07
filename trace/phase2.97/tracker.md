@@ -68,6 +68,7 @@ Completed: —
   - Replaced the install confirm-plus-name-input flow in `crates/eden-skills-cli/src/commands/install.rs` with shared checkbox-selector skill selection while preserving `--all`, `--skill`, `--list`, `--dry-run`, single-skill direct install, and non-interactive install-all fallback semantics.
   - Aligned interactive styling with the upstream `vercel-labs/skills` screenshots: no bold prompt items, cyan active unchecked checkboxes, green checked checkboxes, dim inline descriptions, and checked install items retaining their descriptions after the cursor moves away.
   - Refined the active prompt-item label color back to terminal-default white and changed selector redraw to emit a single block without a trailing newline, preventing repeated `Found N skills` headers from being pushed into scrollback when the terminal is short and later resized taller.
+  - Added best-effort Windows spinner input suppression using Win32 console input-mode save/restore plus input-buffer flushing, and confirmed the `cfg(windows)` path compiles with `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc`.
   - Added `crates/eden-skills-cli/tests/interactive_ux_tests.rs` and updated the affected legacy remove/install/output tests to validate Phase 2.97 checkbox-selection behavior and the retired wildcard/path-preview expectations.
 - Validation:
   - `cargo fmt --all -- --check` ✅
@@ -76,3 +77,4 @@ Completed: —
   - Test inventory: `422`
 - Notes:
   - The original `dialoguer::MultiSelect` theme approach produced stale-frame artifacts when inline descriptions could soft-wrap. The final implementation uses a shared custom renderer instead of `dialoguer`'s built-in list drawing so viewport clearing and overflow indicators stay deterministic in real terminals.
+  - Windows cloning-phase input suppression still needs manual observation on a real Windows terminal to confirm that console-mode muting and buffer flushing match the Unix `/dev/tty` + termios behavior in practice.
