@@ -87,9 +87,9 @@ fn invalid_subcommand_error_uses_custom_colorized_parse_renderer() {
         "usage heading should be bold green, stderr={stderr}"
     );
     assert!(
-        stderr.contains("\u{1b}[36m'li'\u{1b}[39m")
-            && stderr.contains("\u{1b}[36m'list'\u{1b}[39m")
-            && stderr.contains("\u{1b}[36m'--help'\u{1b}[39m"),
+        stderr.contains("'\u{1b}[36mli\u{1b}[39m'")
+            && stderr.contains("'\u{1b}[36mlist\u{1b}[39m'")
+            && stderr.contains("'\u{1b}[36m--help\u{1b}[39m'"),
         "quoted invalid token, suggestion, and help flag should be unbold cyan, stderr={stderr}"
     );
 }
@@ -115,7 +115,7 @@ fn unknown_argument_error_uses_custom_colorized_parse_renderer() {
     );
     assert!(
         stderr.contains("'\u{1b}[33m--jso\u{1b}[39m'")
-            && stderr.contains("\u{1b}[36m'--json'\u{1b}[39m"),
+            && stderr.contains("'\u{1b}[36m--json\u{1b}[39m'"),
         "unknown argument should use cargo-style yellow inner token with plain quotes, while suggestion stays cyan, stderr={stderr}"
     );
 }
@@ -142,7 +142,7 @@ fn repeated_single_value_option_uses_custom_argument_conflict_renderer() {
         "conflicting argument syntax should use cargo-style yellow inner token with plain quotes, stderr={stderr}"
     );
     assert!(
-        stderr.contains("\u{1b}[36m'--help'\u{1b}[39m"),
+        stderr.contains("'\u{1b}[36m--help\u{1b}[39m'"),
         "help hint token should stay unbold cyan, stderr={stderr}"
     );
 }
@@ -163,8 +163,8 @@ fn invalid_value_error_uses_custom_colorized_parse_renderer() {
         "tip label should be bold magenta, stderr={stderr}"
     );
     assert!(
-        stderr.contains("\u{1b}[36m'alwayz'\u{1b}[39m")
-            && stderr.contains("\u{1b}[36m'always'\u{1b}[39m"),
+        stderr.contains("'\u{1b}[36malwayz\u{1b}[39m'")
+            && stderr.contains("'\u{1b}[36malways\u{1b}[39m'"),
         "invalid and suggested values should be unbold cyan, stderr={stderr}"
     );
     assert!(

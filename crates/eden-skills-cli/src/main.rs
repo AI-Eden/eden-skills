@@ -482,15 +482,10 @@ fn style_quoted_cli_fragment(fragment: &str, colors_enabled: bool) -> String {
         && !fragment.contains('[')
         && !fragment.contains(']')
     {
-        return format!("{}", format!("'{fragment}'").cyan());
+        return format!("'{}'", fragment.to_string().cyan());
     }
 
-    format!(
-        "{}{}{}",
-        "'".cyan(),
-        style_cli_fragment(fragment, colors_enabled),
-        "'".cyan()
-    )
+    format!("'{}'", style_cli_fragment(fragment, colors_enabled))
 }
 
 fn style_unknown_argument_token(token: &str, colors_enabled: bool) -> String {

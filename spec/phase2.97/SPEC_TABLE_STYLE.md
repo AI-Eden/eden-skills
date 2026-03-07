@@ -159,8 +159,8 @@ The semantic palette MUST be:
 | :--- | :--- |
 | `error:` prefix | **bold red** |
 | `tip:` label | **bold magenta** |
-| Quoted suggested tokens and most quoted parse-error tokens (`'li'`, `'--json'`, `'always'`, `'--help'`) | cyan (unbold) |
-| Invalid token inside `unexpected argument 'xx'` headline | yellow (unbold), with surrounding `'` kept plain-text |
+| Token body inside quoted suggested tokens and most quoted parse-error tokens (`'li'`, `'--json'`, `'always'`, `'--help'`) | cyan (unbold), with surrounding `'` kept plain-text |
+| Invalid token body inside `unexpected argument 'xx'` headline | yellow (unbold), with surrounding `'` kept plain-text |
 | Usage heading (`Usage:`) when present | **bold green** |
 | Usage literals / flag names / subcommands | cyan (unbold) |
 | Usage metavars / placeholders (`<COLOR>`, `[OPTIONS]`) | magenta (unbold) |
