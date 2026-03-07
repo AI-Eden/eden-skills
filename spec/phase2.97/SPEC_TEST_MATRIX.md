@@ -37,7 +37,7 @@ Phase 2.97 acceptance test scenarios.
 
 | ID | Scenario | Spec | Type | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| TM-P297-013 | `remove` without IDs in interactive mode shows MultiSelect prompt | IUX-001 | auto | pending |
+| TM-P297-013 | `remove` without IDs in interactive mode shows checkbox selector with `...` overflow indicators | IUX-001 | auto | pending |
 | TM-P297-014 | MultiSelect selection followed by confirmation removes selected skills | IUX-001, IUX-005 | auto | pending |
 | TM-P297-015 | Confirmation declined (`N`) cancels removal | IUX-005 | auto | pending |
 | TM-P297-016 | `EDEN_SKILLS_TEST_REMOVE_INPUT="0,2"` selects correct items | IUX-007 | auto | pending |
@@ -50,9 +50,9 @@ Phase 2.97 acceptance test scenarios.
 
 | ID | Scenario | Spec | Type | Status |
 | :--- | :--- | :--- | :--- | :--- |
-| TM-P297-021 | Multi-skill discovery in interactive mode shows MultiSelect prompt | IUX-002 | auto | pending |
-| TM-P297-022 | Active item shows inline description in dim style | IUX-003, IUX-004 | manual | pending |
-| TM-P297-023 | Long description is truncated with `...` | IUX-004 | auto | pending |
+| TM-P297-021 | Multi-skill discovery in interactive mode shows checkbox selector with `...` overflow indicators | IUX-002 | auto | pending |
+| TM-P297-022 | Active unchecked item shows cyan checkbox and dim inline description without bold text | IUX-003, IUX-004, IUX-009 | auto | pending |
+| TM-P297-023 | Checked item keeps inline description and truncates after 57 characters with `...` | IUX-003, IUX-004 | auto | pending |
 | TM-P297-024 | Skill without description shows name only when hovered | IUX-010 | auto | pending |
 | TM-P297-025 | `EDEN_SKILLS_TEST_SKILL_INPUT="0,1"` selects correct items | IUX-007 | auto | pending |
 | TM-P297-026 | `--all` flag bypasses MultiSelect | IUX-008 | auto | pending |

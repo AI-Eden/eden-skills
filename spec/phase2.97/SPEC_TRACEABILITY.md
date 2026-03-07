@@ -3,7 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.97.
 Use this file to recover accurate context after compression.
 
-**Status:** PENDING — Populated by Builder during implementation.
+**Status:** IN PROGRESS — Batches 1-3 populated by Builder during implementation.
 
 ## 1. Update Fix Requirements
 
@@ -30,16 +30,16 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| IUX-001 | `SPEC_INTERACTIVE_UX.md` 3 | Remove uses MultiSelect | — | TM-P297-013, TM-P297-014 | pending |
-| IUX-002 | `SPEC_INTERACTIVE_UX.md` 4 | Install uses MultiSelect | — | TM-P297-021 | pending |
-| IUX-003 | `SPEC_INTERACTIVE_UX.md` 4.2 | Active item shows inline description | — | TM-P297-022 | pending |
-| IUX-004 | `SPEC_INTERACTIVE_UX.md` 4.3 | Description truncated to terminal width | — | TM-P297-023 | pending |
-| IUX-005 | `SPEC_INTERACTIVE_UX.md` 3.3 | Confirm prompt after MultiSelect | — | TM-P297-014, TM-P297-015 | pending |
-| IUX-006 | `SPEC_INTERACTIVE_UX.md` 3.4 | Remove `*` wildcard feature | — | TM-P297-019 | pending |
-| IUX-007 | `SPEC_INTERACTIVE_UX.md` 2.3 | Test env var injection | — | TM-P297-016, TM-P297-017, TM-P297-025 | pending |
-| IUX-008 | `SPEC_INTERACTIVE_UX.md` 3.5, 4.5 | Non-interactive fallback | — | TM-P297-018, TM-P297-020, TM-P297-026, TM-P297-027, TM-P297-028 | pending |
-| IUX-009 | `SPEC_INTERACTIVE_UX.md` 2.1 | Active item rendered bold | — | TM-P297-022 | pending |
-| IUX-010 | `SPEC_INTERACTIVE_UX.md` 2.1 | No empty parentheses for description-less skills | — | TM-P297-024 | pending |
+| IUX-001 | `SPEC_INTERACTIVE_UX.md` 3 | Remove uses shared checkbox selector | `crates/eden-skills-cli/src/ui.rs`, `crates/eden-skills-cli/src/commands/remove.rs` | TM-P297-013, TM-P297-014, TM-P297-016 | completed |
+| IUX-002 | `SPEC_INTERACTIVE_UX.md` 4 | Install uses shared checkbox selector | `crates/eden-skills-cli/src/ui.rs`, `crates/eden-skills-cli/src/commands/install.rs` | TM-P297-021, TM-P297-025 | completed |
+| IUX-003 | `SPEC_INTERACTIVE_UX.md` 4.2 | Active and checked install items show inline description | `crates/eden-skills-cli/src/ui.rs` | TM-P297-022, TM-P297-023, TM-P297-024 | completed |
+| IUX-004 | `SPEC_INTERACTIVE_UX.md` 4.3 | Description is dim, 57-char capped, and does not soft-wrap | `crates/eden-skills-cli/src/ui.rs` | TM-P297-022, TM-P297-023 | completed |
+| IUX-005 | `SPEC_INTERACTIVE_UX.md` 3.3 | Confirm prompt after MultiSelect | `crates/eden-skills-cli/src/commands/remove.rs` | TM-P297-014, TM-P297-015 | completed |
+| IUX-006 | `SPEC_INTERACTIVE_UX.md` 3.4 | Remove `*` wildcard feature | `crates/eden-skills-cli/src/commands/remove.rs` | TM-P297-019 | completed |
+| IUX-007 | `SPEC_INTERACTIVE_UX.md` 2.3 | Test env var injection | `crates/eden-skills-cli/src/ui.rs`, `crates/eden-skills-cli/src/commands/remove.rs`, `crates/eden-skills-cli/src/commands/install.rs` | TM-P297-016, TM-P297-017, TM-P297-025 | completed |
+| IUX-008 | `SPEC_INTERACTIVE_UX.md` 3.5, 4.5 | Non-interactive fallback | `crates/eden-skills-cli/src/commands/remove.rs`, `crates/eden-skills-cli/src/commands/install.rs` | TM-P297-018, TM-P297-020, TM-P297-026, TM-P297-027, TM-P297-028 | completed |
+| IUX-009 | `SPEC_INTERACTIVE_UX.md` 2.1 | Active and checked states are color-signaled without bold | `crates/eden-skills-cli/src/ui.rs` | TM-P297-022, TM-P297-023 | completed |
+| IUX-010 | `SPEC_INTERACTIVE_UX.md` 2.1 | No empty parentheses for description-less skills | `crates/eden-skills-cli/src/ui.rs` | TM-P297-024 | completed |
 
 ## 4. Cache Clean Requirements
 

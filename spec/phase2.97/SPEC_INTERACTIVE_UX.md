@@ -1,7 +1,7 @@
 # SPEC_INTERACTIVE_UX.md
 
-Interactive skill selection using `dialoguer::MultiSelect` for both
-`remove` and `install` commands.
+Interactive checkbox-based skill selection for both `remove` and
+`install` commands.
 
 **Related contracts:**
 
@@ -19,34 +19,43 @@ Interactive skill selection using `dialoguer::MultiSelect` for both
 3. Both interactions lack the modern checkbox-list UX pattern that
    competing tools (e.g., `npx skills`) provide.
 
-## 2. MultiSelect Component
+## 2. Interactive Selector Component
 
 ### 2.1 Shared Infrastructure
 
-Both `remove` and `install` MUST use `dialoguer::MultiSelect` with a
-custom `Theme` implementation (`SkillSelectTheme`).
+Both `remove` and `install` MUST use a shared interactive checkbox
+selector implementation with a custom renderer (`SkillSelectTheme`).
 
 The `SkillSelectTheme` MUST:
 
-1. Wrap `dialoguer::theme::ColorfulTheme` as the base theme.
-2. Store a `HashMap<String, String>` mapping skill name to description.
-3. Override `format_multi_select_prompt_item`:
-   - When `active == true` and a description exists: render
-     `☐/☑ skill-name (description truncated...)` with the description
-     portion in **dim** style, truncated to fit terminal width.
-   - When `active == false` or no description: render `☐/☑ skill-name`
+1. Store a `HashMap<String, String>` mapping skill name to description.
+2. Use checkbox characters consistent with the reference screenshots:
+   `☐` (unchecked), `■` (checked).
+3. Render unchecked items in gray text.
+4. Render the currently active unchecked checkbox in **cyan**.
+5. Render checked checkboxes in **green**.
+6. Avoid bold styling for prompt items.
+7. For `install`:
+   - When the item is active and has a description, render
+     `skill-name (description truncated...)`.
+   - When the item is checked and has a description, keep rendering the
+     description inline even after the cursor moves away.
+   - When the item is neither active nor checked, render `skill-name`
      only.
-4. Use checkbox characters consistent with the reference screenshots:
-   `☐` (unchecked), `☑` (checked), with the current/active item in
-   **bold**.
+8. For `remove`, never render descriptions inline.
 
 ### 2.2 Viewport Behavior
 
-`dialoguer::MultiSelect` provides built-in scrollable viewport that
-adapts to terminal height. No explicit page size configuration is
-required for the default behavior. The `...` overflow indicators
-are rendered automatically by `dialoguer` when items exceed the
-visible area.
+The selector MUST use a scrollable viewport derived from terminal
+height.
+
+- If items exist above the visible window, the top visible row MUST be
+  `...`.
+- If items exist below the visible window, the bottom visible row MUST
+  be `...`.
+- The renderer MUST avoid soft-wrapping prompt rows. If the formatted
+  item would exceed terminal width, the description MUST be further
+  shortened or suppressed so the row still fits on one terminal line.
 
 ### 2.3 Test Injection
 
@@ -57,7 +66,7 @@ pattern MUST be preserved:
   (e.g., `"0,2"` selects items 0 and 2), or `"interrupt"` to simulate
   Ctrl+C.
 - `EDEN_SKILLS_TEST_SKILL_INPUT`: same format for install selection.
-- When the env var is set, `MultiSelect` is bypassed and the specified
+- When the env var is set, the interactive selector is bypassed and the specified
   indices are returned directly.
 
 ## 3. Remove Interactive Mode
@@ -65,15 +74,15 @@ pattern MUST be preserved:
 ### 3.1 Entry Condition
 
 When `eden-skills remove` is invoked without skill ID arguments and
-the terminal is interactive, the MultiSelect prompt MUST be shown.
+the terminal is interactive, the checkbox selector prompt MUST be shown.
 
 ### 3.2 Prompt
 
 ```text
 ◆ Select skills to remove (space to toggle)
-  ☐ api-design-principles
-  ☐ async-python-patterns
-  ☐ brand-guidelines
+   ◻api-design-principles
+   ◻async-python-patterns
+   ◻brand-guidelines
   ...
 ```
 
@@ -90,7 +99,7 @@ Default is `N` (reject). This preserves the existing safety behavior.
 ### 3.4 Wildcard Removal
 
 The Phase 2.95 `*` wildcard feature (`RMA-001` through `RMA-004`) is
-**superseded** by MultiSelect's native toggle-all capability.
+**removed** from interactive `remove`.
 
 - The `parse_remove_selection` function and its `*` handling MUST be
   removed.
@@ -110,34 +119,35 @@ behavior is preserved: require explicit skill IDs on the command line.
 
 When `eden-skills install <source>` discovers multiple skills and
 neither `--all` nor `--skill` is specified, and the terminal is
-interactive, the MultiSelect prompt MUST be shown.
+interactive, the checkbox selector prompt MUST be shown.
 
 ### 4.2 Prompt with Description
 
 ```text
 ◆ Select skills to install (space to toggle)
-  ☐ deploy-to-vercel (Deploy applications and websites to Vercel. Use when the ...)
-  ☐ vercel-composition-patterns
-  ☐ vercel-react-best-practices
-  ☐ vercel-react-native-skills
-  ☐ web-design-guidelines
+   ◻deploy-to-vercel (Deploy applications and websites to Vercel. Use when the ...)
+   ◻vercel-composition-patterns
+   ◻vercel-react-best-practices
+   ◻vercel-react-native-skills
+   ◻web-design-guidelines
 ```
 
-Only the **active** (currently hovered) item shows its description
-inline. The description is rendered in **dim** style with one space
-separating the name and the opening parenthesis. The description is
-truncated with `...` to fit within the terminal width.
+The active item shows its description inline. Once an item is toggled
+on, its inline description remains visible even after the cursor moves
+away. The description is rendered in **dim** style with one space
+separating the name and the opening parenthesis.
 
 ### 4.3 Description Truncation
 
 ```text
-available_width = terminal_width - indent - checkbox - name_len - 2
+visible_description_chars = min(description_chars, 57)
 ```
 
-Where `2` accounts for the space and opening parenthesis. If
-`available_width < 10`, the description is suppressed entirely.
-If the description fits within `available_width`, it is shown in
-full (without truncation or trailing `...`).
+If the description is longer than 57 visible characters, truncate to 57
+characters and append `...` (the 57-character budget excludes the
+surrounding parentheses). If terminal width is still insufficient after
+57-character truncation, shorten further or suppress the description to
+avoid soft-wrapping.
 
 ### 4.4 Existing Flows Preserved
 
@@ -163,19 +173,19 @@ When `!ui.interactive_enabled()`, all discovered skills are installed
 | `install --all` / `--skill` | Unchanged |
 | `install --list` / `--dry-run` | Unchanged |
 | `--json` mode | Unchanged — no interactive prompts |
-| `*` wildcard in remove | **Removed** — superseded by MultiSelect |
+| `*` wildcard in remove | **Removed** — no special meaning |
 
 ## 6. Normative Requirements
 
 | ID | Owner | Priority | Statement | Verification |
 | :--- | :--- | :--- | :--- | :--- |
-| **IUX-001** | Builder | **P1** | `remove` interactive mode MUST use `MultiSelect` with checkbox selection. | Running `remove` without IDs shows scrollable checkbox list. |
-| **IUX-002** | Builder | **P1** | `install` interactive mode MUST use `MultiSelect` with checkbox selection. | Running `install <repo>` with multiple skills shows checkbox list. |
-| **IUX-003** | Builder | **P1** | `SkillSelectTheme` MUST show description inline for the active item only. | Hovering over a skill with description shows `name (desc...)`. |
-| **IUX-004** | Builder | **P1** | Description MUST be rendered in dim style and truncated to terminal width. | Long descriptions are truncated with `...`. |
+| **IUX-001** | Builder | **P1** | `remove` interactive mode MUST use the shared checkbox selector. | Running `remove` without IDs shows a scrollable checkbox list with overflow indicators. |
+| **IUX-002** | Builder | **P1** | `install` interactive mode MUST use the shared checkbox selector. | Running `install <repo>` with multiple skills shows a scrollable checkbox list with overflow indicators. |
+| **IUX-003** | Builder | **P1** | `SkillSelectTheme` MUST show inline descriptions for active install items and keep them visible for checked install items. | Hovering or checking a skill with description shows `name (desc...)`. |
+| **IUX-004** | Builder | **P1** | Description MUST be dim, capped at 57 characters before `...`, and rendered without soft-wrapping. | Long descriptions are truncated with `...` and remain on one terminal line. |
 | **IUX-005** | Builder | **P1** | `remove` MUST show a `Confirm` prompt after MultiSelect selection. | After selection, `Remove N skills? (y/N)` is shown. |
 | **IUX-006** | Builder | **P1** | `remove` `*` wildcard feature (`RMA-001~004`) MUST be removed. | Input `*` is no longer recognized as special syntax. |
-| **IUX-007** | Builder | **P1** | Test env vars MUST bypass MultiSelect and return specified indices. | Tests using `EDEN_SKILLS_TEST_REMOVE_INPUT="0,2"` select correct items. |
+| **IUX-007** | Builder | **P1** | Test env vars MUST bypass the interactive selector and return specified indices. | Tests using `EDEN_SKILLS_TEST_REMOVE_INPUT="0,2"` select correct items. |
 | **IUX-008** | Builder | **P1** | Non-interactive fallback MUST preserve existing behavior. | Non-TTY remove requires explicit IDs; non-TTY install installs all. |
-| **IUX-009** | Builder | **P1** | Active item in MultiSelect MUST be rendered bold. | Currently hovered item label is bold. |
+| **IUX-009** | Builder | **P1** | Active and checked states MUST be indicated by color without bold text. | Active unchecked checkbox is cyan; checked checkbox is green; prompt item text is not bold. |
 | **IUX-010** | Builder | **P1** | Items without description MUST show name only (no empty parentheses). | Skills with empty description show just the name when hovered. |

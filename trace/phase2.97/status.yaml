@@ -40,7 +40,7 @@ batches:
     name: "Interactive UX (Remove + Install)"
     work_packages: [WP-3]
     requirements: [IUX-001, IUX-002, IUX-003, IUX-004, IUX-005, IUX-006, IUX-007, IUX-008, IUX-009, IUX-010]
-    status: pending
+    status: completed
   batch4:
     name: "Cache Clean"
     work_packages: [WP-4]
@@ -92,3 +92,22 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 412
+  batch_3_interactive_ux_remove_install:
+    status: completed
+    started_at: "2026-03-07"
+    completed_at: "2026-03-07"
+    requirements: IUX-001, IUX-002, IUX-003, IUX-004, IUX-005, IUX-006, IUX-007, IUX-008, IUX-009, IUX-010
+    scenarios: TM-P297-013, TM-P297-014, TM-P297-015, TM-P297-016, TM-P297-017, TM-P297-018, TM-P297-019, TM-P297-020, TM-P297-021, TM-P297-022, TM-P297-023, TM-P297-024, TM-P297-025, TM-P297-026, TM-P297-027, TM-P297-028
+    notes:
+      - added shared interactive selection infrastructure in `crates/eden-skills-cli/src/ui.rs` with `SkillSelectTheme`, custom checkbox prompt rendering, 57-character inline description truncation, viewport `...` indicators, color-policy sync for `dialoguer`/`console`, and shared test-env index parsing
+      - rewrote `crates/eden-skills-cli/src/commands/remove.rs` to replace the legacy candidate table and text-input parser with shared checkbox-selector index resolution while preserving explicit-ID removal, post-selection confirmation, and graceful cancellation
+      - removed the Phase 2.95 `*` wildcard branch from remove interactive mode so test-only `EDEN_SKILLS_TEST_REMOVE_INPUT` now accepts only comma-separated 0-based indices or `interrupt`
+      - rewrote `crates/eden-skills-cli/src/commands/install.rs` to replace the confirm-plus-name-input flow with shared checkbox-selector selection while preserving `--all`, `--skill`, single-discovery direct install, `--list`, `--dry-run`, and non-interactive install-all fallback behavior
+      - aligned interactive styling with the upstream `vercel-labs/skills` screenshots by removing bold prompt items, using cyan active unchecked checkboxes, green checked checkboxes, dim descriptions, and persistent inline descriptions for checked install items
+      - refined the active prompt-item label color back to the terminal default white and changed frame redraw to emit a single block without a trailing newline, preventing repeated `Found N skills` headers from being pushed into scrollback on short terminals
+      - added `crates/eden-skills-cli/tests/interactive_ux_tests.rs` and refreshed affected legacy remove/install/output tests to assert Phase 2.97 checkbox-selection semantics instead of the removed text-input preview flow
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 422

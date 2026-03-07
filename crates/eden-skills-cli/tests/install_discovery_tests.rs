@@ -290,75 +290,6 @@ fn tm_p29_015_install_list_shows_card_style_numbered_list() {
 }
 
 #[test]
-fn tm_p29_016_interactive_preview_matches_list_card_format() {
-    let temp = tempdir().expect("tempdir");
-    let home_dir = temp.path().join("home");
-    let repo_dir = temp.path().join("interactive-card-repo");
-    write_skill(
-        &repo_dir.join("skills/alpha/SKILL.md"),
-        "alpha-skill",
-        "Alpha details",
-    );
-    write_skill(
-        &repo_dir.join("skills/beta/SKILL.md"),
-        "beta-skill",
-        "Beta details",
-    );
-
-    let config_path = temp.path().join("skills.toml");
-    let list_output = eden_command(&home_dir)
-        .current_dir(temp.path())
-        .args([
-            "--color",
-            "never",
-            "install",
-            "./interactive-card-repo",
-            "--list",
-            "--config",
-        ])
-        .arg(&config_path)
-        .output()
-        .expect("run install --list");
-    assert_eq!(
-        list_output.status.code(),
-        Some(0),
-        "install --list should succeed, stderr={}",
-        String::from_utf8_lossy(&list_output.stderr)
-    );
-
-    let interactive_output = eden_command(&home_dir)
-        .current_dir(temp.path())
-        .env_remove("CI")
-        .env("EDEN_SKILLS_FORCE_TTY", "1")
-        .env("EDEN_SKILLS_TEST_CONFIRM", "y")
-        .args([
-            "--color",
-            "never",
-            "install",
-            "./interactive-card-repo",
-            "--config",
-        ])
-        .arg(&config_path)
-        .output()
-        .expect("run interactive install");
-    assert_eq!(
-        interactive_output.status.code(),
-        Some(0),
-        "interactive install should succeed, stderr={}",
-        String::from_utf8_lossy(&interactive_output.stderr)
-    );
-
-    let list_preview =
-        extract_discovery_preview_block(&String::from_utf8_lossy(&list_output.stdout));
-    let interactive_preview =
-        extract_discovery_preview_block(&String::from_utf8_lossy(&interactive_output.stdout));
-    assert_eq!(
-        list_preview, interactive_preview,
-        "interactive discovery preview should match --list card format"
-    );
-}
-
-#[test]
 fn tm_p29_017_discovery_description_uses_indented_followup_line() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
@@ -508,7 +439,7 @@ fn unknown_skill_name_returns_error_with_available_names() {
 }
 
 #[test]
-fn interactive_tty_confirm_yes_installs_all() {
+fn interactive_tty_test_indices_install_all() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = temp.path().join("interactive-yes");
@@ -520,7 +451,7 @@ fn interactive_tty_confirm_yes_installs_all() {
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
-        .env("EDEN_SKILLS_TEST_CONFIRM", "y")
+        .env("EDEN_SKILLS_TEST_SKILL_INPUT", "0,1")
         .args(["install", "./interactive-yes", "--config"])
         .arg(&config_path)
         .output()
@@ -528,7 +459,7 @@ fn interactive_tty_confirm_yes_installs_all() {
     assert_eq!(
         output.status.code(),
         Some(0),
-        "interactive yes should succeed, stderr={}",
+        "interactive index selection should succeed, stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
 
@@ -538,7 +469,7 @@ fn interactive_tty_confirm_yes_installs_all() {
 }
 
 #[test]
-fn interactive_tty_confirm_no_then_selects_named_skills() {
+fn interactive_tty_test_indices_select_named_skills() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = temp.path().join("interactive-no");
@@ -550,8 +481,7 @@ fn interactive_tty_confirm_no_then_selects_named_skills() {
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
-        .env("EDEN_SKILLS_TEST_CONFIRM", "n")
-        .env("EDEN_SKILLS_TEST_SKILL_INPUT", "skill-b")
+        .env("EDEN_SKILLS_TEST_SKILL_INPUT", "1")
         .args(["install", "./interactive-no", "--config"])
         .arg(&config_path)
         .output()
@@ -559,7 +489,7 @@ fn interactive_tty_confirm_no_then_selects_named_skills() {
     assert_eq!(
         output.status.code(),
         Some(0),
-        "interactive no + input should succeed, stderr={}",
+        "interactive index selection should succeed, stderr={}",
         String::from_utf8_lossy(&output.stderr)
     );
 
@@ -780,54 +710,6 @@ fn remote_url_missing_skill_markdown_with_skill_flag_returns_error() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert_no_skills_persisted(&config_path);
-}
-
-#[test]
-fn tm_p29_019_discovery_preview_truncates_to_eight_in_interactive_mode() {
-    let temp = tempdir().expect("tempdir");
-    let home_dir = temp.path().join("home");
-    let repo_dir = temp.path().join("truncated-summary");
-    for index in 1..=10 {
-        write_skill(
-            &repo_dir.join(format!("skills/skill-{index}/SKILL.md")),
-            &format!("skill-{index}"),
-            "demo",
-        );
-    }
-
-    let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
-        .current_dir(temp.path())
-        .env_remove("CI")
-        .env("EDEN_SKILLS_FORCE_TTY", "1")
-        .env("EDEN_SKILLS_TEST_CONFIRM", "y")
-        .args(["install", "./truncated-summary", "--config"])
-        .arg(&config_path)
-        .output()
-        .expect("run install");
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "interactive install should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-    let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("    1.") && stdout.contains("    8."),
-        "interactive preview should show first 8 numbered entries, stdout={stdout}"
-    );
-    assert!(
-        !stdout.contains("    9."),
-        "interactive preview should omit skills after index 8, stdout={stdout}"
-    );
-    assert!(
-        stdout.contains("  ... and 2 more (use --list to see all)"),
-        "interactive preview should include truncation footer, stdout={stdout}"
-    );
-    assert!(
-        !stdout.contains("showing first 8"),
-        "legacy truncation headline should be removed, stdout={stdout}"
-    );
 }
 
 #[test]
@@ -1162,7 +1044,7 @@ fn interactive_confirm_interrupt_cancels_without_error_output() {
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
-        .env("EDEN_SKILLS_TEST_CONFIRM", "interrupt")
+        .env("EDEN_SKILLS_TEST_SKILL_INPUT", "interrupt")
         .args(["install", "./interactive-interrupt-repo", "--config"])
         .arg(&config_path)
         .output()
@@ -1176,7 +1058,7 @@ fn interactive_confirm_interrupt_cancels_without_error_output() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("Install cancelled"),
+        stdout.contains("◆  Install canceled"),
         "interrupted prompt should emit cancellation line, stdout={stdout}"
     );
     assert!(
@@ -1432,26 +1314,6 @@ fn combined_output_text(output: &std::process::Output) -> String {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     )
-}
-
-fn extract_discovery_preview_block(stdout: &str) -> String {
-    let mut lines = Vec::new();
-    let mut in_discovery_preview = false;
-    for line in stdout.lines() {
-        if !in_discovery_preview {
-            if line.contains("Found") && line.contains("skills in repository") {
-                in_discovery_preview = true;
-                lines.push(line.to_string());
-            }
-            continue;
-        }
-        if line.is_empty() || line.starts_with("    ") || line.starts_with("  ... and ") {
-            lines.push(line.to_string());
-            continue;
-        }
-        break;
-    }
-    lines.join("\n")
 }
 
 fn extract_titled_table_block(stdout: &str, title: &str) -> String {

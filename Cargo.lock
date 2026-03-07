@@ -284,6 +284,7 @@ dependencies = [
  "enable-ansi-support",
  "indicatif",
  "junction",
+ "libc",
  "owo-colors",
  "serde",
  "serde_json",

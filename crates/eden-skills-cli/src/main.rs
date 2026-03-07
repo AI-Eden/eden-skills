@@ -87,14 +87,15 @@ fn install_sigint_cursor_restore_handler() {
     static SETUP: Once = Once::new();
     SETUP.call_once(|| {
         let _ = ctrlc::set_handler(|| {
+            if eden_skills_cli::signal::prompt_interruptible() {
+                restore_terminal_cursor();
+                eden_skills_cli::signal::request_prompt_interrupt();
+                return;
+            }
             let mut stderr = std::io::stderr();
             let _ = stderr.write_all(b"\n");
             let _ = stderr.flush();
             restore_terminal_cursor();
-            if eden_skills_cli::signal::prompt_interruptible() {
-                eden_skills_cli::signal::request_prompt_interrupt();
-                return;
-            }
             std::process::exit(130);
         });
     });

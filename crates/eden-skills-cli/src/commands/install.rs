@@ -12,7 +12,6 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use comfy_table::{ColumnConstraint, Width};
-use dialoguer::{Confirm, Input};
 use eden_skills_core::adapter::{DockerAdapter, LocalAdapter, TargetAdapter};
 use eden_skills_core::agents::detect_installed_agent_targets;
 use eden_skills_core::config::{
@@ -34,7 +33,10 @@ use eden_skills_core::source_format::{
 use indicatif::{ProgressBar, ProgressDrawTarget, ProgressStyle};
 use owo_colors::OwoColorize;
 
-use crate::ui::{abbreviate_home_path, abbreviate_repo_url, StatusSymbol, UiContext};
+use crate::ui::{
+    abbreviate_home_path, abbreviate_repo_url, prompt_skill_multi_select, SkillSelectItem,
+    SkillSelectOutcome, StatusSymbol, UiContext,
+};
 use crate::DEFAULT_CONFIG_PATH;
 
 use super::common::{
@@ -892,31 +894,46 @@ fn resolve_local_install_selection(
         return Ok(discovered.to_vec());
     }
 
-    print_discovery_preview(ui, discovered, false);
-    let install_all = match prompt_install_all(discovered.len())? {
-        PromptOutcome::Cancelled => {
-            print_install_cancelled(ui);
-            return Ok(Vec::new());
-        }
-        PromptOutcome::Value(value) => value,
-    };
-    if install_all {
-        return Ok(discovered.to_vec());
-    }
+    let items = discovered
+        .iter()
+        .map(|skill| SkillSelectItem {
+            name: skill.name.as_str(),
+            description: skill.description.as_str(),
+        })
+        .collect::<Vec<_>>();
 
-    let names = match prompt_skill_names()? {
-        PromptOutcome::Cancelled => {
+    println!();
+
+    let indices = match prompt_skill_multi_select(
+        ui,
+        "Select skills to install",
+        &items,
+        "EDEN_SKILLS_TEST_SKILL_INPUT",
+        Some(format!(
+            "Found {} skill{}",
+            discovered.len().to_string().magenta(),
+            if discovered.len() == 1 { "" } else { "s" }
+        )),
+    )? {
+        SkillSelectOutcome::Cancelled => {
             print_install_cancelled(ui);
             return Ok(Vec::new());
         }
-        PromptOutcome::Value(value) => value,
+        SkillSelectOutcome::Interrupted => {
+            print_install_interrupted(ui);
+            return Ok(Vec::new());
+        }
+        SkillSelectOutcome::Selected(indices) => indices,
     };
-    if names.is_empty() {
+    if indices.is_empty() {
         return Err(EdenError::InvalidArguments(
-            "no skill names provided".to_string(),
+            "no skills selected".to_string(),
         ));
     }
-    select_named_skills(discovered, &names)
+    Ok(indices
+        .into_iter()
+        .map(|index| discovered[index].clone())
+        .collect())
 }
 
 fn select_named_skills(
@@ -954,102 +971,19 @@ fn select_named_skills(
     Ok(selected)
 }
 
-enum PromptOutcome<T> {
-    Value(T),
-    Cancelled,
-}
-
-fn prompt_install_all(skill_count: usize) -> Result<PromptOutcome<bool>, EdenError> {
-    if let Ok(response) = std::env::var("EDEN_SKILLS_TEST_CONFIRM") {
-        let normalized = response.trim().to_ascii_lowercase();
-        if normalized == "interrupt" {
-            return Ok(PromptOutcome::Cancelled);
-        }
-        return Ok(PromptOutcome::Value(matches!(
-            normalized.as_str(),
-            "y" | "yes" | "true" | ""
-        )));
-    }
-
-    let _interrupt_guard = crate::signal::PromptInterruptGuard::new();
-    match Confirm::new()
-        .with_prompt(format!("Install all {skill_count} skills?"))
-        .default(true)
-        .interact()
-    {
-        Ok(value) => {
-            if crate::signal::take_prompt_interrupt() {
-                Ok(PromptOutcome::Cancelled)
-            } else {
-                Ok(PromptOutcome::Value(value))
-            }
-        }
-        Err(dialoguer::Error::IO(err)) if err.kind() == std::io::ErrorKind::Interrupted => {
-            let _ = crate::signal::take_prompt_interrupt();
-            Ok(PromptOutcome::Cancelled)
-        }
-        Err(err) => {
-            if crate::signal::take_prompt_interrupt() {
-                Ok(PromptOutcome::Cancelled)
-            } else {
-                Err(EdenError::Runtime(format!(
-                    "interactive prompt failed: {err}"
-                )))
-            }
-        }
-    }
-}
-
-fn prompt_skill_names() -> Result<PromptOutcome<Vec<String>>, EdenError> {
-    if let Ok(raw) = std::env::var("EDEN_SKILLS_TEST_SKILL_INPUT") {
-        if raw.trim().eq_ignore_ascii_case("interrupt") {
-            return Ok(PromptOutcome::Cancelled);
-        }
-        return Ok(PromptOutcome::Value(
-            raw.split_whitespace()
-                .map(ToString::to_string)
-                .collect::<Vec<_>>(),
-        ));
-    }
-
-    let _interrupt_guard = crate::signal::PromptInterruptGuard::new();
-    let input: String = match Input::new()
-        .with_prompt("Enter skill names to install (space-separated)")
-        .interact_text()
-    {
-        Ok(value) => {
-            if crate::signal::take_prompt_interrupt() {
-                return Ok(PromptOutcome::Cancelled);
-            }
-            value
-        }
-        Err(dialoguer::Error::IO(err)) if err.kind() == std::io::ErrorKind::Interrupted => {
-            let _ = crate::signal::take_prompt_interrupt();
-            return Ok(PromptOutcome::Cancelled);
-        }
-        Err(err) => {
-            if crate::signal::take_prompt_interrupt() {
-                return Ok(PromptOutcome::Cancelled);
-            }
-            return Err(EdenError::Runtime(format!(
-                "interactive prompt failed: {err}"
-            )));
-        }
-    };
-    Ok(PromptOutcome::Value(
-        input
-            .split_whitespace()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>(),
-    ))
-}
-
 fn print_install_cancelled(ui: &UiContext) {
     if !ui.json_mode() {
         println!(
             "  {} Install cancelled",
             ui.status_symbol(StatusSymbol::Skipped)
         );
+    }
+}
+
+fn print_install_interrupted(ui: &UiContext) {
+    if !ui.json_mode() {
+        println!();
+        println!("{}", ui.signal_cancelled_line("Install"));
     }
 }
 

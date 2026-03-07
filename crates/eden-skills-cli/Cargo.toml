@@ -35,6 +35,9 @@ ctrlc = "3.5.2"
 [target.'cfg(windows)'.dependencies]
 junction = "1"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [lib]
 name = "eden_skills_cli"
 path = "src/lib.rs"

@@ -226,7 +226,7 @@ fn tm_p29_032_remove_cancellation_uses_skipped_symbol_line() {
 }
 
 #[test]
-fn tm_p29_033_remove_interactive_candidates_render_as_table() {
+fn tm_p29_033_remove_interactive_selection_no_longer_renders_candidate_table() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let config_path = home_dir.join(".eden-skills/skills.toml");
@@ -255,7 +255,7 @@ fn tm_p29_033_remove_interactive_candidates_render_as_table() {
     let remove = eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
-        .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "1")
+        .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0")
         .env("EDEN_SKILLS_TEST_CONFIRM", "n")
         .args(["--color", "never", "remove", "--config"])
         .arg(&config_path)
@@ -265,24 +265,20 @@ fn tm_p29_033_remove_interactive_candidates_render_as_table() {
 
     let stdout = String::from_utf8_lossy(&remove.stdout);
     assert!(
-        stdout.contains("Skills   2 configured"),
-        "interactive remove should show candidate heading, stdout={stdout}"
+        stdout.contains("Remove cancelled"),
+        "interactive remove should still surface cancellation feedback, stdout={stdout}"
     );
     assert!(
-        stdout.contains("┌") && stdout.contains("│"),
-        "interactive remove should render candidates with table borders, stdout={stdout}"
+        !stdout.contains("Skills   2 configured"),
+        "interactive remove should not print legacy candidate heading, stdout={stdout}"
     );
     assert!(
-        stdout.contains("#") && stdout.contains("Skill") && stdout.contains("Source"),
-        "interactive remove table should expose #/Skill/Source headers, stdout={stdout}"
+        !stdout.contains("┌") && !stdout.contains("│"),
+        "interactive remove should not render legacy candidate table borders, stdout={stdout}"
     );
     assert!(
-        stdout.contains("vercel-labs/agent-skills"),
-        "source column should abbreviate GitHub URL, stdout={stdout}"
-    );
-    assert!(
-        !stdout.contains("https://github.com/vercel-labs/agent-skills.git"),
-        "interactive table should not show raw GitHub URL, stdout={stdout}"
+        !stdout.contains("Source"),
+        "interactive remove should not render legacy Source column, stdout={stdout}"
     );
 }
 

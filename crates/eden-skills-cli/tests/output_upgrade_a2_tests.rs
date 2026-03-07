@@ -252,7 +252,7 @@ fn tm_p28_024_install_per_skill_results() {
 }
 
 #[test]
-fn tm_p28_025_install_discovery_card_style_numbered() {
+fn tm_p28_025_install_list_discovery_card_style_numbered() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = setup_local_discovery_repo(
@@ -268,15 +268,18 @@ fn tm_p28_025_install_discovery_card_style_numbered() {
 
     let output = eden_command(&home_dir)
         .current_dir(temp.path())
-        .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env_remove("CI")
-        .env("EDEN_SKILLS_TEST_CONFIRM", "y")
         .arg("--color")
         .arg("never")
-        .args(["install", &path_as_relative_arg(&repo_dir), "--config"])
+        .args([
+            "install",
+            &path_as_relative_arg(&repo_dir),
+            "--list",
+            "--config",
+        ])
         .arg(&config_path)
         .output()
-        .expect("run install for discovery output");
+        .expect("run install --list for discovery output");
     assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
