@@ -77,4 +77,4 @@ Completed: —
   - Test inventory: `422`
 - Notes:
   - The original `dialoguer::MultiSelect` theme approach produced stale-frame artifacts when inline descriptions could soft-wrap. The final implementation uses a shared custom renderer instead of `dialoguer`'s built-in list drawing so viewport clearing and overflow indicators stay deterministic in real terminals.
-  - Windows cloning-phase input suppression still needs manual observation on a real Windows terminal to confirm that console-mode muting and buffer flushing match the Unix `/dev/tty` + termios behavior in practice.
+  - Real Windows validation has now been completed and confirmed that cloning-phase input suppression behaves equivalently to the Unix `/dev/tty` + termios path in practice.
