@@ -16,14 +16,14 @@ spec_files:
 
 requirement_ids:
   update_fix: UFX-001 ~ UFX-003
-  table_style: TST-001 ~ TST-005
+  table_style: TST-001 ~ TST-008
   interactive_ux: IUX-001 ~ IUX-010
   cache_clean: CCL-001 ~ CCL-007
   docker_managed: DMG-001 ~ DMG-008
   hint_sync: HSY-001 ~ HSY-002
   documentation: DOC-001 ~ DOC-002
 
-test_scenarios: TM-P297-001 ~ TM-P297-056
+test_scenarios: TM-P297-001 ~ TM-P297-059
 
 batches:
   batch1:
@@ -32,9 +32,9 @@ batches:
     requirements: [UFX-001, UFX-002, UFX-003]
     status: pending
   batch2:
-    name: "Table Content Styling + Hint Sync"
+    name: "Table Content Styling + Help Colorization + List Table + Hint Sync"
     work_packages: [WP-2, WP-6]
-    requirements: [TST-001, TST-002, TST-003, TST-004, TST-005, HSY-001, HSY-002]
+    requirements: [TST-001, TST-002, TST-003, TST-004, TST-005, TST-006, TST-007, TST-008, HSY-001, HSY-002]
     status: pending
   batch3:
     name: "Interactive UX (Remove + Install)"

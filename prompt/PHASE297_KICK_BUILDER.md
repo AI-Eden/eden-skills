@@ -83,8 +83,9 @@ Batch 1 — Update Concurrency Fix (WP-1):
   Changed files: update.rs (main refactor), possibly common.rs (stale lock helper).
   Tests: TM-P297-001 through TM-P297-006.
 
-Batch 2 — Table Content Styling + Hint Sync (WP-2 + WP-6):
-  Enable ANSI-safe table styling and verify hint prefix consistency.
+Batch 2 — Table Content Styling + Help Colorization + List Table + Hint Sync (WP-2 + WP-6):
+  Enable ANSI-safe table styling, colorize help text, improve list table,
+  and verify hint prefix consistency.
 
   TST-001: Change Cargo.toml: comfy-table = { version = "7", features = ["custom_styling"] }.
   TST-002: All table headers rendered bold (via owo-colors .bold() on header strings).
@@ -92,14 +93,27 @@ Batch 2 — Table Content Styling + Hint Sync (WP-2 + WP-6):
   TST-004: Status cells colored per SPEC_TABLE_STYLE.md Section 3.3
            (green/red/yellow/dim/cyan by semantic category).
   TST-005: Verify that styled cells do not break column alignment.
+  TST-006: Configure clap::builder::Styles on the root Command in lib.rs:
+           - header: bold green
+           - literal: bold cyan
+           - placeholder: magenta (unbold)
+           - usage: bold green
+           Use `Command::new("eden-skills").styles(STYLES)`.
+  TST-007: Replace `list` table "Source" column with "Path" column.
+           Show the skill's resolved repo-cache path (from
+           resolve_skill_source_path), abbreviated with `~` for home dir.
+  TST-008: Truncate `list` table "Agents" column at 5 agent names.
+           When >5 agents: show first 5 followed by `+N more` in yellow.
   HSY-001: Verify all hint/guidance/remediation lines use `~>` prefix (not `→`).
            The implementation already uses `~>` — this is a verification pass.
   HSY-002: Verify `~>` is styled magenta when colors are enabled.
 
-  Changed files: crates/eden-skills-cli/Cargo.toml, ui.rs (table helper),
-                 update.rs, diagnose.rs, plan_cmd.rs, config_ops.rs, install.rs
+  Changed files: crates/eden-skills-cli/Cargo.toml, lib.rs (clap Styles),
+                 ui.rs (table helper), config_ops.rs (list table Path + Agents),
+                 update.rs, diagnose.rs, plan_cmd.rs, install.rs
                  (all places that build table rows with skill IDs or statuses).
-  Tests: TM-P297-007 through TM-P297-012, TM-P297-047 through TM-P297-050.
+  Tests: TM-P297-007 through TM-P297-012, TM-P297-047 through TM-P297-050,
+         TM-P297-057 through TM-P297-059.
 
   NOTE: HSY-001 and HSY-002 require NO code changes — the implementation
   already uses `~>` magenta everywhere. Write verification tests only.
@@ -376,17 +390,22 @@ Example — handoff after Batch 2:
   [Handoff] Phase 2.97, resuming after Batch 2.
   - Completed: Batch 1 (update refresh dedup by repo_cache_key + stale lock
     cleanup), Batch 2 (comfy-table custom_styling + bold headers + bold+magenta
-    skill IDs + status coloring + hint ~> verification tests).
-    All tests green. Test count: 410.
+    skill IDs + status coloring + clap help colorization with bold green
+    headers / bold cyan literals / magenta placeholders + list table Path
+    column replacing Source + Agents column truncation at 5 with +N more
+    in yellow + hint ~> verification tests).
+    All tests green. Test count: 415.
   - Current state: update.rs build_mode_a_refresh_tasks groups by
     repo_cache_key, single fetch per unique repo, broadcasts status.
     Stale lock cleanup before fetch. comfy-table has custom_styling feature.
     All table headers are bold. Skill ID columns are bold+magenta. Status
-    cells colored by semantic category. HSY verification tests confirm all
-    hints use ~> magenta.
-  - Files changed in last batch: Cargo.toml (cli), ui.rs, update.rs,
-    diagnose.rs, plan_cmd.rs, config_ops.rs, install.rs,
-    table_style_tests.rs, hint_sync_tests.rs.
+    cells colored by semantic category. clap Styles configured in lib.rs.
+    list table shows Path column with repo-cache paths. Agents column
+    truncates at 5 with yellow +N more. HSY verification tests confirm
+    all hints use ~> magenta.
+  - Files changed in last batch: Cargo.toml (cli), lib.rs (clap Styles),
+    ui.rs, config_ops.rs (list table), update.rs, diagnose.rs,
+    plan_cmd.rs, install.rs, table_style_tests.rs, hint_sync_tests.rs.
   - Next: Start Batch 3. First action: read SPEC_INTERACTIVE_UX.md, then
     write failing test using EDEN_SKILLS_TEST_REMOVE_INPUT="0,2" env var
     to verify MultiSelect index selection returns correct skills.
@@ -395,8 +414,9 @@ Example — handoff after Batch 2:
 Per-batch handoff state guidance (what to include in "Current state"):
   After B1: build_mode_a_refresh_tasks grouping mechanism, stale lock
             cleanup helper name and location, fetch dedup behavior.
-  After B2: custom_styling feature status, styling function names/locations,
-            which tables have been styled, HSY verification test status.
+  After B2: custom_styling feature status, clap Styles location, styling
+            function names/locations, which tables have been styled, list
+            table Path+Agents changes, HSY verification test status.
   After B3: SkillSelectTheme struct location, MultiSelect integration in
             remove.rs and install.rs, which old wildcard code was removed,
             env var injection mechanism for tests.
@@ -427,7 +447,7 @@ bug fix and should be validated independently before other changes.
 
 Expected batch progression:
   Batch 1: WP-1     — Update concurrency fix (dedup + stale lock cleanup)
-  Batch 2: WP-2+6   — Table content styling + hint sync verification
+  Batch 2: WP-2+6   — Table content styling + help colorization + list table + hint sync
   Batch 3: WP-3     — Interactive UX (MultiSelect for remove + install)
   Batch 4: WP-4     — Cache clean command + --auto-clean + doctor
   Batch 5: WP-5     — Docker management domain (.eden-managed)

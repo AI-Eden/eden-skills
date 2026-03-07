@@ -1,11 +1,12 @@
 # SPEC_TABLE_STYLE.md
 
-Table content styling via `comfy-table` `custom_styling` feature.
+Table content styling, help text colorization, and list table improvements.
 
 **Related contracts:**
 
 - `spec/phase2.8/SPEC_TABLE_RENDERING.md` (table infrastructure)
 - `spec/phase2.9/SPEC_TABLE_FIX.md` (content-driven sizing)
+- `spec/phase2.8/SPEC_CODE_STRUCTURE.md` (lib.rs clap definitions)
 
 ## 1. Problem Statement
 
@@ -90,16 +91,96 @@ fn style_skill_id_cell(ui: &UiContext, id: &str) -> String {
 }
 ```
 
-## 5. Backward Compatibility
+## 5. Help Text Colorization
+
+### 5.1 Problem
+
+The default `clap` help output uses minimal styling. A cargo-style
+color scheme improves scannability and aligns eden-skills with
+Rust ecosystem conventions.
+
+### 5.2 Color Scheme
+
+`clap::builder::Styles` MUST be configured on the root `Command`:
+
+| Help Component | Style | clap Field |
+| :--- | :--- | :--- |
+| Section headers (`Usage:`, `Options:`, `Commands:`) | **bold green** | `header` |
+| Command / flag names (`install`, `--config`) | **bold cyan** | `literal` |
+| Placeholder values (`<NAME>`, `<path>`) | magenta (unbold) | `placeholder` |
+| Usage line | **bold green** | `usage` |
+| Descriptions | default (no style) | — |
+
+### 5.3 Implementation
+
+```rust
+use clap::builder::styling::{AnsiColor, Style, Styles};
+
+const STYLES: Styles = Styles::styled()
+    .header(Style::new().bold().fg_color(Some(AnsiColor::Green.into())))
+    .literal(Style::new().bold().fg_color(Some(AnsiColor::Cyan.into())))
+    .placeholder(Style::new().fg_color(Some(AnsiColor::Magenta.into())))
+    .usage(Style::new().bold().fg_color(Some(AnsiColor::Green.into())));
+```
+
+Applied via `Command::new("eden-skills").styles(STYLES)` in `lib.rs`.
+
+### 5.4 Color Disable
+
+When `--color never` is active or the terminal does not support colors,
+`clap` automatically disables ANSI styling in help output. No
+additional logic is required.
+
+## 6. List Table Improvements
+
+### 6.1 Path Column
+
+The `list` command table MUST replace the `Source` column with a
+`Path` column. The `Path` column displays the skill's resolved
+source directory — the repo-cache path (e.g.,
+`~/.eden-skills/skills/.repos/github.com_vercel-labs_agent-skills@main/skills/web-design-guidelines`).
+
+Path values MUST be abbreviated with `~` for the home directory
+prefix, consistent with existing path abbreviation conventions.
+
+### 6.2 Agents Column Truncation
+
+The `Agents` column MUST display at most **5** agent names. When a
+skill targets more than 5 agents, the display MUST show the first 5
+followed by `+N more` in **yellow**:
+
+```text
+claude-code, cursor, codex, windsurf, opencode +3 more
+```
+
+When 5 or fewer agents are configured, all names are shown without
+truncation.
+
+### 6.3 Example Output
+
+```text
+  Skills  5 configured
+
+ ┌────────────────────────────┬─────────┬───────────────────┬─────────────────────────────────┐
+ │ Skill                      ┆ Mode    ┆ Path              ┆ Agents                          │
+ ╞════════════════════════════╪═════════╪═══════════════════╪═════════════════════════════════╡
+ │ web-design-guidelines      ┆ symlink ┆ ~/.eden-skills/.. ┆ claude-code, codex, opencode    │
+ │ frontend-design            ┆ symlink ┆ ~/.eden-skills/.. ┆ claude-code, cursor +4 more     │
+ └────────────────────────────┴─────────┴───────────────────┴─────────────────────────────────┘
+```
+
+## 7. Backward Compatibility
 
 | Existing Feature | Phase 2.97 Behavior |
 | :--- | :--- |
 | `--json` output | Unchanged — no ANSI in JSON |
 | Non-TTY output | Unchanged — plain text cells |
 | `--color never` | Unchanged — plain text cells |
-| Table structure and columns | Unchanged |
+| `list --json` | Unchanged — JSON schema not affected |
+| `list` table column count | Changed: `Source` → `Path` (same position) |
+| Help text content | Unchanged — only styling added |
 
-## 6. Normative Requirements
+## 8. Normative Requirements
 
 | ID | Owner | Priority | Statement | Verification |
 | :--- | :--- | :--- | :--- | :--- |
@@ -108,3 +189,6 @@ fn style_skill_id_cell(ui: &UiContext, id: &str) -> String {
 | **TST-003** | Builder | **P0** | Skill ID cells MUST render bold+magenta when colors are enabled. | Skill ID column contains ANSI bold+magenta sequences. |
 | **TST-004** | Builder | **P0** | Status cells MUST be colored per Section 3.3 semantic categories. | Status column contains appropriate color codes. |
 | **TST-005** | Builder | **P1** | ANSI-styled cells MUST NOT break column alignment. | Table with styled content has consistent column widths. |
+| **TST-006** | Builder | **P0** | `clap` help MUST use bold green headers, bold cyan literals, magenta placeholders. | `eden-skills --help` output contains correct ANSI sequences. |
+| **TST-007** | Builder | **P1** | `list` table MUST show `Path` column instead of `Source`. | `list` output contains `Path` header and repo-cache paths. |
+| **TST-008** | Builder | **P1** | `list` Agents column MUST truncate at 5 agents with `+N more` in yellow. | Skills with >5 agents show truncated agent list. |

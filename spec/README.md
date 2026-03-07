@@ -182,7 +182,7 @@ cache cleanup, implements Docker management domain tracking, and syncs
 the hint arrow prefix across specs.
 
 - `phase2.97/SPEC_UPDATE_FIX.md`: deduplicate Mode A refresh tasks by repo cache key (UFX-001~003)
-- `phase2.97/SPEC_TABLE_STYLE.md`: `comfy-table` `custom_styling` feature, content color rules (TST-001~005)
+- `phase2.97/SPEC_TABLE_STYLE.md`: `comfy-table` `custom_styling` feature, content color rules, help colorization, list table improvements (TST-001~008)
 - `phase2.97/SPEC_INTERACTIVE_UX.md`: `MultiSelect` for remove + install, description-on-hover (IUX-001~010)
 - `phase2.97/SPEC_CACHE_CLEAN.md`: `clean` command, `--auto-clean`, doctor orphan check (CCL-001~007)
 - `phase2.97/SPEC_DOCKER_MANAGED.md`: `.eden-managed` manifest, ownership guard, doctor findings (DMG-001~008)

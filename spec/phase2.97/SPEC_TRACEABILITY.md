@@ -22,6 +22,9 @@ Use this file to recover accurate context after compression.
 | TST-003 | `SPEC_TABLE_STYLE.md` 3.2 | Bold+magenta Skill ID cells | — | TM-P297-009 | pending |
 | TST-004 | `SPEC_TABLE_STYLE.md` 3.3 | Status cells colored by category | — | TM-P297-010 | pending |
 | TST-005 | `SPEC_TABLE_STYLE.md` 3 | Styled cells do not break alignment | — | TM-P297-011 | pending |
+| TST-006 | `SPEC_TABLE_STYLE.md` 5 | clap help colorization | — | TM-P297-057 | pending |
+| TST-007 | `SPEC_TABLE_STYLE.md` 6.1 | List table Path column | — | TM-P297-058 | pending |
+| TST-008 | `SPEC_TABLE_STYLE.md` 6.2 | List Agents truncation | — | TM-P297-059 | pending |
 
 ## 3. Interactive UX Requirements
 

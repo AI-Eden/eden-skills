@@ -4,7 +4,7 @@ Phase 2.97 acceptance test scenarios.
 
 ## 1. Convention
 
-- Scenario IDs: `TM-P297-001` to `TM-P297-056`.
+- Scenario IDs: `TM-P297-001` to `TM-P297-059`.
 - Tests marked `auto` are implemented as Rust integration tests.
 - Tests marked `manual` require manual verification.
 
@@ -29,6 +29,9 @@ Phase 2.97 acceptance test scenarios.
 | TM-P297-010 | Status cells use green for `up-to-date`, red for `failed` | TST-004 | auto | pending |
 | TM-P297-011 | Table with styled cells has consistent column widths (no misalignment) | TST-005 | auto | pending |
 | TM-P297-012 | Non-TTY output contains no ANSI codes in table cells | TST-002 | auto | pending |
+| TM-P297-057 | `eden-skills --help` shows bold green headers, bold cyan literals, magenta placeholders | TST-006 | auto | pending |
+| TM-P297-058 | `list` table shows `Path` column (not `Source`) with repo-cache paths | TST-007 | auto | pending |
+| TM-P297-059 | `list` Agents column truncates at 5 with `+N more` in yellow | TST-008 | auto | pending |
 
 ## 4. Interactive UX — Remove (WP-3)
 
