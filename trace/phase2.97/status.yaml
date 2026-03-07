@@ -23,7 +23,7 @@ requirement_ids:
   hint_sync: HSY-001 ~ HSY-002
   documentation: DOC-001 ~ DOC-002
 
-test_scenarios: TM-P297-001 ~ TM-P297-064
+test_scenarios: TM-P297-001 ~ TM-P297-065
 
 batches:
   batch1:
@@ -79,7 +79,7 @@ builder_progress:
     started_at: "2026-03-07"
     completed_at: "2026-03-07"
     requirements: TST-001, TST-002, TST-003, TST-004, TST-005, TST-006, TST-007, TST-008, TST-009, TST-010, HSY-001, HSY-002
-    scenarios: TM-P297-007, TM-P297-008, TM-P297-009, TM-P297-010, TM-P297-011, TM-P297-012, TM-P297-047, TM-P297-048, TM-P297-049, TM-P297-050, TM-P297-057, TM-P297-058, TM-P297-059, TM-P297-060, TM-P297-061, TM-P297-062, TM-P297-063, TM-P297-064
+    scenarios: TM-P297-007, TM-P297-008, TM-P297-009, TM-P297-010, TM-P297-011, TM-P297-012, TM-P297-047, TM-P297-048, TM-P297-049, TM-P297-050, TM-P297-057, TM-P297-058, TM-P297-059, TM-P297-060, TM-P297-061, TM-P297-062, TM-P297-063, TM-P297-064, TM-P297-065
     notes:
       - enabled `comfy-table` `custom_styling` in `crates/eden-skills-cli/Cargo.toml` and moved table/header/status/hint styling into shared helpers in `crates/eden-skills-cli/src/ui.rs`
       - styled all Batch 2 skill tables with bold headers, bold+magenta Skill IDs, semantic status colors, cyan path/source cells, dimmed secondary detail text, and ANSI-safe width calculation
@@ -89,12 +89,12 @@ builder_progress:
       - added `crates/eden-skills-cli/tests/table_style_tests.rs` and `crates/eden-skills-cli/tests/hint_sync_tests.rs`, and refreshed affected legacy table/help tests to match the new styling contract
       - follow-up on 2026-03-08: replaced the root help footer string with a runtime `StyledStr` builder so `Examples:` / `Documentation:` headings, tokenized example commands, and the docs URL participate in the same semantic color palette as the rest of clap help
       - follow-up on 2026-03-08: preserved structured `clap::Error` values in a CLI-local `CliError` wrapper and added a custom parse-error renderer in `crates/eden-skills-cli/src/main.rs` for invalid subcommands, unknown arguments, invalid values, and missing required arguments, with bold-magenta `tip:`, bold-green `Usage:`, cyan quoted tokens by default, cargo-style yellow invalid-token highlighting for `unexpected argument 'xx'`, and magenta metavars
-      - added `crates/eden-skills-cli/tests/help_system_tests.rs` coverage for the new footer and parse-error styling scenarios TM-P297-060 through TM-P297-064 while keeping newline-policy regressions green
+      - added `crates/eden-skills-cli/tests/help_system_tests.rs` coverage for the new footer and parse-error styling scenarios TM-P297-060 through TM-P297-065 while keeping newline-policy regressions green
     quality_gate:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
-      current_test_inventory: 435
+      current_test_inventory: 436
   batch_3_interactive_ux_remove_install:
     status: completed
     started_at: "2026-03-07"

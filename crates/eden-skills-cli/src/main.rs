@@ -68,6 +68,7 @@ fn print_clap_error(err: &ClapError) {
 
 fn render_custom_clap_error(err: &ClapError) -> Option<String> {
     match err.kind() {
+        ClapErrorKind::ArgumentConflict => Some(render_argument_conflict_error(err)),
         ClapErrorKind::InvalidSubcommand => Some(render_invalid_subcommand_error(err)),
         ClapErrorKind::UnknownArgument => Some(render_unknown_argument_error(err)),
         ClapErrorKind::InvalidValue => Some(render_invalid_value_error(err)),
@@ -102,6 +103,75 @@ fn render_invalid_subcommand_error(err: &ClapError) -> String {
         colors_enabled,
     );
     append_tip_lines(&mut output, &tips, colors_enabled);
+    append_usage_and_help(&mut output, usage.as_deref(), colors_enabled);
+    output
+}
+
+fn render_argument_conflict_error(err: &ClapError) -> String {
+    let colors_enabled = clap_error_colors_enabled(err);
+    let usage = clap_usage_text(err);
+    let invalid_arg = clap_context_string(err, ContextKind::InvalidArg).map(str::to_owned);
+    let invalid_subcommand =
+        clap_context_string(err, ContextKind::InvalidSubcommand).map(str::to_owned);
+    let prior_args = clap_prior_args(err);
+
+    let invalid = invalid_arg
+        .as_deref()
+        .or(invalid_subcommand.as_deref())
+        .unwrap_or_default()
+        .to_string();
+
+    let message = if prior_args.len() == 1 && prior_args[0] == invalid {
+        if invalid_arg.is_some() {
+            format!(
+                "the argument {} cannot be used multiple times",
+                style_conflict_token(&invalid, colors_enabled)
+            )
+        } else {
+            format!(
+                "the subcommand {} cannot be used multiple times",
+                style_conflict_token(&invalid, colors_enabled)
+            )
+        }
+    } else if prior_args.len() == 1 {
+        let subject = if invalid_arg.is_some() {
+            "the argument"
+        } else {
+            "the subcommand"
+        };
+        format!(
+            "{subject} {} cannot be used with {}",
+            style_conflict_token(&invalid, colors_enabled),
+            style_conflict_token(&prior_args[0], colors_enabled)
+        )
+    } else if !prior_args.is_empty() {
+        let subject = if invalid_arg.is_some() {
+            "the argument"
+        } else {
+            "the subcommand"
+        };
+        format!(
+            "{subject} {} cannot be used with: {}",
+            style_conflict_token(&invalid, colors_enabled),
+            prior_args
+                .iter()
+                .map(|arg| style_conflict_token(arg, colors_enabled))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
+    } else if invalid_arg.is_some() {
+        format!(
+            "the argument {} cannot be used here",
+            style_conflict_token(&invalid, colors_enabled)
+        )
+    } else {
+        format!(
+            "the subcommand {} cannot be used here",
+            style_conflict_token(&invalid, colors_enabled)
+        )
+    };
+
+    let mut output = render_parse_error_header(message, colors_enabled);
     append_usage_and_help(&mut output, usage.as_deref(), colors_enabled);
     output
 }
@@ -287,6 +357,10 @@ fn clap_context_strings(err: &ClapError, kind: ContextKind) -> Vec<String> {
     }
 }
 
+fn clap_prior_args(err: &ClapError) -> Vec<String> {
+    clap_context_strings(err, ContextKind::PriorArg)
+}
+
 fn clap_context_styled_strings(err: &ClapError, kind: ContextKind) -> Vec<String> {
     match err.get(kind) {
         Some(ContextValue::StyledStrs(values)) => values
@@ -420,6 +494,14 @@ fn style_quoted_cli_fragment(fragment: &str, colors_enabled: bool) -> String {
 }
 
 fn style_unknown_argument_token(token: &str, colors_enabled: bool) -> String {
+    if !colors_enabled {
+        return format!("'{token}'");
+    }
+
+    format!("'{}'", token.yellow())
+}
+
+fn style_conflict_token(token: &str, colors_enabled: bool) -> String {
     if !colors_enabled {
         return format!("'{token}'");
     }

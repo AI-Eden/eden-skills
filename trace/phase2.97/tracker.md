@@ -52,12 +52,12 @@ Completed: —
   - Added `crates/eden-skills-cli/tests/table_style_tests.rs` and `crates/eden-skills-cli/tests/hint_sync_tests.rs`, and updated affected legacy table/help assertions for the new styling contract.
   - Follow-up on 2026-03-08: replaced the root help footer string in `crates/eden-skills-cli/src/lib.rs` with a runtime `StyledStr` builder so `Examples:` / `Documentation:` headings, tokenized example commands, and the docs URL all participate in the same semantic color palette as the generated clap help body.
   - Follow-up on 2026-03-08: preserved structured `clap::Error` values in a CLI-local `CliError` wrapper and added a custom parse-error renderer in `crates/eden-skills-cli/src/main.rs` for invalid subcommands, unknown arguments, invalid values, and missing required arguments, using bold-magenta `tip:`, bold-green `Usage:`, cyan quoted tokens by default, cargo-style yellow invalid-token highlighting for `unexpected argument 'xx'`, and magenta metavars.
-  - Follow-up on 2026-03-08: extended `crates/eden-skills-cli/tests/help_system_tests.rs` with `TM-P297-060` through `TM-P297-064` to lock the new footer and parse-error colorization behavior.
+  - Follow-up on 2026-03-08: extended `crates/eden-skills-cli/tests/help_system_tests.rs` with `TM-P297-060` through `TM-P297-065` to lock the new footer and parse-error colorization behavior, including the high-frequency repeated single-value option conflict case.
 - Validation:
   - `cargo fmt --all -- --check` ✅
   - `cargo clippy --workspace -- -D warnings` ✅
   - `cargo test --workspace` ✅
-  - Test inventory: `435`
+  - Test inventory: `436`
 - Notes:
   - The Batch 2 handoff prompt claimed HSY verification would require no code changes, but the implementation still had one residual `→` tip in `install.rs`; it was treated as a code defect and fixed together with the new verification tests.
 

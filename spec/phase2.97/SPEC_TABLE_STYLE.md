@@ -169,6 +169,7 @@ The semantic palette MUST be:
 This custom styling MUST apply to the following clap parse error
 families when colors are enabled:
 
+- argument conflict for repeated single-use options
 - invalid subcommand
 - unknown argument
 - invalid enum/value input
@@ -250,4 +251,4 @@ truncation.
 | **TST-007** | Builder | **P1** | `list` table MUST show `Path` column instead of `Source`. | `list` output contains `Path` header and repo-cache paths. |
 | **TST-008** | Builder | **P1** | `list` Agents column MUST truncate at 5 agents with `+N more` in yellow. | Skills with >5 agents show truncated agent list. |
 | **TST-009** | Builder | **P1** | Root help footer MUST colorize `Examples:` / `Documentation:` semantically, including tokenized example commands and docs URL. | Root `--help` footer contains bold green headings, bold cyan command literals, and magenta footer placeholders. |
-| **TST-010** | Builder | **P1** | Custom clap parse-error rendering MUST colorize `tip:`, quoted invalid/suggested tokens, and any emitted usage syntax with the semantic palette from Section 5.6. | Parse errors for invalid subcommand / unknown arg / invalid value / missing required arg contain the expected ANSI sequences. |
+| **TST-010** | Builder | **P1** | Custom clap parse-error rendering MUST colorize `tip:`, conflict/invalid/suggested tokens, and any emitted usage syntax with the semantic palette from Section 5.6. | Parse errors for argument conflict / invalid subcommand / unknown arg / invalid value / missing required arg contain the expected ANSI sequences. |

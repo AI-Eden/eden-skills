@@ -121,6 +121,33 @@ fn unknown_argument_error_uses_custom_colorized_parse_renderer() {
 }
 
 #[test]
+fn repeated_single_value_option_uses_custom_argument_conflict_renderer() {
+    let output = run_eden([
+        "--color", "always", "list", "--config", "a.toml", "--config", "b.toml",
+    ]);
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "repeated single-value option should return clap usage exit code, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("\u{1b}[1m\u{1b}[32mUsage:\u{1b}[39m\u{1b}[0m"),
+        "usage heading should be bold green, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("'\u{1b}[33m--config <CONFIG>\u{1b}[39m'"),
+        "conflicting argument syntax should use cargo-style yellow inner token with plain quotes, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("\u{1b}[36m'--help'\u{1b}[39m"),
+        "help hint token should stay unbold cyan, stderr={stderr}"
+    );
+}
+
+#[test]
 fn invalid_value_error_uses_custom_colorized_parse_renderer() {
     let output = run_eden_force_color(["--color", "alwayz", "list"]);
     assert_eq!(

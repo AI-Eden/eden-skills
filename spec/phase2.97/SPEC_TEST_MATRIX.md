@@ -4,7 +4,7 @@ Phase 2.97 acceptance test scenarios.
 
 ## 1. Convention
 
-- Scenario IDs: `TM-P297-001` to `TM-P297-064`.
+- Scenario IDs: `TM-P297-001` to `TM-P297-065`.
 - Tests marked `auto` are implemented as Rust integration tests.
 - Tests marked `manual` require manual verification.
 
@@ -37,6 +37,7 @@ Phase 2.97 acceptance test scenarios.
 | TM-P297-062 | Unknown argument parse error uses cargo-style yellow invalid token with plain quotes, plus semantic colors for suggestions and usage syntax | TST-010 | auto | completed |
 | TM-P297-063 | Invalid value parse error styles invalid/suggested values, possible-value list, and argument syntax tokens | TST-010 | auto | completed |
 | TM-P297-064 | Missing required argument parse error styles required syntax tokens and emitted usage syntax | TST-010 | auto | completed |
+| TM-P297-065 | Repeated single-value option parse error uses cargo-style yellow conflicting syntax with plain quotes and semantic usage/help coloring | TST-010 | auto | completed |
 
 ## 4. Interactive UX — Remove (WP-3)
 

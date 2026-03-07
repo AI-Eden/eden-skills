@@ -40,7 +40,7 @@ Progress score (roadmap action items, Builder scope): `10 / 10 = 100%`
 - [x] CI gate setup for Linux + macOS + Windows (`.github/workflows/ci.yml`)
 - [x] Phase 2.95 closeout matrix re-verified (`fmt`, `clippy`, `test --all-targets`, Windows target check, ANSI scan); post-closeout `install.sh` PATH auto-rc follow-up revalidated on the full suite
 
-Current automated tests: `435` (workspace unit/integration-style tests).
+Current automated tests: `436` (workspace unit/integration-style tests).
 
 ### 3.3 Phase 2.97 Work Packages
 
@@ -72,7 +72,7 @@ Each directory contains `status.yaml` (machine-readable) and `tracker.md`
 (human-readable batch progress).
 
 | Phase | Status | Started | Completed | Archive |
-|-------|--------|---------|-----------|---------|
+| ----- | ------ | ------- | --------- | ------- |
 | Phase 1 | Frozen | — | 2026-02-13 | [trace/phase1/](trace/phase1/) |
 | Phase 2 | Frozen | — | 2026-02-19 | [trace/phase2/](trace/phase2/) |
 | Phase 2.5 | Frozen | 2026-02-20 | 2026-02-20 | [trace/phase2.5/](trace/phase2.5/) |
