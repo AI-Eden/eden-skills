@@ -110,6 +110,7 @@ builder_progress:
       - refined the active prompt-item label color back to the terminal default white and changed frame redraw to emit a single block without a trailing newline, preventing repeated `Found N skills` headers from being pushed into scrollback on short terminals
       - added best-effort Windows spinner input suppression using Win32 console mode save/restore plus input-buffer flush, and verified the code path with `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc`
       - verified on a real Windows environment that cloning-phase input suppression matches the Unix behavior in practice, including blocking echo/backwrite and preventing non-signal stdin leakage into the interactive selector
+      - follow-up on 2026-03-08: fixed a Windows-only interactive prompt bug where `Ctrl+C` during the shared install/remove selection UI set the interrupt flag but did not wake the blocked key-read loop until another key arrived; the Ctrl+C handler now injects a synthetic console `Escape` key event to wake `read_key()` immediately
       - added `crates/eden-skills-cli/tests/interactive_ux_tests.rs` and refreshed affected legacy remove/install/output tests to assert Phase 2.97 checkbox-selection semantics instead of the removed text-input preview flow
     quality_gate:
       fmt_check: passed
