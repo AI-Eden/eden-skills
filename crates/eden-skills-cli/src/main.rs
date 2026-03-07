@@ -571,6 +571,7 @@ fn install_sigint_cursor_restore_handler() {
             if eden_skills_cli::signal::prompt_interruptible() {
                 restore_terminal_cursor();
                 eden_skills_cli::signal::request_prompt_interrupt();
+                eden_skills_cli::ui::wake_interactive_prompt_input();
                 return;
             }
             let mut stderr = std::io::stderr();

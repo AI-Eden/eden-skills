@@ -37,8 +37,9 @@ use windows_sys::Win32::Storage::FileSystem::{
 };
 #[cfg(windows)]
 use windows_sys::Win32::System::Console::{
-    FlushConsoleInputBuffer, GetConsoleMode, GetStdHandle, SetConsoleMode, CONSOLE_MODE,
-    ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, STD_INPUT_HANDLE,
+    FlushConsoleInputBuffer, GetConsoleMode, GetStdHandle, SetConsoleMode, WriteConsoleInputW,
+    CONSOLE_MODE, ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, INPUT_RECORD, INPUT_RECORD_0, KEY_EVENT,
+    KEY_EVENT_RECORD, KEY_EVENT_RECORD_0, STD_INPUT_HANDLE,
 };
 
 /// When to emit ANSI color sequences.
@@ -681,6 +682,39 @@ impl SpinnerInputGuard {
     }
 }
 
+/// Best-effort wake-up for a blocked interactive key read.
+///
+/// On Windows, dialoguer's `Term::read_key()` may remain blocked after
+/// `Ctrl+C` until another key event arrives. We inject a synthetic
+/// `Escape` keypress into the console input buffer so the shared
+/// selection prompt can observe the pending prompt interrupt
+/// immediately and exit without waiting for an extra user keystroke.
+#[cfg(windows)]
+pub fn wake_interactive_prompt_input() {
+    let Some((handle, owns_handle)) = open_windows_console_input_handle() else {
+        return;
+    };
+
+    unsafe {
+        let _ = FlushConsoleInputBuffer(handle);
+        let records = windows_prompt_wake_input_records();
+        let mut events_written = 0;
+        let _ = WriteConsoleInputW(
+            handle,
+            records.as_ptr(),
+            records.len() as u32,
+            &mut events_written,
+        );
+        if owns_handle {
+            CloseHandle(handle);
+        }
+    }
+}
+
+/// Non-Windows platforms do not need prompt wake-up injection.
+#[cfg(not(windows))]
+pub fn wake_interactive_prompt_input() {}
+
 #[cfg(unix)]
 struct UnixSpinnerInputGuard {
     fd: RawFd,
@@ -787,6 +821,31 @@ impl Drop for WindowsSpinnerInputGuard {
                 CloseHandle(self.handle);
             }
         }
+    }
+}
+
+#[cfg(windows)]
+fn windows_prompt_wake_input_records() -> [INPUT_RECORD; 2] {
+    [
+        windows_prompt_wake_input_record(true),
+        windows_prompt_wake_input_record(false),
+    ]
+}
+
+#[cfg(windows)]
+fn windows_prompt_wake_input_record(key_down: bool) -> INPUT_RECORD {
+    INPUT_RECORD {
+        EventType: KEY_EVENT as u16,
+        Event: INPUT_RECORD_0 {
+            KeyEvent: KEY_EVENT_RECORD {
+                bKeyDown: i32::from(key_down),
+                wRepeatCount: 1,
+                wVirtualKeyCode: 27,
+                wVirtualScanCode: 0,
+                uChar: KEY_EVENT_RECORD_0 { UnicodeChar: 27 },
+                dwControlKeyState: 0,
+            },
+        },
     }
 }
 
@@ -1173,4 +1232,29 @@ fn truncate_to_width(text: &str, max_width: usize) -> String {
     }
     rendered.push_str("...");
     rendered
+}
+
+#[cfg(all(test, windows))]
+mod tests {
+    use super::{windows_prompt_wake_input_records, KEY_EVENT};
+
+    #[test]
+    fn windows_prompt_wake_records_emit_escape_keypress() {
+        let records = windows_prompt_wake_input_records();
+
+        assert_eq!(records[0].EventType, KEY_EVENT as u16);
+        assert_eq!(records[1].EventType, KEY_EVENT as u16);
+
+        unsafe {
+            let key_down = records[0].Event.KeyEvent;
+            assert_ne!(key_down.bKeyDown, 0);
+            assert_eq!(key_down.wVirtualKeyCode, 27);
+            assert_eq!(key_down.uChar.UnicodeChar, 27);
+
+            let key_up = records[1].Event.KeyEvent;
+            assert_eq!(key_up.bKeyDown, 0);
+            assert_eq!(key_up.wVirtualKeyCode, 27);
+            assert_eq!(key_up.uChar.UnicodeChar, 27);
+        }
+    }
 }
