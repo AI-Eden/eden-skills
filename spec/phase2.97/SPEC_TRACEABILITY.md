@@ -25,6 +25,8 @@ Use this file to recover accurate context after compression.
 | TST-006 | `SPEC_TABLE_STYLE.md` 5 | clap help colorization | `crates/eden-skills-cli/src/lib.rs` | TM-P297-057 | completed |
 | TST-007 | `SPEC_TABLE_STYLE.md` 6.1 | List table Path column | `crates/eden-skills-cli/src/commands/config_ops.rs` | TM-P297-058 | completed |
 | TST-008 | `SPEC_TABLE_STYLE.md` 6.2 | List Agents truncation | `crates/eden-skills-cli/src/commands/config_ops.rs` | TM-P297-059 | completed |
+| TST-009 | `SPEC_TABLE_STYLE.md` 5.5 | Root help footer token colorization | `crates/eden-skills-cli/src/lib.rs`, `crates/eden-skills-cli/tests/help_system_tests.rs` | TM-P297-060 | completed |
+| TST-010 | `SPEC_TABLE_STYLE.md` 5.6 | Custom clap parse-error semantic colorization | `crates/eden-skills-cli/src/lib.rs`, `crates/eden-skills-cli/src/main.rs`, `crates/eden-skills-cli/tests/help_system_tests.rs` | TM-P297-061, TM-P297-062, TM-P297-063, TM-P297-064 | completed |
 
 ## 3. Interactive UX Requirements
 

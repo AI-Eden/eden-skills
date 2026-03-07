@@ -1,6 +1,6 @@
 # SPEC_TABLE_STYLE.md
 
-Table content styling, help text colorization, and list table improvements.
+Table content styling, help / parse-error colorization, and list table improvements.
 
 **Related contracts:**
 
@@ -131,6 +131,52 @@ When `--color never` is active or the terminal does not support colors,
 `clap` automatically disables ANSI styling in help output. No
 additional logic is required.
 
+### 5.5 Root Help Footer Token Colorization
+
+The root `--help` footer (`Examples:` + `Documentation:`) MUST use the
+same semantic palette as the generated clap help body:
+
+| Footer Component | Style |
+| :--- | :--- |
+| Footer headings (`Examples:`, `Documentation:`) | **bold green** |
+| Example command literals (`eden-skills`, `install`, `list`, `doctor`) | **bold cyan** |
+| Example source/path arguments and docs URL | magenta (unbold) |
+| Descriptions | default (no style) |
+
+Because a plain `after_help = "..."`
+string cannot style these tokens independently, the root command MUST
+construct a `StyledStr` footer at runtime in `lib.rs`.
+
+### 5.6 Parse Error Colorization
+
+For clap parse errors surfaced before command dispatch, the CLI MUST
+preserve the structured `clap::Error` and apply a custom semantic
+renderer instead of collapsing the error into a plain string first.
+
+The semantic palette MUST be:
+
+| Parse Error Component | Style |
+| :--- | :--- |
+| `error:` prefix | **bold red** |
+| `tip:` label | **bold magenta** |
+| Quoted invalid / suggested tokens (`'li'`, `'--json'`, `'always'`, `'--help'`) | cyan (unbold) |
+| Usage heading (`Usage:`) when present | **bold green** |
+| Usage literals / flag names / subcommands | cyan (unbold) |
+| Usage metavars / placeholders (`<COLOR>`, `[OPTIONS]`) | magenta (unbold) |
+| Explanatory prose | default (no style) |
+
+This custom styling MUST apply to the following clap parse error
+families when colors are enabled:
+
+- invalid subcommand
+- unknown argument
+- invalid enum/value input
+- missing required argument
+
+When clap does not provide a usage line for a specific parse error
+(for example an invalid value for `--color`), the renderer MAY omit the
+usage block rather than synthesizing one heuristically.
+
 ## 6. List Table Improvements
 
 ### 6.1 Path Column
@@ -179,6 +225,7 @@ truncation.
 | `list --json` | Unchanged — JSON schema not affected |
 | `list` table column count | Changed: `Source` → `Path` (same position) |
 | Help text content | Unchanged — only styling added |
+| clap parse error exit codes | Unchanged — styling/rendering path changes only |
 
 ## 8. Normative Requirements
 
@@ -192,3 +239,5 @@ truncation.
 | **TST-006** | Builder | **P0** | `clap` help MUST use bold green headers, bold cyan literals, magenta placeholders. | `eden-skills --help` output contains correct ANSI sequences. |
 | **TST-007** | Builder | **P1** | `list` table MUST show `Path` column instead of `Source`. | `list` output contains `Path` header and repo-cache paths. |
 | **TST-008** | Builder | **P1** | `list` Agents column MUST truncate at 5 agents with `+N more` in yellow. | Skills with >5 agents show truncated agent list. |
+| **TST-009** | Builder | **P1** | Root help footer MUST colorize `Examples:` / `Documentation:` semantically, including tokenized example commands and docs URL. | Root `--help` footer contains bold green headings, bold cyan command literals, and magenta footer placeholders. |
+| **TST-010** | Builder | **P1** | Custom clap parse-error rendering MUST colorize `tip:`, quoted invalid/suggested tokens, and any emitted usage syntax with the semantic palette from Section 5.6. | Parse errors for invalid subcommand / unknown arg / invalid value / missing required arg contain the expected ANSI sequences. |

@@ -3,6 +3,7 @@ use std::process::ExitCode;
 use std::sync::Once;
 
 use clap::error::{ContextKind, ContextValue, Error as ClapError, ErrorKind as ClapErrorKind};
+use dialoguer::console::strip_ansi_codes;
 use eden_skills_cli::CliError;
 use eden_skills_core::error::EdenError;
 use owo_colors::OwoColorize;
@@ -68,6 +69,10 @@ fn print_clap_error(err: &ClapError) {
 fn render_custom_clap_error(err: &ClapError) -> Option<String> {
     match err.kind() {
         ClapErrorKind::InvalidSubcommand => Some(render_invalid_subcommand_error(err)),
+        ClapErrorKind::UnknownArgument => Some(render_unknown_argument_error(err)),
+        ClapErrorKind::InvalidValue => Some(render_invalid_value_error(err)),
+        ClapErrorKind::MissingRequiredArgument => Some(render_missing_required_argument_error(err)),
+        ClapErrorKind::MissingSubcommand => Some(render_missing_subcommand_error(err)),
         _ => None,
     }
 }
@@ -79,29 +84,151 @@ fn render_invalid_subcommand_error(err: &ClapError) -> String {
         .to_string();
     let suggested = clap_context_strings(err, ContextKind::SuggestedSubcommand);
     let usage = clap_usage_text(err);
-
-    let mut output = String::new();
-    output.push_str(&style_error_prefix(colors_enabled));
-    output.push(' ');
-    output.push_str("unrecognized subcommand ");
-    output.push_str(&style_quoted_token(&invalid, colors_enabled));
+    let mut tips = Vec::new();
 
     if let Some(first_suggestion) = suggested.first() {
-        output.push_str("\n\n  ");
-        output.push_str(&style_tip_label(colors_enabled));
-        output.push(' ');
-        output.push_str("a similar subcommand exists: ");
-        output.push_str(&style_quoted_token(first_suggestion, colors_enabled));
+        tips.push(format!(
+            "a similar subcommand exists: {}",
+            style_quoted_cli_fragment(first_suggestion, colors_enabled)
+        ));
+    }
+    tips.extend(clap_styled_suggestion_lines(err, colors_enabled));
+
+    let mut output = render_parse_error_header(
+        format!(
+            "unrecognized subcommand {}",
+            style_quoted_cli_fragment(&invalid, colors_enabled)
+        ),
+        colors_enabled,
+    );
+    append_tip_lines(&mut output, &tips, colors_enabled);
+    append_usage_and_help(&mut output, usage.as_deref(), colors_enabled);
+    output
+}
+
+fn render_unknown_argument_error(err: &ClapError) -> String {
+    let colors_enabled = clap_error_colors_enabled(err);
+    let invalid = clap_context_string(err, ContextKind::InvalidArg)
+        .unwrap_or_default()
+        .to_string();
+    let usage = clap_usage_text(err);
+    let mut tips = Vec::new();
+
+    if let Some(suggested_arg) = clap_context_string(err, ContextKind::SuggestedArg) {
+        tips.push(format!(
+            "a similar argument exists: {}",
+            style_quoted_cli_fragment(suggested_arg, colors_enabled)
+        ));
+    }
+    tips.extend(clap_styled_suggestion_lines(err, colors_enabled));
+
+    let mut output = render_parse_error_header(
+        format!(
+            "unexpected argument {} found",
+            style_quoted_cli_fragment(&invalid, colors_enabled)
+        ),
+        colors_enabled,
+    );
+    append_tip_lines(&mut output, &tips, colors_enabled);
+    append_usage_and_help(&mut output, usage.as_deref(), colors_enabled);
+    output
+}
+
+fn render_invalid_value_error(err: &ClapError) -> String {
+    let colors_enabled = clap_error_colors_enabled(err);
+    let invalid_arg = clap_context_string(err, ContextKind::InvalidArg)
+        .unwrap_or_default()
+        .to_string();
+    let invalid_value = clap_context_string(err, ContextKind::InvalidValue)
+        .unwrap_or_default()
+        .to_string();
+    let valid_values = clap_context_strings(err, ContextKind::ValidValue);
+    let usage = clap_usage_text(err);
+    let mut tips = Vec::new();
+
+    if let Some(suggested_value) = clap_context_string(err, ContextKind::SuggestedValue) {
+        tips.push(format!(
+            "a similar value exists: {}",
+            style_quoted_cli_fragment(suggested_value, colors_enabled)
+        ));
     }
 
-    if let Some(usage) = usage {
-        output.push_str("\n\n");
-        output.push_str(&style_usage_line(&usage, colors_enabled));
+    let headline = if invalid_value.is_empty() {
+        format!(
+            "a value is required for {} but none was supplied",
+            style_quoted_cli_fragment(&invalid_arg, colors_enabled)
+        )
+    } else {
+        format!(
+            "invalid value {} for {}",
+            style_quoted_cli_fragment(&invalid_value, colors_enabled),
+            style_quoted_cli_fragment(&invalid_arg, colors_enabled)
+        )
+    };
+
+    let mut output = render_parse_error_header(headline, colors_enabled);
+    if !valid_values.is_empty() {
+        output.push_str("\n    [possible values: ");
+        output.push_str(
+            &valid_values
+                .iter()
+                .map(|value| style_quoted_cli_fragment(value, colors_enabled))
+                .collect::<Vec<_>>()
+                .join(", "),
+        );
+        output.push(']');
+    }
+    append_tip_lines(&mut output, &tips, colors_enabled);
+    append_usage_and_help(&mut output, usage.as_deref(), colors_enabled);
+    output
+}
+
+fn render_missing_required_argument_error(err: &ClapError) -> String {
+    let colors_enabled = clap_error_colors_enabled(err);
+    let missing = clap_context_strings(err, ContextKind::InvalidArg);
+    let usage = clap_usage_text(err);
+
+    let mut output = render_parse_error_header(
+        "the following required arguments were not provided:".to_string(),
+        colors_enabled,
+    );
+    for argument in missing {
+        output.push_str("\n    ");
+        output.push_str(&style_cli_fragment(&argument, colors_enabled));
+    }
+    append_usage_and_help(&mut output, usage.as_deref(), colors_enabled);
+    output
+}
+
+fn render_missing_subcommand_error(err: &ClapError) -> String {
+    let colors_enabled = clap_error_colors_enabled(err);
+    let parent = clap_context_string(err, ContextKind::InvalidSubcommand)
+        .unwrap_or_default()
+        .to_string();
+    let available = clap_context_strings(err, ContextKind::ValidSubcommand);
+    let usage = clap_usage_text(err);
+    let mut tips = Vec::new();
+
+    if !available.is_empty() {
+        tips.push(format!(
+            "available subcommands: {}",
+            available
+                .iter()
+                .map(|value| style_quoted_cli_fragment(value, colors_enabled))
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
     }
 
-    output.push_str("\n\nFor more information, try ");
-    output.push_str(&style_quoted_token("--help", colors_enabled));
-    output.push_str(".\n");
+    let mut output = render_parse_error_header(
+        format!(
+            "{} requires a subcommand but one was not provided",
+            style_quoted_cli_fragment(&parent, colors_enabled)
+        ),
+        colors_enabled,
+    );
+    append_tip_lines(&mut output, &tips, colors_enabled);
+    append_usage_and_help(&mut output, usage.as_deref(), colors_enabled);
     output
 }
 
@@ -145,7 +272,7 @@ fn abbreviate_message_paths(message: &str) -> String {
     message.to_string()
 }
 
-fn clap_context_string<'a>(err: &'a ClapError, kind: ContextKind) -> Option<&'a str> {
+fn clap_context_string(err: &ClapError, kind: ContextKind) -> Option<&str> {
     match err.get(kind) {
         Some(ContextValue::String(value)) => Some(value.as_str()),
         _ => None,
@@ -156,6 +283,19 @@ fn clap_context_strings(err: &ClapError, kind: ContextKind) -> Vec<String> {
     match err.get(kind) {
         Some(ContextValue::Strings(values)) => values.clone(),
         Some(ContextValue::String(value)) => vec![value.clone()],
+        _ => Vec::new(),
+    }
+}
+
+fn clap_context_styled_strings(err: &ClapError, kind: ContextKind) -> Vec<String> {
+    match err.get(kind) {
+        Some(ContextValue::StyledStrs(values)) => values
+            .iter()
+            .map(|value| strip_ansi_codes(&value.to_string()).to_string())
+            .collect(),
+        Some(ContextValue::StyledStr(value)) => {
+            vec![strip_ansi_codes(&value.to_string()).to_string()]
+        }
         _ => Vec::new(),
     }
 }
@@ -197,12 +337,43 @@ fn style_usage_heading(colors_enabled: bool) -> String {
     }
 }
 
-fn style_quoted_token(token: &str, colors_enabled: bool) -> String {
-    if colors_enabled {
-        format!("{}", format!("'{token}'").cyan())
-    } else {
-        format!("'{token}'")
+fn render_parse_error_header(message: String, colors_enabled: bool) -> String {
+    format!("{} {message}", style_error_prefix(colors_enabled))
+}
+
+fn append_tip_lines(output: &mut String, tips: &[String], colors_enabled: bool) {
+    if tips.is_empty() {
+        return;
     }
+
+    output.push_str("\n\n");
+    for (index, tip) in tips.iter().enumerate() {
+        if index > 0 {
+            output.push('\n');
+        }
+        output.push_str("  ");
+        output.push_str(&style_tip_label(colors_enabled));
+        output.push(' ');
+        output.push_str(tip);
+    }
+}
+
+fn append_usage_and_help(output: &mut String, usage: Option<&str>, colors_enabled: bool) {
+    if let Some(usage) = usage {
+        output.push_str("\n\n");
+        output.push_str(&style_usage_line(usage, colors_enabled));
+    }
+
+    output.push_str("\n\nFor more information, try ");
+    output.push_str(&style_quoted_cli_fragment("--help", colors_enabled));
+    output.push_str(".\n");
+}
+
+fn clap_styled_suggestion_lines(err: &ClapError, colors_enabled: bool) -> Vec<String> {
+    clap_context_styled_strings(err, ContextKind::Suggested)
+        .into_iter()
+        .map(|text| style_text_with_quoted_cli_fragments(&text, colors_enabled))
+        .collect()
 }
 
 fn style_usage_line(raw: &str, colors_enabled: bool) -> String {
@@ -216,17 +387,39 @@ fn style_usage_line(raw: &str, colors_enabled: bool) -> String {
                 lines.push(format!(
                     "{} {}",
                     style_usage_heading(colors_enabled),
-                    style_usage_body(body, colors_enabled)
+                    style_cli_fragment(body, colors_enabled)
                 ));
             }
         } else {
-            lines.push(style_usage_body(line, colors_enabled));
+            lines.push(style_cli_fragment(line, colors_enabled));
         }
     }
     lines.join("\n")
 }
 
-fn style_usage_body(raw: &str, colors_enabled: bool) -> String {
+fn style_quoted_cli_fragment(fragment: &str, colors_enabled: bool) -> String {
+    if !colors_enabled {
+        return format!("'{fragment}'");
+    }
+
+    if !fragment.contains(char::is_whitespace)
+        && !fragment.contains('<')
+        && !fragment.contains('>')
+        && !fragment.contains('[')
+        && !fragment.contains(']')
+    {
+        return format!("{}", format!("'{fragment}'").cyan());
+    }
+
+    format!(
+        "{}{}{}",
+        "'".cyan(),
+        style_cli_fragment(fragment, colors_enabled),
+        "'".cyan()
+    )
+}
+
+fn style_cli_fragment(raw: &str, colors_enabled: bool) -> String {
     if !colors_enabled {
         return raw.to_string();
     }
@@ -237,7 +430,7 @@ fn style_usage_body(raw: &str, colors_enabled: bool) -> String {
     for ch in raw.chars() {
         if ch.is_whitespace() {
             if !token.is_empty() {
-                output.push_str(&style_usage_token(&token));
+                output.push_str(&style_cli_token(&token));
                 token.clear();
             }
             output.push(ch);
@@ -247,13 +440,13 @@ fn style_usage_body(raw: &str, colors_enabled: bool) -> String {
     }
 
     if !token.is_empty() {
-        output.push_str(&style_usage_token(&token));
+        output.push_str(&style_cli_token(&token));
     }
 
     output
 }
 
-fn style_usage_token(token: &str) -> String {
+fn style_cli_token(token: &str) -> String {
     if token.starts_with('[') && token.ends_with(']')
         || token.starts_with('<') && token.ends_with('>')
     {
@@ -263,6 +456,27 @@ fn style_usage_token(token: &str) -> String {
         return token.to_string();
     }
     token.cyan().to_string()
+}
+
+fn style_text_with_quoted_cli_fragments(text: &str, colors_enabled: bool) -> String {
+    if !colors_enabled {
+        return text.to_string();
+    }
+
+    let mut output = String::with_capacity(text.len());
+    let mut rest = text;
+    while let Some(start) = rest.find('\'') {
+        output.push_str(&rest[..start]);
+        let quoted = &rest[start + 1..];
+        let Some(end) = quoted.find('\'') else {
+            output.push_str(&rest[start..]);
+            return output;
+        };
+        output.push_str(&style_quoted_cli_fragment(&quoted[..end], colors_enabled));
+        rest = &quoted[end + 1..];
+    }
+    output.push_str(rest);
+    output
 }
 
 fn install_sigint_cursor_restore_handler() {

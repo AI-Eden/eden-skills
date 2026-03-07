@@ -95,6 +95,85 @@ fn invalid_subcommand_error_uses_custom_colorized_parse_renderer() {
 }
 
 #[test]
+fn unknown_argument_error_uses_custom_colorized_parse_renderer() {
+    let output = run_eden(["--color", "always", "list", "--jso"]);
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "unknown argument should return clap usage exit code, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("\u{1b}[1m\u{1b}[35mtip:\u{1b}[39m\u{1b}[0m"),
+        "tip label should be bold magenta, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("\u{1b}[1m\u{1b}[32mUsage:\u{1b}[39m\u{1b}[0m"),
+        "usage heading should be bold green, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("\u{1b}[36m'--jso'\u{1b}[39m")
+            && stderr.contains("\u{1b}[36m'--json'\u{1b}[39m"),
+        "unknown and suggested arguments should be unbold cyan, stderr={stderr}"
+    );
+}
+
+#[test]
+fn invalid_value_error_uses_custom_colorized_parse_renderer() {
+    let output = run_eden_force_color(["--color", "alwayz", "list"]);
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "invalid value should return clap usage exit code, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("\u{1b}[1m\u{1b}[35mtip:\u{1b}[39m\u{1b}[0m"),
+        "tip label should be bold magenta, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("\u{1b}[36m'alwayz'\u{1b}[39m")
+            && stderr.contains("\u{1b}[36m'always'\u{1b}[39m"),
+        "invalid and suggested values should be unbold cyan, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("\u{1b}[36m--color\u{1b}[39m")
+            && stderr.contains("\u{1b}[35m<COLOR>\u{1b}[39m"),
+        "argument syntax should split cyan literal and magenta placeholder, stderr={stderr}"
+    );
+}
+
+#[test]
+fn missing_required_argument_error_styles_required_syntax_tokens() {
+    let output = run_eden(["--color", "always", "config", "import"]);
+    assert_eq!(
+        output.status.code(),
+        Some(2),
+        "missing required argument should return clap usage exit code, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(
+        stderr.contains("the following required arguments were not provided"),
+        "required-argument error should keep explanatory text, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("\u{1b}[1m\u{1b}[32mUsage:\u{1b}[39m\u{1b}[0m"),
+        "usage heading should be bold green, stderr={stderr}"
+    );
+    assert!(
+        stderr.contains("\u{1b}[36m--from\u{1b}[39m")
+            && stderr.contains("\u{1b}[35m<FROM>\u{1b}[39m"),
+        "required syntax should split cyan literal and magenta placeholder, stderr={stderr}"
+    );
+}
+
+#[test]
 fn subcommands_include_normative_about_descriptions() {
     for (cmd, expected_phrase) in [
         ("plan", "Preview planned actions without making changes"),
@@ -261,6 +340,16 @@ fn run_eden<const N: usize>(args: [&str; N]) -> Output {
         .args(args)
         .output()
         .expect("run eden-skills")
+}
+
+fn run_eden_force_color<const N: usize>(args: [&str; N]) -> Output {
+    Command::new(env!("CARGO_BIN_EXE_eden-skills"))
+        .env("FORCE_COLOR", "1")
+        .env_remove("NO_COLOR")
+        .env_remove("CI")
+        .args(args)
+        .output()
+        .expect("run eden-skills with FORCE_COLOR")
 }
 
 fn eden_command(home_dir: &Path) -> Command {
