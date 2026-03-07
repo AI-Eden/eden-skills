@@ -15,7 +15,7 @@ use owo_colors::OwoColorize;
 
 use super::common::{load_config_with_context, print_warning, resolve_config_path};
 use super::CommandOptions;
-use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
+use crate::ui::{StatusSymbol, UiContext};
 
 /// Preview planned reconciliation actions without side effects.
 ///
@@ -77,7 +77,7 @@ pub(crate) fn print_plan_text(ui: &UiContext, items: &[PlanItem]) {
         println!(
             "  {}  {} {} {} {}",
             style_plan_action_label(ui, item.action),
-            item.skill_id,
+            ui.styled_skill_id(&item.skill_id),
             style_arrow(ui),
             ui.styled_path(&item.target_path),
             mode_label
@@ -99,9 +99,9 @@ fn print_plan_table(ui: &UiContext, items: &[PlanItem]) {
     for item in items {
         table.add_row(vec![
             plan_action_cell(item.action),
-            item.skill_id.clone(),
-            abbreviate_home_path(&item.target_path),
-            item.install_mode.as_str().to_string(),
+            ui.styled_skill_id(&item.skill_id),
+            ui.styled_path(&item.target_path),
+            ui.styled_secondary(item.install_mode.as_str()),
         ]);
     }
     println!("{table}");
@@ -119,7 +119,7 @@ fn print_plan_table(ui: &UiContext, items: &[PlanItem]) {
     for item in conflicts {
         println!(
             "    {} {} {}",
-            item.skill_id,
+            ui.styled_skill_id(&item.skill_id),
             style_arrow(ui),
             ui.styled_path(&item.target_path)
         );
@@ -162,20 +162,11 @@ fn style_plan_action_label(ui: &UiContext, action: Action) -> String {
 
 fn style_mode_label(ui: &UiContext, mode: &str) -> String {
     let raw = format!("({mode})");
-    if ui.colors_enabled() {
-        raw.dimmed().to_string()
-    } else {
-        raw
-    }
+    ui.styled_secondary(&raw)
 }
 
 fn style_arrow(ui: &UiContext) -> String {
-    let arrow = "~>";
-    if ui.colors_enabled() {
-        arrow.dimmed().to_string()
-    } else {
-        arrow.to_string()
-    }
+    ui.hint_prefix()
 }
 
 fn plan_action_cell(action: Action) -> String {

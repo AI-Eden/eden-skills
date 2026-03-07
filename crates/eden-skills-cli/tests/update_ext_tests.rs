@@ -173,7 +173,7 @@ fn tm_p29_010_update_skill_refresh_renders_as_table() {
 }
 
 #[test]
-fn tm_p29_011_update_skill_status_cells_are_plain_labels() {
+fn tm_p29_011_update_skill_status_cells_are_semantically_styled() {
     let fixture = setup_mode_a_fixture("symlink", false);
     let output = run_command(&fixture, "always", true, &["update"]);
     assert_success(&output);
@@ -187,8 +187,8 @@ fn tm_p29_011_update_skill_status_cells_are_plain_labels() {
         .unwrap_or_else(|| panic!("expected at least one refresh status row, stdout={stdout}"));
 
     assert!(
-        !has_ansi_codes(status_line),
-        "refresh status cell text must be plain labels without ANSI styling, line={status_line:?}"
+        has_ansi_codes(status_line) && status_line.contains("\u{1b}[2m"),
+        "refresh status cells should use semantic ANSI styling (missing => dim), line={status_line:?}"
     );
 }
 

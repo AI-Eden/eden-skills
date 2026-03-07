@@ -39,9 +39,9 @@ fn tm_p28_005_list_renders_as_table() {
     assert!(
         stdout.contains("Skill")
             && stdout.contains("Mode")
-            && stdout.contains("Source")
+            && stdout.contains("Path")
             && stdout.contains("Agents"),
-        "list output should include table headers Skill/Mode/Source/Agents, stdout={stdout}"
+        "list output should include table headers Skill/Mode/Path/Agents, stdout={stdout}"
     );
     assert!(
         stdout.contains("alpha-skill")

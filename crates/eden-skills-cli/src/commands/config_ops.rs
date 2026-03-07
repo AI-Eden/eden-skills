@@ -15,6 +15,7 @@ use eden_skills_core::config::{
 use eden_skills_core::error::EdenError;
 use eden_skills_core::lock::{lock_path_for_config, write_lock_file, LockFile};
 use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
+use eden_skills_core::source::resolve_skill_source_path;
 use owo_colors::OwoColorize;
 
 use super::common::{
@@ -22,7 +23,7 @@ use super::common::{
     print_warning, read_existing_registries, resolve_config_path, write_normalized_config,
 };
 use super::{AddRequest, CommandOptions, SetRequest};
-use crate::ui::{abbreviate_home_path, abbreviate_repo_url, StatusSymbol, UiContext};
+use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
 
 /// Create a new `skills.toml` and companion lock file.
 ///
@@ -91,7 +92,7 @@ pub(crate) fn default_config_template() -> String {
 
 /// List all configured skills and their targets.
 ///
-/// Renders a table (`Skill | Mode | Source | Agents`) in human mode
+/// Renders a table (`Skill | Mode | Path | Agents`) in human mode
 /// or a JSON object with a `count` and `skills` array.
 ///
 /// # Errors
@@ -107,6 +108,7 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     }
 
     let config_dir = config_dir_from_path(config_path);
+    let storage_root = resolve_path_string(&loaded.config.storage_root, &config_dir)?;
     let skills = &loaded.config.skills;
 
     if options.json {
@@ -159,16 +161,17 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     }
     println!();
 
-    let mut table = ui.table(&["Skill", "Mode", "Source", "Agents"]);
+    let mut table = ui.table(&["Skill", "Mode", "Path", "Agents"]);
     if let Some(column) = table.column_mut(1) {
         column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
     }
     for skill in skills {
+        let source_path = resolve_skill_source_path(&storage_root, skill);
         table.add_row(vec![
-            skill.id.clone(),
-            skill.install.mode.as_str().to_string(),
-            abbreviate_repo_url(&skill.source.repo),
-            render_skill_agents(skill, &config_dir),
+            ui.styled_skill_id(&skill.id),
+            ui.styled_secondary(skill.install.mode.as_str()),
+            ui.styled_path(&source_path.display().to_string()),
+            render_skill_agents(&ui, skill, &config_dir),
         ]);
     }
     println!("{table}");
@@ -176,7 +179,11 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     Ok(())
 }
 
-fn render_skill_agents(skill: &SkillConfig, config_dir: &std::path::Path) -> String {
+fn render_skill_agents(
+    ui: &UiContext,
+    skill: &SkillConfig,
+    config_dir: &std::path::Path,
+) -> String {
     let mut seen = HashSet::new();
     let mut labels = Vec::new();
     for target in &skill.targets {
@@ -198,12 +205,21 @@ fn render_skill_agents(skill: &SkillConfig, config_dir: &std::path::Path) -> Str
         }
     }
 
-    let mut rendered = labels.join(", ");
+    let visible_labels = labels.iter().take(5).cloned().collect::<Vec<_>>();
+    let hidden_count = labels.len().saturating_sub(visible_labels.len());
+    let mut rendered = visible_labels.join(", ");
+    if hidden_count > 0 {
+        if !rendered.is_empty() {
+            rendered.push(' ');
+        }
+        rendered.push_str(&ui.styled_warning_text(&format!("+{hidden_count} more")));
+    }
     if skill.safety.no_exec_metadata_only {
         if rendered.is_empty() {
-            rendered = "(metadata-only)".to_string();
+            rendered = ui.styled_secondary("(metadata-only)");
         } else {
-            rendered.push_str(" (metadata-only)");
+            rendered.push(' ');
+            rendered.push_str(&ui.styled_secondary("(metadata-only)"));
         }
     }
     rendered

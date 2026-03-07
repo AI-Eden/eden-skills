@@ -17,7 +17,6 @@ use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::registry::{parse_registry_specs_from_toml, sort_registry_specs_by_priority};
 use eden_skills_core::safety::{analyze_skills, LicenseStatus, SkillSafetyReport};
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
-use owo_colors::OwoColorize;
 use serde::Deserialize;
 
 use super::common::{
@@ -617,7 +616,7 @@ fn print_doctor_text(ui: &UiContext, findings: &[DoctorFinding]) {
             table.add_row(vec![
                 doctor_severity_cell(&finding.severity),
                 finding.code.clone(),
-                finding.skill_id.clone(),
+                ui.styled_skill_id(&finding.skill_id),
             ]);
         }
         println!("{table}");
@@ -629,7 +628,7 @@ fn print_doctor_text(ui: &UiContext, findings: &[DoctorFinding]) {
             "  {} [{}] {}",
             doctor_severity_symbol(ui, &finding.severity),
             finding.code,
-            finding.skill_id
+            ui.styled_skill_id(&finding.skill_id)
         );
         println!("    {}", doctor_message_with_styled_path(ui, finding));
         println!(
@@ -660,12 +659,7 @@ fn doctor_severity_cell(severity: &str) -> String {
 }
 
 fn doctor_remediation_prefix(ui: &UiContext) -> String {
-    let arrow = "~>";
-    if ui.colors_enabled() {
-        arrow.dimmed().to_string()
-    } else {
-        arrow.to_string()
-    }
+    ui.hint_prefix()
 }
 
 fn doctor_message_with_styled_path(ui: &UiContext, finding: &DoctorFinding) -> String {

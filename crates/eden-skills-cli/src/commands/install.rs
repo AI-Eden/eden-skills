@@ -1272,9 +1272,9 @@ fn print_install_dry_run(
     for (index, row) in displayed_skills.iter().enumerate() {
         skill_table.add_row(vec![
             (index + 1).to_string(),
-            row.skill_id.clone(),
+            ui.styled_skill_id(&row.skill_id),
             row.version.clone(),
-            row.source.clone(),
+            ui.styled_cyan(&row.source),
         ]);
     }
     print_titled_table(ui, "Skill / Version / Source", &skill_table);
@@ -1296,7 +1296,11 @@ fn print_install_dry_run(
         column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
     }
     for row in &preview_data.targets {
-        target_table.add_row(vec![row.agent.clone(), row.path.clone(), row.mode.clone()]);
+        target_table.add_row(vec![
+            row.agent.clone(),
+            ui.styled_path(&row.path),
+            ui.styled_secondary(&row.mode),
+        ]);
     }
     print_titled_table(ui, "Install Targets", &target_table);
 
@@ -2109,31 +2113,19 @@ fn print_docker_cp_hints(ui: &UiContext, containers: &[String]) {
     for container_name in containers {
         println!(
             "  {} Tip: add bind mounts for live sync. Run 'eden-skills docker mount-hint {}'.",
-            if ui.colors_enabled() {
-                "→".dimmed().to_string()
-            } else {
-                "→".to_string()
-            },
+            ui.hint_prefix(),
             container_name
         );
     }
 }
 
 fn style_skill_id(ui: &UiContext, skill_id: &str) -> String {
-    if ui.colors_enabled() {
-        skill_id.bold().to_string()
-    } else {
-        skill_id.to_string()
-    }
+    ui.styled_skill_id(skill_id)
 }
 
 fn style_mode_label(ui: &UiContext, mode: &str) -> String {
     let raw = format!("({mode})");
-    if ui.colors_enabled() {
-        raw.dimmed().to_string()
-    } else {
-        raw
-    }
+    ui.styled_secondary(&raw)
 }
 
 fn style_tree_connector(ui: &UiContext, connector: &str) -> String {

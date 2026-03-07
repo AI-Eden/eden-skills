@@ -35,7 +35,7 @@ batches:
     name: "Table Content Styling + Help Colorization + List Table + Hint Sync"
     work_packages: [WP-2, WP-6]
     requirements: [TST-001, TST-002, TST-003, TST-004, TST-005, TST-006, TST-007, TST-008, HSY-001, HSY-002]
-    status: pending
+    status: completed
   batch3:
     name: "Interactive UX (Remove + Install)"
     work_packages: [WP-3]
@@ -74,3 +74,21 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 399
+  batch_2_table_content_styling_help_colorization_list_table_hint_sync:
+    status: completed
+    started_at: "2026-03-07"
+    completed_at: "2026-03-07"
+    requirements: TST-001, TST-002, TST-003, TST-004, TST-005, TST-006, TST-007, TST-008, HSY-001, HSY-002
+    scenarios: TM-P297-007, TM-P297-008, TM-P297-009, TM-P297-010, TM-P297-011, TM-P297-012, TM-P297-047, TM-P297-048, TM-P297-049, TM-P297-050, TM-P297-057, TM-P297-058, TM-P297-059
+    notes:
+      - enabled `comfy-table` `custom_styling` in `crates/eden-skills-cli/Cargo.toml` and moved table/header/status/hint styling into shared helpers in `crates/eden-skills-cli/src/ui.rs`
+      - styled all Batch 2 skill tables with bold headers, bold+magenta Skill IDs, semantic status colors, cyan path/source cells, dimmed secondary detail text, and ANSI-safe width calculation
+      - colorized clap help in `crates/eden-skills-cli/src/lib.rs` by resolving `--color` into clap `ColorChoice` before help/version rendering and applying green/cyan/magenta styles on the root command
+      - updated `list` output in `crates/eden-skills-cli/src/commands/config_ops.rs` to show repo-cache-backed `Path` values and truncate the `Agents` column after five labels with yellow `+N more`
+      - normalized hint output to magenta `~>` across `main.rs`, `update.rs`, `diagnose.rs`, `plan_cmd.rs`, and `install.rs`, including the residual Docker bind-mount tip path
+      - added `crates/eden-skills-cli/tests/table_style_tests.rs` and `crates/eden-skills-cli/tests/hint_sync_tests.rs`, and refreshed affected legacy table/help tests to match the new styling contract
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 412

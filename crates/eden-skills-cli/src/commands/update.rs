@@ -278,7 +278,10 @@ fn print_empty_update_guidance(ui: &UiContext) {
         ui.action_prefix("Update")
     );
     println!();
-    println!("  ~> Run 'eden-skills install <owner/repo>' to get started.");
+    println!(
+        "  {} Run 'eden-skills install <owner/repo>' to get started.",
+        ui.hint_prefix()
+    );
 }
 
 fn print_update_refresh_sections(
@@ -302,8 +305,8 @@ fn print_update_refresh_sections(
         for result in registry_results {
             table.add_row(vec![
                 result.name.clone(),
-                registry_status_cell(&result.status),
-                result.detail.clone().unwrap_or_default(),
+                registry_status_cell(ui, &result.status),
+                style_detail_cell(ui, result.detail.as_deref()),
             ]);
         }
         println!("{table}");
@@ -326,8 +329,8 @@ fn print_update_refresh_sections(
         }
         for result in skill_results {
             table.add_row(vec![
-                result.id.clone(),
-                skill_refresh_status_cell(result.status),
+                ui.styled_skill_id(&result.id),
+                skill_refresh_status_cell(ui, result.status),
             ]);
         }
         println!("{table}");
@@ -408,7 +411,10 @@ fn print_update_summary(
         }
     }
     if !apply_requested && updates_available > 0 {
-        println!("  ~> Run 'eden-skills update --apply' or 'eden-skills apply' to install.");
+        println!(
+            "  {} Run 'eden-skills update --apply' or 'eden-skills apply' to install.",
+            ui.hint_prefix()
+        );
     }
 }
 
@@ -937,20 +943,12 @@ fn group_install_targets(
 }
 
 fn style_skill_id(ui: &UiContext, skill_id: &str) -> String {
-    if ui.colors_enabled() {
-        skill_id.bold().to_string()
-    } else {
-        skill_id.to_string()
-    }
+    ui.styled_skill_id(skill_id)
 }
 
 fn style_mode_label(ui: &UiContext, mode: &str) -> String {
     let raw = format!("({mode})");
-    if ui.colors_enabled() {
-        raw.dimmed().to_string()
-    } else {
-        raw
-    }
+    ui.styled_secondary(&raw)
 }
 
 fn style_tree_connector(ui: &UiContext, connector: &str) -> String {
@@ -961,12 +959,16 @@ fn style_tree_connector(ui: &UiContext, connector: &str) -> String {
     }
 }
 
-fn registry_status_cell(status: &RegistrySyncStatus) -> String {
-    status.as_str().to_string()
+fn registry_status_cell(ui: &UiContext, status: &RegistrySyncStatus) -> String {
+    ui.styled_status(status.as_str())
 }
 
-fn skill_refresh_status_cell(status: SkillRefreshStatus) -> String {
-    status.table_label().to_string()
+fn skill_refresh_status_cell(ui: &UiContext, status: SkillRefreshStatus) -> String {
+    ui.styled_status(status.table_label())
+}
+
+fn style_detail_cell(ui: &UiContext, detail: Option<&str>) -> String {
+    detail.map_or_else(String::new, |detail| ui.styled_secondary(detail))
 }
 
 async fn sync_registry_task(

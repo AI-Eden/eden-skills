@@ -190,10 +190,80 @@ impl UiContext {
         }
     }
 
+    /// Style a skill identifier for table cells and other human-facing output.
+    pub fn styled_skill_id(&self, skill_id: &str) -> String {
+        if self.colors_enabled() {
+            skill_id.bold().magenta().to_string()
+        } else {
+            skill_id.to_string()
+        }
+    }
+
+    /// Style a semantic status label for table output.
+    pub fn styled_status(&self, status: &str) -> String {
+        if !self.colors_enabled() {
+            return status.to_string();
+        }
+        match status {
+            "up-to-date" | "ok" | "noop" => status.green().to_string(),
+            "failed" | "error" => status.red().to_string(),
+            "warning" | "conflict" => status.yellow().to_string(),
+            "skipped" | "missing" => status.dimmed().to_string(),
+            "cloned" | "updated" | "new commit" => status.cyan().to_string(),
+            _ => status.to_string(),
+        }
+    }
+
+    /// Style secondary detail text such as modes or explanatory suffixes.
+    pub fn styled_secondary(&self, text: &str) -> String {
+        if self.colors_enabled() {
+            text.dimmed().to_string()
+        } else {
+            text.to_string()
+        }
+    }
+
+    /// Style generic cyan content such as source labels.
+    pub fn styled_cyan(&self, text: &str) -> String {
+        if self.colors_enabled() {
+            text.cyan().to_string()
+        } else {
+            text.to_string()
+        }
+    }
+
+    /// Style warning-emphasis text such as list truncation markers.
+    pub fn styled_warning_text(&self, text: &str) -> String {
+        if self.colors_enabled() {
+            text.yellow().to_string()
+        } else {
+            text.to_string()
+        }
+    }
+
+    /// Render the canonical hint prefix used across CLI guidance lines.
+    pub fn hint_prefix(&self) -> String {
+        if self.colors_enabled() {
+            "~>".magenta().to_string()
+        } else {
+            "~>".to_string()
+        }
+    }
+
+    /// Style a table header label.
+    pub fn style_table_header(&self, header: &str) -> String {
+        if self.colors_enabled() {
+            header.bold().to_string()
+        } else {
+            header.to_string()
+        }
+    }
+
     /// Create a [`Table`] pre-configured for the current terminal context.
     ///
-    /// TTY output uses content-driven column widths with plain-text headers;
-    /// non-TTY output keeps ASCII borders capped at 80 columns with dynamic wrapping.
+    /// TTY output uses content-driven column widths with bold headers when
+    /// colors are enabled; non-TTY output keeps ASCII borders capped at
+    /// 80 columns with dynamic wrapping.
     pub fn table(&self, headers: &[&str]) -> Table {
         let mut table = Table::new();
         let human_tty = self.stdout_is_tty && !self.ci;
@@ -208,7 +278,7 @@ impl UiContext {
 
         let header_cells = headers
             .iter()
-            .map(|header| Cell::new(*header))
+            .map(|header| Cell::new(self.style_table_header(header)))
             .collect::<Vec<_>>();
         table.set_header(header_cells);
         table

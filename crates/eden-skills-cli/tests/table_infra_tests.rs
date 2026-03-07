@@ -11,15 +11,13 @@ fn comfy_table_dependency_is_declared_in_cli_cargo_toml() {
     let cargo_toml = fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("Cargo.toml"))
         .expect("read crates/eden-skills-cli/Cargo.toml");
     assert!(
-        cargo_toml
-            .lines()
-            .any(|line| line.trim_start().starts_with("comfy-table")),
-        "comfy-table must be declared as a direct dependency"
+        cargo_toml.contains("comfy-table") && cargo_toml.contains("custom_styling"),
+        "comfy-table must be declared with the custom_styling feature"
     );
 }
 
 #[test]
-fn ui_context_table_uses_utf8_borders_plain_headers_and_content_driven_width_on_tty() {
+fn ui_context_table_uses_utf8_borders_bold_headers_and_content_driven_width_on_tty() {
     let _guard = test_env_lock();
     std::env::set_var("EDEN_SKILLS_FORCE_TTY", "1");
     std::env::remove_var("CI");
@@ -37,8 +35,8 @@ fn ui_context_table_uses_utf8_borders_plain_headers_and_content_driven_width_on_
         "TTY table should use UTF-8 borders, rendered={rendered}"
     );
     assert!(
-        !has_ansi_codes(&rendered),
-        "TTY table must not include ANSI styling in headers or cells, rendered={rendered}"
+        has_ansi_codes(&rendered) && rendered.contains("\u{1b}[1m"),
+        "TTY table headers should render with ANSI bold styling when colors are enabled, rendered={rendered}"
     );
     let max_width = rendered
         .lines()

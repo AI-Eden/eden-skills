@@ -16,8 +16,8 @@ fn tm_p29_001_tty_table_factory_uses_content_driven_width() {
         "UiContext::table must not force full-width table expansion in tty mode"
     );
     assert!(
-        !ui_source.contains("(*header).bold().to_string()"),
-        "table headers must remain plain text without ANSI styling"
+        ui_source.contains("self.style_table_header(header)"),
+        "table headers should be routed through the shared header styling helper"
     );
 }
 
@@ -56,7 +56,7 @@ fn tm_p29_003_fixed_columns_apply_upper_boundary_constraints_at_call_sites() {
     assert_contains_all(
         &config_ops,
         &[
-            "ui.table(&[\"Skill\", \"Mode\", \"Source\", \"Agents\"])",
+            "ui.table(&[\"Skill\", \"Mode\", \"Path\", \"Agents\"])",
             "column_mut(1)",
             "Width::Fixed(8)",
         ],
@@ -115,28 +115,30 @@ fn tm_p29_003_fixed_columns_apply_upper_boundary_constraints_at_call_sites() {
 }
 
 #[test]
-fn tm_p29_004_table_cells_use_plain_text_renderers() {
+fn tm_p29_004_table_cells_use_styled_renderers() {
     let plan_cmd = read_source_file("src/commands/plan_cmd.rs");
     assert_contains_all(
         &plan_cmd,
         &[
             "table.add_row(vec![",
             "plan_action_cell(item.action)",
-            "fn plan_action_cell(action: Action) -> String",
-            "action_label(action).to_string()",
+            "ui.styled_skill_id(&item.skill_id)",
+            "ui.styled_path(&item.target_path)",
+            "ui.styled_secondary(item.install_mode.as_str())",
         ],
-        "plan table action cells",
+        "plan table cell styling",
     );
 
     let update = read_source_file("src/commands/update.rs");
     assert_contains_all(
         &update,
         &[
-            "registry_status_cell(&result.status)",
-            "fn registry_status_cell(status: &RegistrySyncStatus) -> String",
-            "status.as_str().to_string()",
+            "registry_status_cell(ui, &result.status)",
+            "skill_refresh_status_cell(ui, result.status)",
+            "ui.styled_skill_id(&result.id)",
+            "ui.styled_status(status.as_str())",
         ],
-        "update table status cells",
+        "update table cell styling",
     );
 
     let diagnose = read_source_file("src/commands/diagnose.rs");
@@ -144,11 +146,9 @@ fn tm_p29_004_table_cells_use_plain_text_renderers() {
         &diagnose,
         &[
             "doctor_severity_cell(&finding.severity)",
-            "fn doctor_severity_cell(severity: &str) -> String",
-            "\"warn\".to_string()",
-            "\"error\".to_string()",
+            "ui.styled_skill_id(&finding.skill_id)",
         ],
-        "doctor table severity cells",
+        "doctor table cell styling",
     );
 }
 

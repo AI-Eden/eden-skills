@@ -9,7 +9,8 @@ pub mod commands;
 pub mod signal;
 pub mod ui;
 
-use clap::{Args, Parser, Subcommand};
+use clap::builder::styling::{AnsiColor, Style, Styles};
+use clap::{Args, ColorChoice, FromArgMatches, Parser, Subcommand};
 use commands::CommandOptions;
 use eden_skills_core::config::InstallMode;
 use eden_skills_core::error::EdenError;
@@ -27,13 +28,19 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
     argv.extend(args);
 
     if argv.len() == 1 {
-        let _ = <Cli as clap::CommandFactory>::command().print_help();
+        let _ = <Cli as clap::CommandFactory>::command()
+            .color(resolve_clap_color_choice(&argv))
+            .print_help();
         println!();
         return Ok(());
     }
 
-    let cli = match Cli::try_parse_from(argv) {
-        Ok(cli) => cli,
+    let clap_color_choice = resolve_clap_color_choice(&argv);
+    let matches = match <Cli as clap::CommandFactory>::command()
+        .color(clap_color_choice)
+        .try_get_matches_from(&argv)
+    {
+        Ok(matches) => matches,
         Err(err) => match err.kind() {
             clap::error::ErrorKind::DisplayHelp
             | clap::error::ErrorKind::DisplayVersion
@@ -52,6 +59,15 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), EdenError> {
             }
         },
     };
+    let cli = Cli::from_arg_matches(&matches).map_err(|err| {
+        let raw = err.to_string();
+        let msg = raw
+            .strip_prefix("error: ")
+            .unwrap_or(&raw)
+            .trim_end()
+            .to_string();
+        EdenError::InvalidArguments(msg)
+    })?;
     configure_color_output(cli.color, cli.command.json_mode());
 
     match cli.command {
@@ -219,11 +235,48 @@ const EXAMPLE_AND_DOC: &str = r#"Examples:
 
 Documentation: https://github.com/AI-Eden/eden-skills"#;
 
+fn help_styles() -> Styles {
+    Styles::styled()
+        .header(Style::new().bold().fg_color(Some(AnsiColor::Green.into())))
+        .literal(Style::new().bold().fg_color(Some(AnsiColor::Cyan.into())))
+        .placeholder(Style::new().fg_color(Some(AnsiColor::Magenta.into())))
+        .usage(Style::new().bold().fg_color(Some(AnsiColor::Green.into())))
+}
+
+fn resolve_clap_color_choice(argv: &[String]) -> ColorChoice {
+    let mut next_is_color_value = false;
+    let mut parsed = ColorChoice::Auto;
+    for arg in argv.iter().skip(1) {
+        if next_is_color_value {
+            parsed = parse_clap_color_choice(arg);
+            next_is_color_value = false;
+            continue;
+        }
+        if arg == "--color" {
+            next_is_color_value = true;
+            continue;
+        }
+        if let Some(value) = arg.strip_prefix("--color=") {
+            parsed = parse_clap_color_choice(value);
+        }
+    }
+    parsed
+}
+
+fn parse_clap_color_choice(value: &str) -> ColorChoice {
+    match value {
+        "always" => ColorChoice::Always,
+        "never" => ColorChoice::Never,
+        _ => ColorChoice::Auto,
+    }
+}
+
 #[derive(Debug, Parser)]
 #[command(name = "eden-skills")]
 #[command(version)]
 #[command(about = "Deterministic & Blazing-Fast Skills Manager for AI Agents.")]
 #[command(before_help = concat!("eden-skills ", env!("CARGO_PKG_VERSION")))]
+#[command(styles = help_styles())]
 #[command(
     long_about = "Deterministic & Blazing-Fast Skills Manager for AI Agents (Claude Code, Cursor, Codex & More)."
 )]

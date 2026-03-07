@@ -17,14 +17,14 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| TST-001 | `SPEC_TABLE_STYLE.md` 2.1 | Enable custom_styling feature | — | TM-P297-007 | pending |
-| TST-002 | `SPEC_TABLE_STYLE.md` 3.1 | Bold table headers | — | TM-P297-008, TM-P297-012 | pending |
-| TST-003 | `SPEC_TABLE_STYLE.md` 3.2 | Bold+magenta Skill ID cells | — | TM-P297-009 | pending |
-| TST-004 | `SPEC_TABLE_STYLE.md` 3.3 | Status cells colored by category | — | TM-P297-010 | pending |
-| TST-005 | `SPEC_TABLE_STYLE.md` 3 | Styled cells do not break alignment | — | TM-P297-011 | pending |
-| TST-006 | `SPEC_TABLE_STYLE.md` 5 | clap help colorization | — | TM-P297-057 | pending |
-| TST-007 | `SPEC_TABLE_STYLE.md` 6.1 | List table Path column | — | TM-P297-058 | pending |
-| TST-008 | `SPEC_TABLE_STYLE.md` 6.2 | List Agents truncation | — | TM-P297-059 | pending |
+| TST-001 | `SPEC_TABLE_STYLE.md` 2.1 | Enable custom_styling feature | `crates/eden-skills-cli/Cargo.toml` | TM-P297-007 | completed |
+| TST-002 | `SPEC_TABLE_STYLE.md` 3.1 | Bold table headers | `crates/eden-skills-cli/src/ui.rs` | TM-P297-008, TM-P297-012 | completed |
+| TST-003 | `SPEC_TABLE_STYLE.md` 3.2 | Bold+magenta Skill ID cells | `crates/eden-skills-cli/src/ui.rs`, `crates/eden-skills-cli/src/commands/config_ops.rs`, `crates/eden-skills-cli/src/commands/update.rs`, `crates/eden-skills-cli/src/commands/diagnose.rs`, `crates/eden-skills-cli/src/commands/plan_cmd.rs`, `crates/eden-skills-cli/src/commands/install.rs` | TM-P297-009 | completed |
+| TST-004 | `SPEC_TABLE_STYLE.md` 3.3 | Status cells colored by category | `crates/eden-skills-cli/src/ui.rs`, `crates/eden-skills-cli/src/commands/update.rs` | TM-P297-010 | completed |
+| TST-005 | `SPEC_TABLE_STYLE.md` 3 | Styled cells do not break alignment | `crates/eden-skills-cli/Cargo.toml`, `crates/eden-skills-cli/src/ui.rs` | TM-P297-011 | completed |
+| TST-006 | `SPEC_TABLE_STYLE.md` 5 | clap help colorization | `crates/eden-skills-cli/src/lib.rs` | TM-P297-057 | completed |
+| TST-007 | `SPEC_TABLE_STYLE.md` 6.1 | List table Path column | `crates/eden-skills-cli/src/commands/config_ops.rs` | TM-P297-058 | completed |
+| TST-008 | `SPEC_TABLE_STYLE.md` 6.2 | List Agents truncation | `crates/eden-skills-cli/src/commands/config_ops.rs` | TM-P297-059 | completed |
 
 ## 3. Interactive UX Requirements
 
@@ -70,8 +70,8 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| HSY-001 | `SPEC_HINT_SYNC.md` 2.1 | All hints use `~>` prefix | — | TM-P297-047, TM-P297-049, TM-P297-050 | pending |
-| HSY-002 | `SPEC_HINT_SYNC.md` 2.2 | `~>` styled magenta | — | TM-P297-048 | pending |
+| HSY-001 | `SPEC_HINT_SYNC.md` 2.1 | All hints use `~>` prefix | `crates/eden-skills-cli/src/main.rs`, `crates/eden-skills-cli/src/commands/update.rs`, `crates/eden-skills-cli/src/commands/diagnose.rs`, `crates/eden-skills-cli/src/commands/plan_cmd.rs`, `crates/eden-skills-cli/src/commands/install.rs` | TM-P297-047, TM-P297-049, TM-P297-050 | completed |
+| HSY-002 | `SPEC_HINT_SYNC.md` 2.2 | `~>` styled magenta | `crates/eden-skills-cli/src/ui.rs`, `crates/eden-skills-cli/src/main.rs`, `crates/eden-skills-cli/src/commands/update.rs`, `crates/eden-skills-cli/src/commands/diagnose.rs`, `crates/eden-skills-cli/src/commands/plan_cmd.rs`, `crates/eden-skills-cli/src/commands/install.rs` | TM-P297-048 | completed |
 
 ## 7. Documentation Requirements
 
