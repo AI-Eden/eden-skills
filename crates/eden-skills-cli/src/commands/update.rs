@@ -4,7 +4,7 @@
 //! using the reactor, and records sync markers. Results are rendered as
 //! a table with per-registry status and a timing footer.
 
-use std::collections::{HashMap, HashSet};
+use std::collections::{BTreeMap, HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -18,7 +18,9 @@ use eden_skills_core::plan::{build_plan, Action};
 use eden_skills_core::reactor::SkillReactor;
 use eden_skills_core::registry::{parse_registry_specs_from_toml, sort_registry_specs_by_priority};
 use eden_skills_core::safety::{analyze_skills, persist_reports, SkillSafetyReport};
-use eden_skills_core::source::{resolve_skill_storage_root, sync_sources_async_with_reactor};
+use eden_skills_core::source::{
+    repo_cache_key, resolve_skill_storage_root, sync_sources_async_with_reactor,
+};
 use eden_skills_core::verify::verify_config_state;
 use owo_colors::OwoColorize;
 
@@ -99,7 +101,7 @@ struct RegistrySyncResult {
 
 #[derive(Debug, Clone)]
 struct SkillRefreshTask {
-    id: String,
+    skill_ids: Vec<String>,
     reference: String,
     local_dir: PathBuf,
 }
@@ -457,16 +459,44 @@ fn print_update_json(
 }
 
 fn build_mode_a_refresh_tasks(config: &Config, storage_root: &Path) -> Vec<SkillRefreshTask> {
-    config
+    let mut remote_tasks = BTreeMap::new();
+    let mut local_tasks = Vec::new();
+
+    for skill in config
         .skills
         .iter()
         .filter(|skill| !is_registry_mode_repo(&skill.source.repo))
-        .map(|skill| SkillRefreshTask {
-            id: skill.id.clone(),
-            reference: skill.source.r#ref.clone(),
-            local_dir: resolve_skill_storage_root(storage_root, skill),
+    {
+        if Path::new(&skill.source.repo).is_absolute() {
+            local_tasks.push(SkillRefreshTask {
+                skill_ids: vec![skill.id.clone()],
+                reference: skill.source.r#ref.clone(),
+                local_dir: resolve_skill_storage_root(storage_root, skill),
+            });
+            continue;
+        }
+
+        let cache_key = repo_cache_key(&skill.source.repo, &skill.source.r#ref);
+        remote_tasks
+            .entry(cache_key)
+            .and_modify(|task: &mut SkillRefreshTask| task.skill_ids.push(skill.id.clone()))
+            .or_insert_with(|| SkillRefreshTask {
+                skill_ids: vec![skill.id.clone()],
+                reference: skill.source.r#ref.clone(),
+                local_dir: resolve_skill_storage_root(storage_root, skill),
+            });
+    }
+
+    let mut tasks = remote_tasks
+        .into_values()
+        .chain(local_tasks)
+        .map(|mut task| {
+            task.skill_ids.sort();
+            task
         })
-        .collect()
+        .collect::<Vec<_>>();
+    tasks.sort_by(|left, right| left.skill_ids.cmp(&right.skill_ids));
+    tasks
 }
 
 async fn refresh_mode_a_skills(
@@ -487,7 +517,7 @@ async fn refresh_mode_a_skills(
     let mut results = Vec::new();
     for outcome in outcomes {
         match outcome.result {
-            Ok(result) | Err(result) => results.push(result),
+            Ok(grouped_results) | Err(grouped_results) => results.extend(grouped_results),
         }
     }
     results.sort_by(|left, right| left.id.cmp(&right.id));
@@ -497,42 +527,45 @@ async fn refresh_mode_a_skills(
 async fn refresh_mode_a_task(
     task: SkillRefreshTask,
     reactor: SkillReactor,
-) -> Result<SkillRefreshResult, SkillRefreshResult> {
-    let failed_id = task.id.clone();
-    let task_label = format!("refresh source `{}`", task.id);
+) -> Result<Vec<SkillRefreshResult>, Vec<SkillRefreshResult>> {
+    let failed_skill_ids = task.skill_ids.clone();
+    let task_label = format!(
+        "refresh source `{}`",
+        describe_refresh_task(&task.skill_ids)
+    );
     match reactor
         .run_blocking(&task_label, move || refresh_mode_a_task_blocking(task))
         .await
     {
-        Ok(Ok(result)) => Ok(result),
-        Ok(Err(result)) => Err(result),
-        Err(err) => Err(SkillRefreshResult {
-            id: failed_id,
-            status: SkillRefreshStatus::Failed,
-            local_sha: None,
-            remote_sha: None,
-            detail: Some(err.to_string()),
-            applied: false,
-        }),
+        Ok(Ok(results)) => Ok(results),
+        Ok(Err(results)) => Err(results),
+        Err(err) => Err(build_skill_refresh_results(
+            failed_skill_ids,
+            SkillRefreshStatus::Failed,
+            None,
+            None,
+            Some(err.to_string()),
+        )),
     }
 }
 
 fn refresh_mode_a_task_blocking(
     task: SkillRefreshTask,
-) -> Result<Result<SkillRefreshResult, SkillRefreshResult>, EdenError> {
+) -> Result<Result<Vec<SkillRefreshResult>, Vec<SkillRefreshResult>>, EdenError> {
     let git_dir = task.local_dir.join(".git");
     if !git_dir.exists() {
-        return Ok(Ok(SkillRefreshResult {
-            id: task.id,
-            status: SkillRefreshStatus::Missing,
-            local_sha: None,
-            remote_sha: None,
-            detail: None,
-            applied: false,
-        }));
+        return Ok(Ok(build_skill_refresh_results(
+            task.skill_ids,
+            SkillRefreshStatus::Missing,
+            None,
+            None,
+            None,
+        )));
     }
 
+    cleanup_stale_git_locks(&task.local_dir);
     let local_sha = read_head_sha(&task.local_dir);
+    record_test_git_fetch_if_configured();
     let fetch_result = run_git_command(
         Command::new("git")
             .arg("-C")
@@ -542,28 +575,26 @@ fn refresh_mode_a_task_blocking(
             .arg("1")
             .arg("origin")
             .arg(&task.reference),
-        &format!("fetch source `{}`", task.id),
+        &format!("fetch source `{}`", describe_refresh_task(&task.skill_ids)),
     );
     if let Err(detail) = fetch_result {
-        return Ok(Err(SkillRefreshResult {
-            id: task.id,
-            status: SkillRefreshStatus::Failed,
+        return Ok(Err(build_skill_refresh_results(
+            task.skill_ids,
+            SkillRefreshStatus::Failed,
             local_sha,
-            remote_sha: None,
-            detail: Some(detail),
-            applied: false,
-        }));
+            None,
+            Some(detail),
+        )));
     }
 
     let Some(remote_sha) = read_fetch_head_sha(&task.local_dir) else {
-        return Ok(Err(SkillRefreshResult {
-            id: task.id,
-            status: SkillRefreshStatus::Failed,
+        return Ok(Err(build_skill_refresh_results(
+            task.skill_ids,
+            SkillRefreshStatus::Failed,
             local_sha,
-            remote_sha: None,
-            detail: Some("failed to read FETCH_HEAD after fetch".to_string()),
-            applied: false,
-        }));
+            None,
+            Some("failed to read FETCH_HEAD after fetch".to_string()),
+        )));
     };
     let status = if local_sha.as_deref() == Some(remote_sha.as_str()) {
         SkillRefreshStatus::UpToDate
@@ -571,14 +602,13 @@ fn refresh_mode_a_task_blocking(
         SkillRefreshStatus::NewCommit
     };
 
-    Ok(Ok(SkillRefreshResult {
-        id: task.id,
+    Ok(Ok(build_skill_refresh_results(
+        task.skill_ids,
         status,
         local_sha,
-        remote_sha: Some(remote_sha),
-        detail: None,
-        applied: false,
-    }))
+        Some(remote_sha),
+        None,
+    )))
 }
 
 fn read_fetch_head_sha(repo_dir: &Path) -> Option<String> {
@@ -597,6 +627,88 @@ fn read_fetch_head_sha(repo_dir: &Path) -> Option<String> {
     } else {
         Some(sha.to_string())
     }
+}
+
+fn describe_refresh_task(skill_ids: &[String]) -> String {
+    match skill_ids {
+        [] => "unknown".to_string(),
+        [skill_id] => skill_id.clone(),
+        [first, rest @ ..] => format!("{first} (+{} more)", rest.len()),
+    }
+}
+
+fn build_skill_refresh_results(
+    skill_ids: Vec<String>,
+    status: SkillRefreshStatus,
+    local_sha: Option<String>,
+    remote_sha: Option<String>,
+    detail: Option<String>,
+) -> Vec<SkillRefreshResult> {
+    skill_ids
+        .into_iter()
+        .map(|id| SkillRefreshResult {
+            id,
+            status,
+            local_sha: local_sha.clone(),
+            remote_sha: remote_sha.clone(),
+            detail: detail.clone(),
+            applied: false,
+        })
+        .collect()
+}
+
+fn cleanup_stale_git_locks(repo_dir: &Path) {
+    let git_dir = repo_dir.join(".git");
+    let ui = UiContext::from_env(false);
+    for file_name in ["shallow.lock", "index.lock"] {
+        let lock_path = git_dir.join(file_name);
+        let Ok(metadata) = fs::metadata(&lock_path) else {
+            continue;
+        };
+        let Ok(modified) = metadata.modified() else {
+            continue;
+        };
+        let Ok(age) = SystemTime::now().duration_since(modified) else {
+            continue;
+        };
+        if age.as_secs() <= 60 {
+            continue;
+        }
+        match fs::remove_file(&lock_path) {
+            Ok(()) => print_warning(
+                &ui,
+                &format!(
+                    "removed stale git lock `{}` before refresh",
+                    lock_path.display()
+                ),
+            ),
+            Err(err) => print_warning(
+                &ui,
+                &format!(
+                    "failed to remove stale git lock `{}` before refresh: {err}",
+                    lock_path.display()
+                ),
+            ),
+        }
+    }
+}
+
+fn record_test_git_fetch_if_configured() {
+    record_test_git_event_if_configured("EDEN_SKILLS_TEST_GIT_FETCH_LOG", b"fetch\n");
+}
+
+fn record_test_git_event_if_configured(env_var: &str, line: &[u8]) {
+    let Some(log_path) = std::env::var_os(env_var) else {
+        return;
+    };
+    let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(log_path)
+    else {
+        return;
+    };
+    let _ = std::io::Write::write_all(&mut file, line);
 }
 
 async fn apply_refreshed_skills(

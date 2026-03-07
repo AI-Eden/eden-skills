@@ -30,7 +30,7 @@ batches:
     name: "Update Concurrency Fix"
     work_packages: [WP-1]
     requirements: [UFX-001, UFX-002, UFX-003]
-    status: pending
+    status: completed
   batch2:
     name: "Table Content Styling + Help Colorization + List Table + Hint Sync"
     work_packages: [WP-2, WP-6]
@@ -57,4 +57,20 @@ batches:
     requirements: [DOC-001, DOC-002]
     status: pending
 
-builder_progress: {}
+builder_progress:
+  batch_1_update_concurrency_fix:
+    status: completed
+    started_at: "2026-03-07"
+    completed_at: "2026-03-07"
+    requirements: UFX-001, UFX-002, UFX-003
+    scenarios: TM-P297-001, TM-P297-002, TM-P297-003, TM-P297-004, TM-P297-005, TM-P297-006
+    notes:
+      - grouped Mode A refresh work in `crates/eden-skills-cli/src/commands/update.rs` by `repo_cache_key()` for remote sources while preserving per-skill refresh tasks for local-source copies
+      - broadcast shared fetch outcomes back into per-skill `SkillRefreshResult` rows so human and JSON output still report one refresh entry per configured skill
+      - added stale `.git/index.lock` and `.git/shallow.lock` cleanup before fetch with warning output, preventing interrupted shallow-fetch state from causing false refresh failures
+      - added `crates/eden-skills-cli/tests/update_fix_tests.rs` covering shared-repo deduplication, status broadcasting, stale lock cleanup, local-source non-grouping, and JSON row preservation
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 399

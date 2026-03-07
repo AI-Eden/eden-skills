@@ -9,9 +9,9 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| UFX-001 | `SPEC_UPDATE_FIX.md` 2.1 | Deduplicate refresh tasks by repo_cache_key | — | TM-P297-001, TM-P297-005 | pending |
-| UFX-002 | `SPEC_UPDATE_FIX.md` 2.2 | Broadcast refresh status to all grouped skills | — | TM-P297-002, TM-P297-006 | pending |
-| UFX-003 | `SPEC_UPDATE_FIX.md` 2.3 | Clean stale .git lock files before fetch | — | TM-P297-003, TM-P297-004 | pending |
+| UFX-001 | `SPEC_UPDATE_FIX.md` 2.1 | Deduplicate refresh tasks by repo_cache_key | `crates/eden-skills-cli/src/commands/update.rs`, `crates/eden-skills-cli/tests/update_fix_tests.rs` | TM-P297-001, TM-P297-005 | completed |
+| UFX-002 | `SPEC_UPDATE_FIX.md` 2.2 | Broadcast refresh status to all grouped skills | `crates/eden-skills-cli/src/commands/update.rs`, `crates/eden-skills-cli/tests/update_fix_tests.rs` | TM-P297-002, TM-P297-006 | completed |
+| UFX-003 | `SPEC_UPDATE_FIX.md` 2.3 | Clean stale .git lock files before fetch | `crates/eden-skills-cli/src/commands/update.rs`, `crates/eden-skills-cli/tests/update_fix_tests.rs` | TM-P297-003, TM-P297-004 | completed |
 
 ## 2. Table Style Requirements
 
