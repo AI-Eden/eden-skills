@@ -125,7 +125,7 @@ fn render_unknown_argument_error(err: &ClapError) -> String {
     let mut output = render_parse_error_header(
         format!(
             "unexpected argument {} found",
-            style_quoted_cli_fragment(&invalid, colors_enabled)
+            style_unknown_argument_token(&invalid, colors_enabled)
         ),
         colors_enabled,
     );
@@ -417,6 +417,14 @@ fn style_quoted_cli_fragment(fragment: &str, colors_enabled: bool) -> String {
         style_cli_fragment(fragment, colors_enabled),
         "'".cyan()
     )
+}
+
+fn style_unknown_argument_token(token: &str, colors_enabled: bool) -> String {
+    if !colors_enabled {
+        return format!("'{token}'");
+    }
+
+    format!("'{}'", token.yellow())
 }
 
 fn style_cli_fragment(raw: &str, colors_enabled: bool) -> String {

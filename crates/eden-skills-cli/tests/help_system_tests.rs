@@ -114,9 +114,9 @@ fn unknown_argument_error_uses_custom_colorized_parse_renderer() {
         "usage heading should be bold green, stderr={stderr}"
     );
     assert!(
-        stderr.contains("\u{1b}[36m'--jso'\u{1b}[39m")
+        stderr.contains("'\u{1b}[33m--jso\u{1b}[39m'")
             && stderr.contains("\u{1b}[36m'--json'\u{1b}[39m"),
-        "unknown and suggested arguments should be unbold cyan, stderr={stderr}"
+        "unknown argument should use cargo-style yellow inner token with plain quotes, while suggestion stays cyan, stderr={stderr}"
     );
 }
 

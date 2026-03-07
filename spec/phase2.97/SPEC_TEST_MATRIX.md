@@ -34,7 +34,7 @@ Phase 2.97 acceptance test scenarios.
 | TM-P297-059 | `list` Agents column truncates at 5 with `+N more` in yellow | TST-008 | auto | pending |
 | TM-P297-060 | Root `--help` footer colorizes `Examples:` / `Documentation:` headings, tokenized example commands, and docs URL | TST-009 | auto | completed |
 | TM-P297-061 | Invalid subcommand parse error uses bold magenta `tip:`, bold green `Usage:`, and cyan quoted tokens | TST-010 | auto | completed |
-| TM-P297-062 | Unknown argument parse error uses semantic token colors for invalid/suggested flags and usage syntax | TST-010 | auto | completed |
+| TM-P297-062 | Unknown argument parse error uses cargo-style yellow invalid token with plain quotes, plus semantic colors for suggestions and usage syntax | TST-010 | auto | completed |
 | TM-P297-063 | Invalid value parse error styles invalid/suggested values, possible-value list, and argument syntax tokens | TST-010 | auto | completed |
 | TM-P297-064 | Missing required argument parse error styles required syntax tokens and emitted usage syntax | TST-010 | auto | completed |
 

@@ -159,7 +159,8 @@ The semantic palette MUST be:
 | :--- | :--- |
 | `error:` prefix | **bold red** |
 | `tip:` label | **bold magenta** |
-| Quoted invalid / suggested tokens (`'li'`, `'--json'`, `'always'`, `'--help'`) | cyan (unbold) |
+| Quoted suggested tokens and most quoted parse-error tokens (`'li'`, `'--json'`, `'always'`, `'--help'`) | cyan (unbold) |
+| Invalid token inside `unexpected argument 'xx'` headline | yellow (unbold), with surrounding `'` kept plain-text |
 | Usage heading (`Usage:`) when present | **bold green** |
 | Usage literals / flag names / subcommands | cyan (unbold) |
 | Usage metavars / placeholders (`<COLOR>`, `[OPTIONS]`) | magenta (unbold) |
@@ -172,6 +173,15 @@ families when colors are enabled:
 - unknown argument
 - invalid enum/value input
 - missing required argument
+
+For `UnknownArgument`, the invalid token in the headline MUST follow the
+cargo-style emphasis pattern:
+
+```text
+unexpected argument 'xx' found
+                    ^^^^ yellow
+              quotes stay plain
+```
 
 When clap does not provide a usage line for a specific parse error
 (for example an invalid value for `--color`), the renderer MAY omit the
