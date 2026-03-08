@@ -235,7 +235,8 @@ impl UiContext {
         let human_tty = self.stdout_is_tty && !self.ci;
         if human_tty {
             table.load_preset(presets::UTF8_FULL_CONDENSED);
-            table.set_content_arrangement(ContentArrangement::Disabled);
+            // use dynamic arrangement to avoid breaking the table when the terminal width changes
+            table.set_content_arrangement(ContentArrangement::Dynamic);
         } else {
             table.load_preset(presets::ASCII_FULL_CONDENSED);
             table.set_width(80);
