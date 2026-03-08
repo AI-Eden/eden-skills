@@ -15,6 +15,7 @@ use eden_skills_core::error::EdenError;
 use eden_skills_core::lock::{
     compute_lock_diff, lock_path_for_config, read_lock_file, LockSkillEntry, SkillDiffStatus,
 };
+use eden_skills_core::managed::{external_install_origin, ManagedSource};
 use eden_skills_core::paths::{known_default_agent_paths, resolve_path_string};
 use eden_skills_core::plan::{build_plan, Action};
 use eden_skills_core::reactor::SkillReactor;
@@ -37,6 +38,7 @@ use super::common::{
 
 use super::CommandOptions;
 use crate::ui::{StatusSymbol, UiContext};
+use eden_skills_core::adapter::{read_managed_manifest, write_managed_manifest};
 
 #[derive(Debug)]
 struct AppliedInstallTargetLine {
@@ -51,7 +53,7 @@ struct AppliedInstallTargetLine {
 ///
 /// Returns [`EdenError`] if any phase of the apply lifecycle fails.
 pub fn apply(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
-    block_on_command_future(apply_async(config_path, options, None))
+    block_on_command_future(apply_async(config_path, options, None, false))
 }
 
 /// Reconcile installed state with the declared configuration.
@@ -68,6 +70,7 @@ pub async fn apply_async(
     config_path: &str,
     options: CommandOptions,
     concurrency_override: Option<usize>,
+    force: bool,
 ) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
@@ -122,6 +125,8 @@ pub async fn apply_async(
     let removed_count = removed_skill_ids.len();
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
+    let ownership_blocked_skill_ids =
+        collect_docker_takeover_skips(&execution_config, &config_dir, options.json, force).await?;
     let plan = build_plan(&execution_config, &config_dir)?;
     let mut applied_targets: Vec<AppliedInstallTargetLine> = Vec::new();
     let mut skipped_skill_ids: Vec<String> = Vec::new();
@@ -134,7 +139,9 @@ pub async fn apply_async(
     for item in &plan {
         match item.action {
             Action::Create => {
-                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                if no_exec_skill_ids.contains(item.skill_id.as_str())
+                    || ownership_blocked_skill_ids.contains(item.skill_id.as_str())
+                {
                     push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
@@ -147,7 +154,9 @@ pub async fn apply_async(
                 });
             }
             Action::Update => {
-                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                if no_exec_skill_ids.contains(item.skill_id.as_str())
+                    || ownership_blocked_skill_ids.contains(item.skill_id.as_str())
+                {
                     push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
@@ -163,7 +172,9 @@ pub async fn apply_async(
                 noops += 1;
             }
             Action::Conflict => {
-                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                if no_exec_skill_ids.contains(item.skill_id.as_str())
+                    || ownership_blocked_skill_ids.contains(item.skill_id.as_str())
+                {
                     push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
@@ -171,6 +182,9 @@ pub async fn apply_async(
             }
             Action::Remove => {}
         }
+    }
+    if force {
+        reclaim_docker_ownership(&execution_config, &config_dir).await?;
     }
     print_install_result_lines(&ui, &applied_targets, &skipped_skill_ids);
 
@@ -223,7 +237,7 @@ pub async fn apply_async(
 ///
 /// Returns [`EdenError`] if any phase of the repair lifecycle fails.
 pub fn repair(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
-    block_on_command_future(repair_async(config_path, options, None))
+    block_on_command_future(repair_async(config_path, options, None, false))
 }
 
 /// Force-reinstall every target to converge from any starting state.
@@ -239,6 +253,7 @@ pub async fn repair_async(
     config_path: &str,
     options: CommandOptions,
     concurrency_override: Option<usize>,
+    force: bool,
 ) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
@@ -270,6 +285,8 @@ pub async fn repair_async(
     }
 
     let no_exec_skill_ids = no_exec_skill_ids(&safety_reports);
+    let ownership_blocked_skill_ids =
+        collect_docker_takeover_skips(&execution_config, &config_dir, options.json, force).await?;
     let plan = build_plan(&execution_config, &config_dir)?;
     let mut applied_targets: Vec<AppliedInstallTargetLine> = Vec::new();
     let mut skipped_skill_ids: Vec<String> = Vec::new();
@@ -282,7 +299,9 @@ pub async fn repair_async(
     for item in &plan {
         match item.action {
             Action::Create => {
-                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                if no_exec_skill_ids.contains(item.skill_id.as_str())
+                    || ownership_blocked_skill_ids.contains(item.skill_id.as_str())
+                {
                     push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
@@ -295,7 +314,9 @@ pub async fn repair_async(
                 });
             }
             Action::Update => {
-                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                if no_exec_skill_ids.contains(item.skill_id.as_str())
+                    || ownership_blocked_skill_ids.contains(item.skill_id.as_str())
+                {
                     push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
@@ -308,7 +329,9 @@ pub async fn repair_async(
                 });
             }
             Action::Conflict => {
-                if no_exec_skill_ids.contains(item.skill_id.as_str()) {
+                if no_exec_skill_ids.contains(item.skill_id.as_str())
+                    || ownership_blocked_skill_ids.contains(item.skill_id.as_str())
+                {
                     push_skipped_skill(&mut skipped_skill_ids, &item.skill_id);
                     continue;
                 }
@@ -319,6 +342,9 @@ pub async fn repair_async(
             }
             Action::Remove => {}
         }
+    }
+    if force {
+        reclaim_docker_ownership(&execution_config, &config_dir).await?;
     }
     print_install_result_lines(&ui, &applied_targets, &skipped_skill_ids);
 
@@ -460,6 +486,95 @@ fn push_skipped_skill(skipped_skill_ids: &mut Vec<String>, skill_id: &str) {
     {
         skipped_skill_ids.push(skill_id.to_string());
     }
+}
+
+async fn collect_docker_takeover_skips(
+    config: &Config,
+    config_dir: &Path,
+    json_mode: bool,
+    force: bool,
+) -> Result<HashSet<String>, EdenError> {
+    let ui = UiContext::from_env(json_mode);
+    let mut skipped = HashSet::new();
+    if force {
+        return Ok(skipped);
+    }
+
+    for skill in &config.skills {
+        for target in &skill.targets {
+            if !target.environment.starts_with("docker:") {
+                continue;
+            }
+            let target_root = resolve_path_string(
+                target
+                    .path
+                    .as_deref()
+                    .or(target.expected_path.as_deref())
+                    .unwrap_or(""),
+                config_dir,
+            )
+            .or_else(|_| resolve_path_string("~/.claude/skills", config_dir))?;
+            let read_result = read_managed_manifest(&target.environment, &target_root)
+                .await
+                .map_err(EdenError::from)?;
+            if let Some(warning) = read_result.warning {
+                print_warning(&ui, &warning);
+            }
+            if read_result
+                .manifest
+                .skill(&skill.id)
+                .is_some_and(|record| record.source == ManagedSource::Local)
+            {
+                print_warning(
+                    &ui,
+                    &format!(
+                        "Skill '{}' was taken over by local management in container. ~> Run 'eden-skills apply --force' to reclaim, or 'eden-skills remove {}' to accept.",
+                        skill.id, skill.id
+                    ),
+                );
+                skipped.insert(skill.id.clone());
+            }
+        }
+    }
+    Ok(skipped)
+}
+
+async fn reclaim_docker_ownership(config: &Config, config_dir: &Path) -> Result<(), EdenError> {
+    for skill in &config.skills {
+        for target in &skill.targets {
+            if !target.environment.starts_with("docker:") {
+                continue;
+            }
+            let Ok(target_root) = resolve_path_string(
+                target
+                    .path
+                    .as_deref()
+                    .or(target.expected_path.as_deref())
+                    .unwrap_or(""),
+                config_dir,
+            ) else {
+                continue;
+            };
+            let read_result = read_managed_manifest(&target.environment, &target_root)
+                .await
+                .map_err(EdenError::from)?;
+            let mut manifest = read_result.manifest;
+            if manifest
+                .skill(&skill.id)
+                .is_some_and(|record| record.source == ManagedSource::Local)
+            {
+                manifest.record_install(
+                    &skill.id,
+                    ManagedSource::External,
+                    external_install_origin(),
+                );
+                write_managed_manifest(&target.environment, &target_root, &manifest)
+                    .await
+                    .map_err(EdenError::from)?;
+            }
+        }
+    }
+    Ok(())
 }
 
 fn print_install_result_lines(

@@ -82,9 +82,14 @@ checks = ["path-exists", "target-resolves", "is-symlink"]
     fs::write(&config_path, &config_content).unwrap();
 
     // First apply: install both skills.
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     let lock_path = lock_path_for_config(&config_path);
     let lock_before = read_lock_file(&lock_path).unwrap().unwrap();
@@ -120,9 +125,14 @@ checks = ["path-exists", "target-resolves", "is-symlink"]
     fs::write(&config_path, config_a_only).unwrap();
 
     // Second apply: should remove skill-b (orphan).
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     let lock_after = read_lock_file(&lock_path).unwrap().unwrap();
     assert_eq!(lock_after.skills.len(), 1, "lock should have 1 skill");
@@ -254,9 +264,14 @@ async fn lock_records_resolved_commit_after_apply() {
         &target,
     );
 
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     let lock_path = lock_path_for_config(&config_path);
     let lock = read_lock_file(&lock_path).unwrap().unwrap();
@@ -296,15 +311,21 @@ async fn apply_noop_with_unchanged_config() {
     );
 
     // First apply
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     // Second apply with identical config — should succeed with noop
     let result = eden_skills_cli::commands::apply_async(
         config_path.to_str().unwrap(),
         default_options(),
         None,
+        false,
     )
     .await;
     assert!(
@@ -358,9 +379,14 @@ checks = ["path-exists", "target-resolves", "is-symlink"]
     fs::write(&config_path, &config_content).unwrap();
 
     // Apply to install the skill
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     // Remove skill from config
     let empty_config = format!(
@@ -381,6 +407,7 @@ root = "{}"
             json: false,
         },
         None,
+        false,
     )
     .await;
 
@@ -444,9 +471,14 @@ checks = ["path-exists", "target-resolves", "is-symlink"]
     let config_path = dir.path().join("skills.toml");
     fs::write(&config_path, config_content).unwrap();
 
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     let orphan_skill_id = "docker-orphan";
     let orphan_storage_dir = storage.join(orphan_skill_id);
@@ -511,6 +543,7 @@ exit 1
         config_path.to_str().unwrap(),
         default_options(),
         None,
+        false,
     )
     .await;
 

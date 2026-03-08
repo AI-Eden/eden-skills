@@ -50,7 +50,7 @@ batches:
     name: "Docker Management Domain"
     work_packages: [WP-5]
     requirements: [DMG-001, DMG-002, DMG-003, DMG-004, DMG-005, DMG-006, DMG-007, DMG-008]
-    status: pending
+    status: completed
   batch6:
     name: "Documentation + Regression + Closeout"
     work_packages: [WP-7]
@@ -135,3 +135,23 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 430
+  batch_5_docker_management_domain:
+    status: completed
+    started_at: "2026-03-08"
+    completed_at: "2026-03-08"
+    requirements: DMG-001, DMG-002, DMG-003, DMG-004, DMG-005, DMG-006, DMG-007, DMG-008
+    scenarios: TM-P297-037, TM-P297-038, TM-P297-039, TM-P297-040, TM-P297-041, TM-P297-042, TM-P297-043, TM-P297-044, TM-P297-045, TM-P297-046
+    notes:
+      - added `crates/eden-skills-core/src/managed.rs` plus `pub mod managed` in `crates/eden-skills-core/src/lib.rs` to define the `.eden-managed` manifest schema, source/origin metadata, and JSON serialization helpers
+      - extended `crates/eden-skills-core/src/adapter.rs` with local and Docker manifest read/write helpers, including bind-mount direct I/O, docker exec reads, docker cp writes, and tolerant handling for missing or invalid manifest files
+      - updated `crates/eden-skills-cli/src/commands/install.rs` to write manifest entries after install, mark Docker installs as `external`, mark local installs as `local`, and adopt existing externally-managed local targets without overwriting files unless `--force` is used
+      - updated `crates/eden-skills-cli/src/commands/remove.rs` and `crates/eden-skills-cli/src/lib.rs` to add `remove --force`, default external-skill removals to config-only, and delete manifest entries only when file removal actually occurs
+      - updated `crates/eden-skills-cli/src/commands/reconcile.rs` and `crates/eden-skills-cli/src/lib.rs` to add `apply --force` / `repair --force`, skip locally-taken-over docker skills by default, and reclaim ownership by rewriting manifests back to `external` when forced
+      - extended `crates/eden-skills-cli/src/commands/diagnose.rs` with `DOCKER_OWNERSHIP_CHANGED` and `DOCKER_EXTERNALLY_REMOVED` findings derived from docker-target manifest state
+      - added `crates/eden-skills-cli/tests/docker_managed_tests.rs` covering install manifest creation, remove/install guards, doctor findings, missing/corrupted manifest tolerance, and `apply --force` ownership reclaim
+      - refreshed existing lock lifecycle and lock diff tests for the new `force` parameters on apply/repair/install command helpers
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 440

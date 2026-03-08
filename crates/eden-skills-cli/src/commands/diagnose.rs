@@ -12,6 +12,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use comfy_table::{ColumnConstraint, Width};
 use eden_skills_core::config::{config_dir_from_path, Config};
 use eden_skills_core::error::EdenError;
+use eden_skills_core::managed::{ManagedManifest, ManagedSource, MANAGED_MANIFEST_FILE};
 use eden_skills_core::paths::{default_agent_path, normalize_lexical, resolve_path_string};
 use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::registry::{parse_registry_specs_from_toml, sort_registry_specs_by_priority};
@@ -125,6 +126,7 @@ fn collect_phase2_doctor_findings(
         config_dir,
     )?);
     findings.extend(collect_orphan_cache_findings(config, config_dir)?);
+    findings.extend(collect_docker_managed_findings(config, config_dir));
     findings.extend(collect_adapter_health_findings(config, config_dir));
     Ok(findings)
 }
@@ -364,6 +366,68 @@ fn collect_adapter_health_findings(config: &Config, config_dir: &Path) -> Vec<Do
     findings
 }
 
+fn collect_docker_managed_findings(config: &Config, config_dir: &Path) -> Vec<DoctorFinding> {
+    let mut findings = Vec::new();
+    let docker_bin = doctor_docker_bin();
+    for skill in &config.skills {
+        for target in &skill.targets {
+            let Some(container_name) = target.environment.strip_prefix("docker:") else {
+                continue;
+            };
+            let Some(target_root) =
+                docker_target_root_for_doctor(target, container_name, &docker_bin, config_dir)
+            else {
+                continue;
+            };
+            let installed_target = normalize_lexical(&target_root.join(&skill.id));
+            let target_present =
+                doctor_docker_target_exists(&docker_bin, container_name, &installed_target)
+                    .unwrap_or(false);
+            let managed_manifest =
+                doctor_read_docker_managed_manifest(&docker_bin, container_name, &target_root).ok();
+            let ownership_record = managed_manifest
+                .as_ref()
+                .and_then(|manifest| manifest.skill(&skill.id));
+
+            if ownership_record.is_some_and(|record| record.source == ManagedSource::Local) {
+                findings.push(DoctorFinding {
+                    code: "DOCKER_OWNERSHIP_CHANGED".to_string(),
+                    severity: "warning".to_string(),
+                    skill_id: skill.id.clone(),
+                    target_path: target.environment.clone(),
+                    message: format!(
+                        "Skill '{}' in container '{}' was taken over by local management.",
+                        skill.id, container_name
+                    ),
+                    remediation: format!(
+                        "Run `eden-skills apply --force` to reclaim, or `eden-skills remove {}` to accept.",
+                        skill.id
+                    ),
+                });
+                continue;
+            }
+
+            if !target_present && ownership_record.is_none() {
+                findings.push(DoctorFinding {
+                    code: "DOCKER_EXTERNALLY_REMOVED".to_string(),
+                    severity: "warning".to_string(),
+                    skill_id: skill.id.clone(),
+                    target_path: target.environment.clone(),
+                    message: format!(
+                        "Skill '{}' was removed from container '{}'.",
+                        skill.id, container_name
+                    ),
+                    remediation: format!(
+                        "Run `eden-skills apply` to re-install, or `eden-skills remove {}` to accept.",
+                        skill.id
+                    ),
+                });
+            }
+        }
+    }
+    findings
+}
+
 fn docker_target_root_for_doctor(
     target: &eden_skills_core::config::TargetConfig,
     container_name: &str,
@@ -441,6 +505,102 @@ fn docker_mounted_host_path_for_target(
         return Ok(Some(normalize_lexical(&mount.source.join(suffix))));
     }
     Ok(None)
+}
+
+fn doctor_docker_target_exists(
+    docker_bin: &str,
+    container_name: &str,
+    target_path: &Path,
+) -> Result<bool, String> {
+    match docker_mounted_host_path_for_target(docker_bin, container_name, target_path, false) {
+        Ok(Some(host_path)) => Ok(host_path.exists()),
+        Ok(None) => {
+            let output = Command::new(docker_bin)
+                .args([
+                    "exec",
+                    container_name,
+                    "sh",
+                    "-c",
+                    &format!(
+                        "test -e \"{}\"",
+                        target_path
+                            .display()
+                            .to_string()
+                            .replace('\\', "\\\\")
+                            .replace('"', "\\\"")
+                    ),
+                ])
+                .output()
+                .map_err(|err| err.to_string())?;
+            if output.status.success() {
+                return Ok(true);
+            }
+            if output.status.code() == Some(1) {
+                return Ok(false);
+            }
+            Err(format!(
+                "status={} stderr=`{}` stdout=`{}`",
+                output.status,
+                String::from_utf8_lossy(&output.stderr).trim(),
+                String::from_utf8_lossy(&output.stdout).trim()
+            ))
+        }
+        Err(err) => Err(err),
+    }
+}
+
+fn doctor_read_docker_managed_manifest(
+    docker_bin: &str,
+    container_name: &str,
+    agent_dir: &Path,
+) -> Result<ManagedManifest, String> {
+    let manifest_path = normalize_lexical(&agent_dir.join(MANAGED_MANIFEST_FILE));
+    match docker_mounted_host_path_for_target(docker_bin, container_name, agent_dir, false) {
+        Ok(Some(host_agent_dir)) => {
+            read_doctor_manifest_from_host(&host_agent_dir.join(MANAGED_MANIFEST_FILE))
+        }
+        Ok(None) => {
+            let output = Command::new(docker_bin)
+                .args([
+                    "exec",
+                    container_name,
+                    "sh",
+                    "-c",
+                    &format!(
+                        "cat \"{}\"",
+                        manifest_path
+                            .display()
+                            .to_string()
+                            .replace('\\', "\\\\")
+                            .replace('"', "\\\"")
+                    ),
+                ])
+                .output()
+                .map_err(|err| err.to_string())?;
+            if output.status.success() {
+                return ManagedManifest::parse(&String::from_utf8_lossy(&output.stdout))
+                    .map_err(|err| err.to_string());
+            }
+            if output.status.code() == Some(1) {
+                return Ok(ManagedManifest::default());
+            }
+            Err(format!(
+                "status={} stderr=`{}` stdout=`{}`",
+                output.status,
+                String::from_utf8_lossy(&output.stderr).trim(),
+                String::from_utf8_lossy(&output.stdout).trim()
+            ))
+        }
+        Err(err) => Err(err),
+    }
+}
+
+fn read_doctor_manifest_from_host(path: &Path) -> Result<ManagedManifest, String> {
+    match fs::read_to_string(path) {
+        Ok(raw) => ManagedManifest::parse(&raw).map_err(|err| err.to_string()),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(ManagedManifest::default()),
+        Err(err) => Err(err.to_string()),
+    }
 }
 
 fn plan_conflict_to_findings(item: &PlanItem) -> Vec<DoctorFinding> {

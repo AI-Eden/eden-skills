@@ -12,9 +12,10 @@ use crate::ui::{
     prompt_skill_multi_select, SkillSelectItem, SkillSelectOutcome, StatusSymbol, UiContext,
 };
 use dialoguer::Confirm;
-use eden_skills_core::adapter::create_adapter;
+use eden_skills_core::adapter::{create_adapter, read_managed_manifest, write_managed_manifest};
 use eden_skills_core::config::{config_dir_from_path, validate_config, Config, SkillConfig};
 use eden_skills_core::error::EdenError;
+use eden_skills_core::managed::ManagedSource;
 use eden_skills_core::paths::{
     known_default_agent_paths, normalize_lexical, resolve_path_string, resolve_target_path,
 };
@@ -39,6 +40,7 @@ pub fn remove(config_path: &str, skill_id: &str, options: CommandOptions) -> Res
         &skill_ids,
         true,
         false,
+        false,
         options,
     ))
 }
@@ -54,7 +56,7 @@ pub async fn remove_async(
     options: CommandOptions,
 ) -> Result<(), EdenError> {
     let skill_ids = vec![skill_id.to_string()];
-    remove_many_async(config_path, &skill_ids, true, false, options).await
+    remove_many_async(config_path, &skill_ids, true, false, false, options).await
 }
 
 /// Remove one or more skills by ID with optional interactive confirmation.
@@ -72,6 +74,7 @@ pub async fn remove_many_async(
     config_path: &str,
     skill_ids: &[String],
     skip_confirmation: bool,
+    force: bool,
     auto_clean: bool,
     options: CommandOptions,
 ) -> Result<(), EdenError> {
@@ -131,7 +134,14 @@ pub async fn remove_many_async(
                 .iter()
                 .map(|target| target.environment.as_str()),
         )?;
-        uninstall_skill_targets(&removed_skill, &config_dir, &config.storage_root).await?;
+        uninstall_skill_targets(
+            &removed_skill,
+            &config_dir,
+            &config.storage_root,
+            force,
+            &ui,
+        )
+        .await?;
         config.skills.remove(idx);
         removed.push(skill_id.clone());
     }
@@ -407,19 +417,62 @@ async fn uninstall_skill_targets(
     skill: &SkillConfig,
     config_dir: &Path,
     storage_root: &str,
+    force: bool,
+    ui: &UiContext,
 ) -> Result<(), EdenError> {
+    let mut performed_file_removal = false;
     for target in &skill.targets {
         let target_root = resolve_target_path(target, config_dir)?;
         let installed_target = normalize_lexical(&target_root.join(&skill.id));
+        let read_result = read_managed_manifest(&target.environment, &target_root)
+            .await
+            .map_err(EdenError::from)?;
+        if let Some(warning) = read_result.warning {
+            print_warning(ui, &warning);
+        }
+        let mut manifest = read_result.manifest;
+        if manifest
+            .skill(&skill.id)
+            .is_some_and(|record| record.source == ManagedSource::External)
+            && !force
+        {
+            print_warning(
+                ui,
+                &format!(
+                    "Skill '{}' is managed by external host ({}); removing from config only. Use --force to also remove files.",
+                    skill.id,
+                    managed_origin_label(
+                        manifest
+                            .skill(&skill.id)
+                            .map(|record| record.origin.as_str())
+                            .unwrap_or("unknown")
+                    )
+                ),
+            );
+            continue;
+        }
         let adapter = create_adapter(&target.environment).map_err(EdenError::from)?;
         adapter
             .uninstall(&installed_target)
             .await
             .map_err(EdenError::from)?;
+        if manifest.skill(&skill.id).is_some() {
+            manifest.remove_skill(&skill.id);
+            write_managed_manifest(&target.environment, &target_root, &manifest)
+                .await
+                .map_err(EdenError::from)?;
+        }
+        performed_file_removal = true;
     }
-    remove_from_known_local_agent_targets(&skill.id, config_dir)?;
+    if performed_file_removal {
+        remove_from_known_local_agent_targets(&skill.id, config_dir)?;
+    }
     remove_from_storage_root(skill, storage_root, config_dir)?;
     Ok(())
+}
+
+fn managed_origin_label(origin: &str) -> &str {
+    origin.strip_prefix("host:").unwrap_or(origin)
 }
 
 fn remove_from_known_local_agent_targets(

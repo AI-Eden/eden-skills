@@ -15,6 +15,7 @@ use tokio::process::Command;
 
 use crate::config::{AgentKind, InstallMode, TargetConfig};
 pub use crate::error::AdapterError;
+use crate::managed::{ManagedManifest, MANAGED_MANIFEST_FILE};
 use crate::paths::{default_agent_path, normalize_lexical};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -52,6 +53,41 @@ pub fn create_adapter(environment: &str) -> Result<Box<dyn TargetAdapter>, Adapt
         AdapterEnvironment::Local => Ok(Box::new(LocalAdapter::new())),
         AdapterEnvironment::Docker { container_name } => {
             Ok(Box::new(DockerAdapter::new(container_name)?))
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ManagedManifestReadResult {
+    pub manifest: ManagedManifest,
+    pub warning: Option<String>,
+}
+
+pub async fn read_managed_manifest(
+    environment: &str,
+    agent_dir: &Path,
+) -> Result<ManagedManifestReadResult, AdapterError> {
+    match parse_environment(environment)? {
+        AdapterEnvironment::Local => read_local_managed_manifest(agent_dir).await,
+        AdapterEnvironment::Docker { container_name } => {
+            DockerAdapter::new(container_name)?
+                .read_managed_manifest(agent_dir)
+                .await
+        }
+    }
+}
+
+pub async fn write_managed_manifest(
+    environment: &str,
+    agent_dir: &Path,
+    manifest: &ManagedManifest,
+) -> Result<(), AdapterError> {
+    match parse_environment(environment)? {
+        AdapterEnvironment::Local => write_local_managed_manifest(agent_dir, manifest).await,
+        AdapterEnvironment::Docker { container_name } => {
+            DockerAdapter::new(container_name)?
+                .write_managed_manifest(agent_dir, manifest)
+                .await
         }
     }
 }
@@ -236,6 +272,134 @@ impl DockerAdapter {
 
     pub fn container_name(&self) -> &str {
         &self.container_name
+    }
+
+    async fn read_managed_manifest(
+        &self,
+        agent_dir: &Path,
+    ) -> Result<ManagedManifestReadResult, AdapterError> {
+        self.health_check().await?;
+        if let Some(host_agent_dir) = self.bind_mount_for_path(agent_dir).await? {
+            return read_local_managed_manifest(&host_agent_dir).await;
+        }
+
+        let manifest_path = managed_manifest_path(agent_dir);
+        let command = format!(
+            "cat \"{}\"",
+            shell_escape_double_quoted(&manifest_path.display().to_string())
+        );
+        let output = self
+            .run_docker(
+                vec![
+                    OsString::from("exec"),
+                    OsString::from(self.container_name.clone()),
+                    OsString::from("sh"),
+                    OsString::from("-c"),
+                    OsString::from(command),
+                ],
+                "read .eden-managed manifest in container",
+            )
+            .await?;
+        if output.status.success() {
+            return parse_managed_manifest(
+                &manifest_path,
+                &String::from_utf8_lossy(&output.stdout),
+                "docker target",
+            );
+        }
+        if output.status.code() == Some(1) {
+            return Ok(ManagedManifestReadResult {
+                manifest: ManagedManifest::default(),
+                warning: None,
+            });
+        }
+
+        Err(AdapterError::Runtime {
+            detail: format!(
+                "docker exec failed while reading manifest `{}` in container `{}`: status={} stderr=`{}`",
+                manifest_path.display(),
+                self.container_name,
+                output.status,
+                String::from_utf8_lossy(&output.stderr).trim()
+            ),
+        })
+    }
+
+    async fn write_managed_manifest(
+        &self,
+        agent_dir: &Path,
+        manifest: &ManagedManifest,
+    ) -> Result<(), AdapterError> {
+        self.health_check().await?;
+        if let Some(host_agent_dir) = self.bind_mount_for_path(agent_dir).await? {
+            return write_local_managed_manifest(&host_agent_dir, manifest).await;
+        }
+
+        let manifest_path = managed_manifest_path(agent_dir);
+        let temp_path = managed_manifest_temp_path();
+        let encoded = manifest
+            .to_pretty_json()
+            .map_err(|err| AdapterError::Runtime {
+                detail: format!("failed to serialize managed manifest: {err}"),
+            })?;
+        tokio::fs::write(&temp_path, format!("{encoded}\n")).await?;
+
+        let mkdir_output = self
+            .run_docker(
+                vec![
+                    OsString::from("exec"),
+                    OsString::from(self.container_name.clone()),
+                    OsString::from("sh"),
+                    OsString::from("-c"),
+                    OsString::from(format!(
+                        "mkdir -p \"{}\"",
+                        shell_escape_double_quoted(&agent_dir.display().to_string())
+                    )),
+                ],
+                "ensure agent directory exists before writing manifest",
+            )
+            .await?;
+        if !mkdir_output.status.success() {
+            let _ = tokio::fs::remove_file(&temp_path).await;
+            return Err(AdapterError::Runtime {
+                detail: format!(
+                    "docker exec failed while preparing manifest directory `{}` in container `{}`: status={} stderr=`{}`",
+                    agent_dir.display(),
+                    self.container_name,
+                    mkdir_output.status,
+                    String::from_utf8_lossy(&mkdir_output.stderr).trim()
+                ),
+            });
+        }
+
+        let copy_output = self
+            .run_docker(
+                vec![
+                    OsString::from("cp"),
+                    temp_path.as_os_str().to_os_string(),
+                    OsString::from(format!(
+                        "{}:{}",
+                        self.container_name,
+                        manifest_path.display()
+                    )),
+                ],
+                "write .eden-managed manifest into container",
+            )
+            .await?;
+        let _ = tokio::fs::remove_file(&temp_path).await;
+        if copy_output.status.success() {
+            return Ok(());
+        }
+
+        Err(AdapterError::Runtime {
+            detail: format!(
+                "docker cp failed while writing manifest `{}` in container `{}`: status={} stderr=`{}`",
+                manifest_path.display(),
+                self.container_name,
+                copy_output.status,
+                String::from_utf8_lossy(&copy_output.stderr).trim()
+            ),
+        })
     }
 
     pub async fn container_home(&self) -> Result<PathBuf, AdapterError> {
@@ -818,6 +982,70 @@ fn copy_recursively_blocking(source: &Path, target: &Path) -> Result<(), Adapter
 
 fn shell_escape_double_quoted(value: &str) -> String {
     value.replace('\\', "\\\\").replace('\"', "\\\"")
+}
+
+fn managed_manifest_path(agent_dir: &Path) -> PathBuf {
+    normalize_lexical(&agent_dir.join(MANAGED_MANIFEST_FILE))
+}
+
+fn parse_managed_manifest(
+    manifest_path: &Path,
+    raw: &str,
+    location_label: &str,
+) -> Result<ManagedManifestReadResult, AdapterError> {
+    match ManagedManifest::parse(raw) {
+        Ok(manifest) => Ok(ManagedManifestReadResult {
+            manifest,
+            warning: None,
+        }),
+        Err(err) => Ok(ManagedManifestReadResult {
+            manifest: ManagedManifest::default(),
+            warning: Some(format!(
+                "Ignoring invalid `.eden-managed` manifest at `{}` for {location_label}: {err}",
+                manifest_path.display()
+            )),
+        }),
+    }
+}
+
+async fn read_local_managed_manifest(
+    agent_dir: &Path,
+) -> Result<ManagedManifestReadResult, AdapterError> {
+    let manifest_path = managed_manifest_path(agent_dir);
+    match tokio::fs::read_to_string(&manifest_path).await {
+        Ok(raw) => parse_managed_manifest(&manifest_path, &raw, "local target"),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => Ok(ManagedManifestReadResult {
+            manifest: ManagedManifest::default(),
+            warning: None,
+        }),
+        Err(err) => Err(AdapterError::Io(err)),
+    }
+}
+
+async fn write_local_managed_manifest(
+    agent_dir: &Path,
+    manifest: &ManagedManifest,
+) -> Result<(), AdapterError> {
+    tokio::fs::create_dir_all(agent_dir).await?;
+    let manifest_path = managed_manifest_path(agent_dir);
+    let encoded = manifest
+        .to_pretty_json()
+        .map_err(|err| AdapterError::Runtime {
+            detail: format!("failed to serialize managed manifest: {err}"),
+        })?;
+    tokio::fs::write(manifest_path, format!("{encoded}\n")).await?;
+    Ok(())
+}
+
+fn managed_manifest_temp_path() -> PathBuf {
+    let unique = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|duration| duration.as_nanos())
+        .unwrap_or(0);
+    std::env::temp_dir().join(format!(
+        "eden-skills-managed-{}-{unique}.json",
+        std::process::id()
+    ))
 }
 
 fn agent_relative_path(agent: &AgentKind) -> Option<&'static str> {

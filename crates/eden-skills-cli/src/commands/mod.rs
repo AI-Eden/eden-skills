@@ -59,6 +59,7 @@ pub struct InstallRequest {
     pub target: Vec<String>,
     pub dry_run: bool,
     pub copy: bool,
+    pub force: bool,
     pub options: CommandOptions,
 }
 

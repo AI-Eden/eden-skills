@@ -12,7 +12,9 @@ use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use comfy_table::{ColumnConstraint, Width};
-use eden_skills_core::adapter::{DockerAdapter, LocalAdapter, TargetAdapter};
+use eden_skills_core::adapter::{
+    read_managed_manifest, write_managed_manifest, DockerAdapter, LocalAdapter, TargetAdapter,
+};
 use eden_skills_core::agents::detect_installed_agent_targets;
 use eden_skills_core::config::{
     config_dir_from_path, default_verify_checks_for_mode, encode_registry_mode_repo,
@@ -21,6 +23,7 @@ use eden_skills_core::config::{
 use eden_skills_core::config::{AgentKind, Config, SkillConfig, TargetConfig};
 use eden_skills_core::discovery::{discover_skills, DiscoveredSkill};
 use eden_skills_core::error::EdenError;
+use eden_skills_core::managed::{external_install_origin, local_install_origin, ManagedSource};
 use eden_skills_core::paths::{normalize_lexical, resolve_path_string, resolve_target_path};
 use eden_skills_core::plan::{build_plan, Action};
 use eden_skills_core::source::{
@@ -309,8 +312,14 @@ async fn install_registry_mode_async(
         return Err(err);
     }
 
-    let execution_summary =
-        execute_install_plan_async(&single_skill_config, &config_dir, req.options.strict).await?;
+    let execution_summary = execute_install_plan_async(
+        &single_skill_config,
+        &config_dir,
+        req.options.strict,
+        req.force,
+        ui,
+    )
+    .await?;
 
     let full_loaded = load_config_with_context(config_path, false)?;
     write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
@@ -491,9 +500,14 @@ async fn install_remote_url_mode_async(
             sync_progress.start_step(skill_id);
             sync_progress.record_step(ui, index, skill_id, false);
             let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
-            let skill_summary =
-                execute_install_plan_async(&single_skill_config, &config_dir, req.options.strict)
-                    .await?;
+            let skill_summary = execute_install_plan_async(
+                &single_skill_config,
+                &config_dir,
+                req.options.strict,
+                req.force,
+                ui,
+            )
+            .await?;
             execution_summary.merge(skill_summary);
         }
     }
@@ -644,8 +658,14 @@ async fn install_local_url_mode_async(
     let mut execution_summary = InstallExecutionSummary::default();
     for skill_id in &selected_ids {
         let single = select_single_skill_config(&selected_config, skill_id)?;
-        let skill_summary =
-            install_local_source_skill_async(&single, &config_dir, req.options.strict).await?;
+        let skill_summary = install_local_source_skill_async(
+            &single,
+            &config_dir,
+            req.options.strict,
+            req.force,
+            ui,
+        )
+        .await?;
         execution_summary.merge(skill_summary);
     }
 
@@ -1373,6 +1393,8 @@ async fn execute_install_plan_async(
     single_skill_config: &Config,
     config_dir: &Path,
     strict: bool,
+    force: bool,
+    ui: &UiContext,
 ) -> Result<InstallExecutionSummary, EdenError> {
     if single_skill_config.skills.iter().all(|skill| {
         skill
@@ -1380,7 +1402,7 @@ async fn execute_install_plan_async(
             .iter()
             .all(|target| target.environment == "local")
     }) {
-        return execute_install_plan(single_skill_config, config_dir, strict);
+        return execute_install_plan(single_skill_config, config_dir, strict, force, ui).await;
     }
 
     let skill = single_skill_config
@@ -1389,13 +1411,15 @@ async fn execute_install_plan_async(
         .ok_or_else(|| EdenError::Runtime("install skill is missing".to_string()))?;
     let storage_root = resolve_path_string(&single_skill_config.storage_root, config_dir)?;
     let source_path = resolve_skill_source_path(&storage_root, skill);
-    execute_single_skill_targets_async(skill, &source_path, config_dir, strict).await
+    execute_single_skill_targets_async(skill, &source_path, config_dir, strict, force, ui).await
 }
 
-fn execute_install_plan(
+async fn execute_install_plan(
     single_skill_config: &Config,
     config_dir: &Path,
     strict: bool,
+    _force: bool,
+    ui: &UiContext,
 ) -> Result<InstallExecutionSummary, EdenError> {
     let plan = build_plan(single_skill_config, config_dir)?;
     let mut summary = InstallExecutionSummary::default();
@@ -1403,6 +1427,18 @@ fn execute_install_plan(
         match item.action {
             Action::Create | Action::Update => {
                 apply_plan_item(item)?;
+                update_managed_manifest_after_install(
+                    &item.skill_id,
+                    "local",
+                    Path::new(&item.target_path).parent().ok_or_else(|| {
+                        EdenError::Runtime(format!(
+                            "installed target path missing parent directory: {}",
+                            item.target_path
+                        ))
+                    })?,
+                    ui,
+                )
+                .await?;
                 summary.installed_targets.push(InstallTargetLine {
                     skill_id: item.skill_id.clone(),
                     target_path: item.target_path.clone(),
@@ -1426,6 +1462,8 @@ async fn install_local_source_skill_async(
     single_skill_config: &Config,
     config_dir: &Path,
     strict: bool,
+    force: bool,
+    ui: &UiContext,
 ) -> Result<InstallExecutionSummary, EdenError> {
     let skill = single_skill_config
         .skills
@@ -1445,7 +1483,7 @@ async fn install_local_source_skill_async(
         )));
     }
 
-    execute_single_skill_targets_async(skill, &source_path, config_dir, strict).await
+    execute_single_skill_targets_async(skill, &source_path, config_dir, strict, force, ui).await
 }
 
 async fn execute_single_skill_targets_async(
@@ -1453,6 +1491,8 @@ async fn execute_single_skill_targets_async(
     source_path: &Path,
     config_dir: &Path,
     strict: bool,
+    force: bool,
+    ui: &UiContext,
 ) -> Result<InstallExecutionSummary, EdenError> {
     let mut summary = InstallExecutionSummary::default();
     for target in &skill.targets {
@@ -1465,6 +1505,8 @@ async fn execute_single_skill_targets_async(
                 .install(source_path, &target_path, skill.install.mode)
                 .await
                 .map_err(EdenError::from)?;
+            update_managed_manifest_after_install(&skill.id, &target.environment, &target_root, ui)
+                .await?;
             summary.installed_targets.push(InstallTargetLine {
                 skill_id: skill.id.clone(),
                 target_path: target_path.display().to_string(),
@@ -1478,6 +1520,23 @@ async fn execute_single_skill_targets_async(
 
         let target_root = resolve_target_path(target, config_dir)?;
         let target_path = normalize_lexical(&target_root.join(&skill.id));
+        if maybe_adopt_external_local_target(
+            skill,
+            &target.environment,
+            &target_root,
+            &target_path,
+            force,
+            ui,
+        )
+        .await?
+        {
+            summary.installed_targets.push(InstallTargetLine {
+                skill_id: skill.id.clone(),
+                target_path: target_path.display().to_string(),
+                mode: skill.install.mode.as_str().to_string(),
+            });
+            continue;
+        }
         match fs::symlink_metadata(&target_path) {
             Ok(metadata)
                 if matches!(skill.install.mode, InstallMode::Symlink)
@@ -1502,6 +1561,8 @@ async fn execute_single_skill_targets_async(
             .install(source_path, &target_path, skill.install.mode)
             .await
             .map_err(EdenError::from)?;
+        update_managed_manifest_after_install(&skill.id, &target.environment, &target_root, ui)
+            .await?;
         summary.installed_targets.push(InstallTargetLine {
             skill_id: skill.id.clone(),
             target_path: target_path.display().to_string(),
@@ -1517,6 +1578,86 @@ async fn execute_single_skill_targets_async(
     }
 
     Ok(summary)
+}
+
+async fn update_managed_manifest_after_install(
+    skill_id: &str,
+    environment: &str,
+    agent_dir: &Path,
+    ui: &UiContext,
+) -> Result<(), EdenError> {
+    let read_result = read_managed_manifest(environment, agent_dir)
+        .await
+        .map_err(EdenError::from)?;
+    if let Some(warning) = read_result.warning {
+        print_warning(ui, &warning);
+    }
+
+    let mut manifest = read_result.manifest;
+    if environment.starts_with("docker:") {
+        manifest.record_install(skill_id, ManagedSource::External, external_install_origin());
+    } else {
+        manifest.record_install(
+            skill_id,
+            ManagedSource::Local,
+            local_install_origin(environment),
+        );
+    }
+
+    write_managed_manifest(environment, agent_dir, &manifest)
+        .await
+        .map_err(EdenError::from)
+}
+
+async fn maybe_adopt_external_local_target(
+    skill: &SkillConfig,
+    environment: &str,
+    agent_dir: &Path,
+    target_path: &Path,
+    force: bool,
+    ui: &UiContext,
+) -> Result<bool, EdenError> {
+    if force || environment != "local" {
+        return Ok(false);
+    }
+
+    let read_result = read_managed_manifest(environment, agent_dir)
+        .await
+        .map_err(EdenError::from)?;
+    if let Some(warning) = read_result.warning {
+        print_warning(ui, &warning);
+    }
+    let Some(record) = read_result.manifest.skill(&skill.id) else {
+        return Ok(false);
+    };
+    let record_source = record.source.clone();
+    let record_origin = record.origin.clone();
+    if record_source != ManagedSource::External || fs::symlink_metadata(target_path).is_err() {
+        return Ok(false);
+    }
+
+    let mut manifest = read_result.manifest;
+    print_warning(
+        ui,
+        &format!(
+            "Skill '{}' already exists, managed by external host ({}). Adopting into local config and keeping existing files. Use --force to overwrite files and take over management.",
+            skill.id,
+            describe_external_origin(&record_origin)
+        ),
+    );
+    manifest.record_install(
+        &skill.id,
+        ManagedSource::Local,
+        local_install_origin(environment),
+    );
+    write_managed_manifest(environment, agent_dir, &manifest)
+        .await
+        .map_err(EdenError::from)?;
+    Ok(true)
+}
+
+fn describe_external_origin(origin: &str) -> &str {
+    origin.strip_prefix("host:").unwrap_or(origin)
 }
 
 async fn resolve_docker_target_root(

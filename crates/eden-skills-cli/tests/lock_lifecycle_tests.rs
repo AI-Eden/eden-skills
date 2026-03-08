@@ -104,9 +104,14 @@ async fn apply_creates_lock_on_first_run() {
     let lock_path = lock_path_for_config(&config_path);
     assert!(!lock_path.exists(), "lock should not exist before apply");
 
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     assert!(lock_path.exists(), "lock should exist after apply");
     let lock = read_lock_file(&lock_path).unwrap().unwrap();
@@ -147,6 +152,7 @@ async fn apply_succeeds_without_existing_lock_file() {
         config_path.to_str().unwrap(),
         default_options(),
         None,
+        false,
     )
     .await;
 
@@ -186,6 +192,7 @@ async fn apply_recovers_from_corrupted_lock() {
         config_path.to_str().unwrap(),
         default_options(),
         None,
+        false,
     )
     .await;
 
@@ -228,6 +235,7 @@ async fn install_creates_lock_file() {
             target: vec!["custom:".to_string() + dir.path().join("tgt").to_str().unwrap()],
             dry_run: false,
             copy: false,
+            force: false,
             options: default_options(),
         })
         .await;
@@ -269,9 +277,14 @@ async fn remove_updates_lock_file() {
         &target,
     );
 
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     let lock_path = lock_path_for_config(&config_path);
     let lock_before = read_lock_file(&lock_path).unwrap().unwrap();
@@ -314,9 +327,14 @@ async fn repair_updates_lock_file_after_fixing_broken_symlink() {
         &target,
     );
 
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     let lock_path = lock_path_for_config(&config_path);
     let mut lock_before = read_lock_file(&lock_path).unwrap().unwrap();
@@ -329,9 +347,14 @@ async fn repair_updates_lock_file_after_fixing_broken_symlink() {
     let broken_target = dir.path().join("missing-source");
     common::create_symlink(&broken_target, &target_path).unwrap();
 
-    eden_skills_cli::commands::repair_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::repair_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     assert_eq!(
         common::resolved_symlink(&target_path),
@@ -414,9 +437,14 @@ checks = ["path-exists", "target-resolves", "is-symlink"]
     let config_path = dir.path().join("skills.toml");
     fs::write(&config_path, config_content).unwrap();
 
-    eden_skills_cli::commands::apply_async(config_path.to_str().unwrap(), default_options(), None)
-        .await
-        .unwrap();
+    eden_skills_cli::commands::apply_async(
+        config_path.to_str().unwrap(),
+        default_options(),
+        None,
+        false,
+    )
+    .await
+    .unwrap();
 
     let lock_path = lock_path_for_config(&config_path);
     let lock = read_lock_file(&lock_path).unwrap().unwrap();

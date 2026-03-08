@@ -1,7 +1,7 @@
 # Phase 2.97 Execution Tracker
 
 Phase: Reliability, Interactive UX & Docker Safety
-Status: In Progress — Batches 1-4 Completed
+Status: In Progress — Batches 1-5 Completed
 Started: 2026-03-07
 Completed: —
 
@@ -13,7 +13,7 @@ Completed: —
 | 2 | Table Content Styling + Help / Parse Error Colorization + List Table + Hint Sync | WP-2 + WP-6 | TST-001~010, HSY-001~002 | completed |
 | 3 | Interactive UX (Remove + Install) | WP-3 | IUX-001~010 | completed |
 | 4 | Cache Clean | WP-4 | CCL-001~007 | completed |
-| 5 | Docker Management Domain | WP-5 | DMG-001~008 | pending |
+| 5 | Docker Management Domain | WP-5 | DMG-001~008 | completed |
 | 6 | Documentation + Regression + Closeout | WP-7 | DOC-001~002, TM regression | pending |
 
 ## Dependency Constraints
@@ -99,3 +99,22 @@ Completed: —
   - Test inventory: `430`
 - Notes:
   - The cleanup pass intentionally tolerates paths that disappear between scan and delete so `clean` remains stable if another process or parallel test removes the same stale temp directory concurrently.
+
+### Batch 5 — Docker Management Domain (Completed 2026-03-08)
+
+- Requirements: `DMG-001`, `DMG-002`, `DMG-003`, `DMG-004`, `DMG-005`, `DMG-006`, `DMG-007`, `DMG-008`
+- Completed in this pass:
+  - Added `crates/eden-skills-core/src/managed.rs` and exported it from `crates/eden-skills-core/src/lib.rs` to define the `.eden-managed` manifest format, source/origin metadata, and timestamped ownership records.
+  - Extended `crates/eden-skills-core/src/adapter.rs` with manifest read/write helpers for local and Docker environments, including bind-mount direct I/O, `docker exec` reads, `docker cp` writes, and tolerant handling of missing or invalid manifest JSON.
+  - Updated `crates/eden-skills-cli/src/commands/install.rs` to write `.eden-managed` after installs, classify Docker installs as `external` and local installs as `local`, and adopt externally-managed local targets without overwriting their files unless `--force` is supplied.
+  - Added `--force` support in `crates/eden-skills-cli/src/lib.rs` for `install`, `remove`, `apply`, and `repair`, then wired `crates/eden-skills-cli/src/commands/remove.rs` to default external skills to config-only removal and delete manifest entries only during real file removal.
+  - Updated `crates/eden-skills-cli/src/commands/reconcile.rs` to skip docker skills that were taken over by local management unless `--force` is used, and to reclaim ownership by rewriting their manifest entries back to `external` when forced.
+  - Extended `crates/eden-skills-cli/src/commands/diagnose.rs` with additive `DOCKER_OWNERSHIP_CHANGED` and `DOCKER_EXTERNALLY_REMOVED` findings sourced from docker-target manifest state.
+  - Added `crates/eden-skills-cli/tests/docker_managed_tests.rs` covering `TM-P297-037` through `TM-P297-046`, and refreshed existing lock lifecycle / lock diff tests for the new command helper signatures.
+- Validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace` ✅
+  - Test inventory: `440`
+- Notes:
+  - The `TM-P297-046` reclaim test uses a deterministic Docker bind-mount stub whose destination path matches the configured target path, so ownership rewrite behavior can be validated without a real Docker daemon.

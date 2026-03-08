@@ -3,7 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.97.
 Use this file to recover accurate context after compression.
 
-**Status:** IN PROGRESS — Batches 1-4 populated by Builder during implementation.
+**Status:** IN PROGRESS — Batches 1-5 populated by Builder during implementation.
 
 ## 1. Update Fix Requirements
 
@@ -59,14 +59,14 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| DMG-001 | `SPEC_DOCKER_MANAGED.md` 3 | Install writes .eden-managed entry | — | TM-P297-037, TM-P297-038 | pending |
-| DMG-002 | `SPEC_DOCKER_MANAGED.md` 3.1 | Docker install sets source: "external" | — | TM-P297-037 | pending |
-| DMG-003 | `SPEC_DOCKER_MANAGED.md` 3.2 | Local install sets source: "local" | — | TM-P297-038 | pending |
-| DMG-004 | `SPEC_DOCKER_MANAGED.md` 4.1 | Remove guard for external skills | — | TM-P297-039, TM-P297-046 | pending |
-| DMG-005 | `SPEC_DOCKER_MANAGED.md` 4.1 | --force overrides remove guard | — | TM-P297-040 | pending |
-| DMG-006 | `SPEC_DOCKER_MANAGED.md` 4.2 | Install guard for external skills | — | TM-P297-041 | pending |
-| DMG-007 | `SPEC_DOCKER_MANAGED.md` 5 | Doctor ownership findings | — | TM-P297-042, TM-P297-043 | pending |
-| DMG-008 | `SPEC_DOCKER_MANAGED.md` 6.3–6.4 | Missing/corrupted manifest tolerance | — | TM-P297-044, TM-P297-045 | pending |
+| DMG-001 | `SPEC_DOCKER_MANAGED.md` 3 | Install writes .eden-managed entry | `crates/eden-skills-core/src/managed.rs`, `crates/eden-skills-core/src/lib.rs`, `crates/eden-skills-core/src/adapter.rs`, `crates/eden-skills-cli/src/commands/install.rs`, `crates/eden-skills-cli/tests/docker_managed_tests.rs` | TM-P297-037, TM-P297-038 | completed |
+| DMG-002 | `SPEC_DOCKER_MANAGED.md` 3.1 | Docker install sets source: "external" | `crates/eden-skills-core/src/managed.rs`, `crates/eden-skills-core/src/adapter.rs`, `crates/eden-skills-cli/src/commands/install.rs`, `crates/eden-skills-cli/tests/docker_managed_tests.rs` | TM-P297-037 | completed |
+| DMG-003 | `SPEC_DOCKER_MANAGED.md` 3.2 | Local install sets source: "local" | `crates/eden-skills-core/src/managed.rs`, `crates/eden-skills-cli/src/commands/install.rs`, `crates/eden-skills-cli/tests/docker_managed_tests.rs` | TM-P297-038 | completed |
+| DMG-004 | `SPEC_DOCKER_MANAGED.md` 4.1 | Remove guard for external skills | `crates/eden-skills-cli/src/lib.rs`, `crates/eden-skills-cli/src/commands/remove.rs`, `crates/eden-skills-cli/src/commands/reconcile.rs`, `crates/eden-skills-cli/tests/docker_managed_tests.rs` | TM-P297-039, TM-P297-046 | completed |
+| DMG-005 | `SPEC_DOCKER_MANAGED.md` 4.1 | --force overrides remove guard | `crates/eden-skills-cli/src/lib.rs`, `crates/eden-skills-cli/src/commands/remove.rs`, `crates/eden-skills-cli/tests/docker_managed_tests.rs` | TM-P297-040 | completed |
+| DMG-006 | `SPEC_DOCKER_MANAGED.md` 4.2 | Install guard for external skills | `crates/eden-skills-cli/src/lib.rs`, `crates/eden-skills-cli/src/commands/install.rs`, `crates/eden-skills-cli/tests/docker_managed_tests.rs` | TM-P297-041 | completed |
+| DMG-007 | `SPEC_DOCKER_MANAGED.md` 5 | Doctor ownership findings | `crates/eden-skills-cli/src/commands/diagnose.rs`, `crates/eden-skills-cli/tests/docker_managed_tests.rs` | TM-P297-042, TM-P297-043 | completed |
+| DMG-008 | `SPEC_DOCKER_MANAGED.md` 6.3–6.4 | Missing/corrupted manifest tolerance | `crates/eden-skills-core/src/adapter.rs`, `crates/eden-skills-cli/src/commands/install.rs`, `crates/eden-skills-cli/src/commands/remove.rs`, `crates/eden-skills-cli/tests/docker_managed_tests.rs` | TM-P297-044, TM-P297-045 | completed |
 
 ## 6. Hint Sync Requirements
 

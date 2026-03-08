@@ -90,6 +90,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), CliError> {
                 target: args.target,
                 dry_run: args.dry_run,
                 copy: args.copy,
+                force: args.force,
                 options: CommandOptions {
                     strict: args.strict,
                     json: args.json,
@@ -114,6 +115,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), CliError> {
                 &args.config,
                 &args.skill_ids,
                 args.yes,
+                args.force,
                 args.auto_clean,
                 CommandOptions {
                     strict: args.strict,
@@ -145,6 +147,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), CliError> {
                     json: args.json,
                 },
                 args.concurrency,
+                args.force,
             )
             .await
         }
@@ -168,6 +171,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), CliError> {
                     json: args.json,
                 },
                 args.concurrency,
+                args.force,
             )
             .await
         }
@@ -627,6 +631,8 @@ struct ApplyRepairArgs {
     json: bool,
     #[arg(long, help = "Maximum number of concurrent operations")]
     concurrency: Option<usize>,
+    #[arg(long, help = "Force ownership reclaim for docker-managed targets")]
+    force: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -698,6 +704,8 @@ struct InstallArgs {
     dry_run: bool,
     #[arg(long, help = "Use file copy instead of symlinks")]
     copy: bool,
+    #[arg(long, help = "Overwrite externally-managed targets and take ownership")]
+    force: bool,
 }
 
 #[derive(Debug, Clone, Args)]
@@ -826,6 +834,11 @@ struct RemoveArgs {
     json: bool,
     #[arg(short = 'y', long, help = "Skip confirmation prompt")]
     yes: bool,
+    #[arg(
+        long,
+        help = "Remove files even when the manifest marks them as externally managed"
+    )]
+    force: bool,
     #[arg(long, help = "Run cache cleanup after removing the selected skills")]
     auto_clean: bool,
 
