@@ -1,6 +1,8 @@
 # Docker Targets Tutorial
 
-This guide explains the Docker-target workflow in Phase 2.95: container agent auto-detection, bind-mount-aware installs, `docker mount-hint`, and related diagnostics.
+This guide explains the Docker-target workflow in Phase 2.97: container agent
+auto-detection, bind-mount-aware installs, `.eden-managed` ownership safety,
+`docker mount-hint`, and related diagnostics.
 
 ## Target Model
 
@@ -55,8 +57,72 @@ This has two important effects:
 Without a bind mount, Docker installs still work, but symlink mode falls back to copy and install prints a follow-up hint:
 
 ```text
-  → Tip: add bind mounts for live sync. Run 'eden-skills docker mount-hint my-agent'.
+  ~> Tip: add bind mounts for live sync. Run 'eden-skills docker mount-hint my-agent'.
 ```
+
+## `.eden-managed` Ownership Safety
+
+Each managed agent root may contain a `.eden-managed` manifest that records who
+last installed each skill and when.
+
+Example:
+
+```json
+{
+  "version": 1,
+  "skills": {
+    "web-design-guidelines": {
+      "source": "external",
+      "origin": "host:eden-desktop",
+      "installed_at": "2026-03-08T12:34:56Z"
+    },
+    "frontend-design": {
+      "source": "local",
+      "origin": "container:my-agent",
+      "installed_at": "2026-03-08T12:40:12Z"
+    }
+  }
+}
+```
+
+Behavior:
+
+- Host installs to `docker:<container>` write `source: "external"` so the
+  container can tell those files are managed from outside.
+- Local installs on the host or inside a container write `source: "local"`.
+- Bind-mounted Docker targets read and write `.eden-managed` directly on the
+  host path.
+- Non-bind Docker targets read the manifest with `docker exec` and write it
+  back with `docker cp`.
+- Missing or corrupted manifests only emit warnings; they do not block install,
+  remove, `apply`, or `repair`.
+
+## Cross-Container Guard Behavior
+
+When a container and a host both run `eden-skills`, the manifest prevents one
+side from silently deleting or overwriting the other's files.
+
+`remove`:
+
+- If the manifest marks a skill as externally managed, `remove` defaults to
+  config-only removal and leaves files in place.
+- Use `eden-skills remove <skill> --force` to also delete the files and remove
+  the manifest entry.
+
+`install`:
+
+- If files already exist and the manifest says they are externally managed,
+  `install` adopts them into the local config by default without overwriting the
+  files.
+- Use `eden-skills install ... --force` to overwrite the files and take over
+  ownership.
+
+`apply` / `repair`:
+
+- If a Docker target was taken over locally inside the container,
+  `apply` and `repair` skip it by default and warn about the ownership change.
+- Use `--force` to reclaim ownership and rewrite the manifest back to
+  `source: "external"`.
 
 ## Generate Recommended Mounts
 
@@ -95,11 +161,23 @@ Relevant Docker-related `doctor` findings now include:
 - `DOCKER_NOT_FOUND`: Docker CLI is unavailable.
 - `ADAPTER_HEALTH_FAIL`: container is missing or not running.
 - `DOCKER_NO_BIND_MOUNT`: Docker target is running in copy mode without a writable bind mount.
+- `DOCKER_OWNERSHIP_CHANGED`: the container locally took over a skill that the
+  host config still treats as Docker-managed.
+- `DOCKER_EXTERNALLY_REMOVED`: a Docker-managed skill was removed from the
+  container outside the host-managed flow.
 
-For the last case, the remediation points to:
+For `DOCKER_NO_BIND_MOUNT`, the remediation points to:
 
 ```bash
 eden-skills docker mount-hint <container>
+```
+
+For ownership findings, typical next steps are:
+
+```bash
+eden-skills apply --force
+# or
+eden-skills remove <skill-id>
 ```
 
 ## Remove / Uninstall Semantics
@@ -109,7 +187,9 @@ Docker uninstall now follows the same bind-mount-aware logic:
 - If the Docker target path is backed by a host bind mount, eden-skills removes the host-side target.
 - Otherwise it falls back to `docker exec rm -rf ...` inside the container.
 
-This applies both to direct adapter uninstall flows and to higher-level cleanup paths that rely on Docker target removal.
+This applies both to direct adapter uninstall flows and to higher-level cleanup
+paths that rely on Docker target removal. If `.eden-managed` marks the skill as
+externally managed, removal defaults to config-only unless `--force` is used.
 
 ## Optional: Override Docker Binary for Tests
 

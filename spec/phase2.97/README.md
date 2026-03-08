@@ -82,13 +82,13 @@ safety gaps identified after Phase 2.95:
 | Domain | ID Range |
 | :--- | :--- |
 | Update Fix | UFX-001 ~ UFX-003 |
-| Table Style | TST-001 ~ TST-008 |
+| Table Style | TST-001 ~ TST-010 |
 | Interactive UX | IUX-001 ~ IUX-010 |
 | Cache Clean | CCL-001 ~ CCL-007 |
 | Docker Managed | DMG-001 ~ DMG-008 |
 | Hint Sync | HSY-001 ~ HSY-002 |
 | Documentation | DOC-001 ~ DOC-002 |
-| Test Scenarios | TM-P297-001 ~ TM-P297-059 |
+| Test Scenarios | TM-P297-001 ~ TM-P297-065 |
 
 ## Execution Order
 

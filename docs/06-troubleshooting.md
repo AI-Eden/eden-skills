@@ -140,7 +140,8 @@ Fix:
 
 Meaning:
 
-- Interactive no-argument remove is only available on TTY sessions.
+- Interactive no-argument remove is only available on TTY sessions because the
+  command now uses a checkbox selector.
 
 Fixes:
 
@@ -151,6 +152,69 @@ eden-skills remove --config "$CONFIG" skill-a skill-b
 ```
 
 - Or run in an interactive terminal when using no-argument selection.
+
+### K) `ORPHAN_CACHE_ENTRY` or growing `.repos/` cache usage
+
+Meaning:
+
+- Repo-cache directories under `storage/.repos/` are no longer referenced by
+  your current config.
+- Interrupted install discovery can also leave behind stale
+  `eden-skills-discovery-*` temp directories.
+
+Fixes:
+
+```bash
+eden-skills clean --config "$CONFIG"
+```
+
+If you want cleanup to happen automatically after uninstalling skills:
+
+```bash
+eden-skills remove --config "$CONFIG" skill-a --auto-clean
+```
+
+### L) `DOCKER_OWNERSHIP_CHANGED`
+
+Meaning:
+
+- A Docker-managed skill was reinstalled locally inside the container, so the
+  `.eden-managed` manifest now marks it as `source: "local"`.
+
+Fixes:
+
+- Reclaim ownership from the host side:
+
+```bash
+eden-skills apply --config "$CONFIG" --force
+```
+
+- Or accept the local takeover and remove the host-side config entry:
+
+```bash
+eden-skills remove --config "$CONFIG" <skill-id>
+```
+
+### M) `DOCKER_EXTERNALLY_REMOVED`
+
+Meaning:
+
+- A Docker-managed skill was deleted from the container outside the normal
+  host-driven remove flow.
+
+Fixes:
+
+- Reinstall it from config:
+
+```bash
+eden-skills apply --config "$CONFIG"
+```
+
+- Or accept the deletion:
+
+```bash
+eden-skills remove --config "$CONFIG" <skill-id>
+```
 
 ## JSON Diagnostics for Tooling
 

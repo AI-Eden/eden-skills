@@ -24,7 +24,7 @@ The install scripts place the binary in `~/.eden-skills/bin/` on Linux/macOS or
 `$env:USERPROFILE\.eden-skills\bin\` on Windows. When PATH updates are needed, `install.sh`
 updates the selected shell rc file automatically and `install.ps1` updates the user Path.
 
-**Alternative: cargo install**
+### Cargo Install Alternative
 
 ```bash
 cargo install eden-skills --locked
@@ -55,6 +55,11 @@ eden-skills install vercel-labs/agent-skills
 
 Auto-detects which agents you have installed and links the skill to each.
 
+When a repository exposes multiple skills and you do not pass `--all` or
+`--skill`, `eden-skills` opens an interactive checkbox selector in TTY
+sessions. In non-interactive contexts, it falls back to installing all
+discovered skills.
+
 ### Source Formats
 
 ```bash
@@ -71,19 +76,20 @@ eden-skills install https://github.com/vercel-labs/agent-skills/tree/main/skills
 eden-skills install ./my-local-skill
 ```
 
-### Options
+### Install Options
 
 | Option | Description |
 | --- | --- |
 | `-s, --skill <name>` | Install a specific skill by name |
 | `--all` | Install all discovered skills without prompts |
-| `-t, --target <agent>` | Override target agent (`local`, `docker:<container>`) |
+| `-t, --target <agent>` | Override target selection (`claude-code`, `cursor`, `local`, `docker:<container>`, `custom:<path>`, and other built-in aliases) |
 | `--copy` | Copy files instead of symlinking |
+| `--force` | Overwrite externally-managed targets and take over ownership |
 | `-y, --yes` | Skip confirmation prompts |
 | `--list` | List available skills without installing |
 | `--dry-run` | Preview changes without writing anything |
 
-### Examples
+### Install Examples
 
 ```bash
 # List available skills in a repository
@@ -102,12 +108,48 @@ eden-skills install vercel-labs/agent-skills --target docker:my-agent
 eden-skills install vercel-labs/agent-skills --dry-run
 ```
 
+## Remove a Skill
+
+```bash
+eden-skills remove web-design-guidelines
+```
+
+In TTY sessions, running `eden-skills remove` without skill IDs opens the same
+checkbox selector used by `install`, then asks for confirmation before deleting
+anything.
+
+### Remove Options
+
+| Option | Description |
+| --- | --- |
+| `-y, --yes` | Skip confirmation prompts |
+| `--auto-clean` | Run cache cleanup after removal and report freed space |
+| `--force` | Remove files for externally-managed targets instead of config-only removal |
+| `--json` | Emit machine-readable remove output (with additive `clean` details when used with `--auto-clean`) |
+
+### Remove Examples
+
+```bash
+# Remove one skill
+eden-skills remove web-design-guidelines
+
+# Select multiple skills interactively
+eden-skills remove
+
+# Remove a skill and clean orphaned repo cache entries afterwards
+eden-skills remove web-design-guidelines --auto-clean
+
+# Force-delete files for an externally-managed target
+eden-skills remove web-design-guidelines --force
+```
+
 ## Other Commands
 
 | Command | Description |
 | --- | --- |
 | `eden-skills list` | List installed skills |
 | `eden-skills remove [skills...]` | Remove skills (batch or interactive) |
+| `eden-skills clean` | Remove orphaned repo-cache entries and stale discovery directories |
 | `eden-skills update` | Sync registry indexes to latest |
 | `eden-skills apply` | Reconcile all skills to desired config state |
 | `eden-skills doctor` | Detect broken links, drift, and risk findings |
@@ -129,6 +171,10 @@ eden-skills install vercel-labs/agent-skills --dry-run
 **Config is code.** `skills.toml` is your single source of truth. Version it, share it with your team, and `apply` it anywhere.
 
 **Docker-aware.** Install skills directly into running containers with `--target docker:<container>`, auto-detect installed agents inside the container, and use `eden-skills docker mount-hint <container>` to configure bind mounts for live sync.
+
+**Cache stays tidy.** Use `clean` to remove orphaned repo-cache entries and stale
+discovery temp directories, or add `--auto-clean` to `remove` so cleanup runs
+immediately after uninstalling skills.
 
 ## Config as Code
 
@@ -159,15 +205,54 @@ Run `eden-skills apply` to converge the system to this config.
 
 ## Supported Agents
 
-Agent directories are auto-detected on `install`. Override with `--target`:
+Agent directories are auto-detected on `install`. Override with `--target`.
+Shared-path aliases are supported too: `amp`, `kimi-cli`, `replit`, and
+`universal` all map to `~/.config/agents/skills`.
 
 | Agent | `--target` alias | Global Path |
 | --- | --- | --- |
+| Adal | `adal` | `~/.adal/skills/` |
+| Amp | `amp` | `~/.config/agents/skills/` |
+| Antigravity | `antigravity` | `~/.gemini/antigravity/skills/` |
+| Augment | `augment` | `~/.augment/skills/` |
 | Claude Code | `claude-code` | `~/.claude/skills/` |
-| Cursor | `cursor` | `~/.cursor/skills/` |
+| Cline | `cline` | `~/.agents/skills/` |
+| Codebuddy | `codebuddy` | `~/.codebuddy/skills/` |
 | Codex | `codex` | `~/.codex/skills/` |
+| Command Code | `command-code` | `~/.commandcode/skills/` |
+| Continue | `continue` | `~/.continue/skills/` |
+| Cortex | `cortex` | `~/.snowflake/cortex/skills/` |
+| Crush | `crush` | `~/.config/crush/skills/` |
+| Cursor | `cursor` | `~/.cursor/skills/` |
+| Droid | `droid` | `~/.factory/skills/` |
+| Gemini CLI | `gemini-cli` | `~/.gemini/skills/` |
+| GitHub Copilot | `github-copilot` | `~/.copilot/skills/` |
+| Goose | `goose` | `~/.config/goose/skills/` |
+| Iflow CLI | `iflow-cli` | `~/.iflow/skills/` |
+| Junie | `junie` | `~/.junie/skills/` |
+| Kilo | `kilo` | `~/.kilocode/skills/` |
+| Kimi CLI | `kimi-cli` | `~/.config/agents/skills/` |
+| Kiro CLI | `kiro-cli` | `~/.kiro/skills/` |
+| Kode | `kode` | `~/.kode/skills/` |
+| Mcpjam | `mcpjam` | `~/.mcpjam/skills/` |
+| Mistral Vibe | `mistral-vibe` | `~/.vibe/skills/` |
+| Mux | `mux` | `~/.mux/skills/` |
+| Neovate | `neovate` | `~/.neovate/skills/` |
+| Openclaw | `openclaw` | `~/.openclaw/skills/` |
+| Opencode | `opencode` | `~/.config/opencode/skills/` |
+| Openhands | `openhands` | `~/.openhands/skills/` |
+| Pi | `pi` | `~/.pi/agent/skills/` |
+| Pochi | `pochi` | `~/.pochi/skills/` |
+| Qoder | `qoder` | `~/.qoder/skills/` |
+| Qwen Code | `qwen-code` | `~/.qwen/skills/` |
+| Replit | `replit` | `~/.config/agents/skills/` |
+| Roo | `roo` | `~/.roo/skills/` |
+| Trae | `trae` | `~/.trae/skills/` |
+| Trae CN | `trae-cn` | `~/.trae-cn/skills/` |
+| Universal | `universal` | `~/.config/agents/skills/` |
 | Windsurf | `windsurf` | `~/.codeium/windsurf/skills/` |
-| Docker container | `docker:<name>` | (inside container) |
+| Zencoder | `zencoder` | `~/.zencoder/skills/` |
+| Docker container | `docker:<name>` | inside container |
 | Custom path | `custom:<path>` | any writable path |
 
 ## Documentation
@@ -208,6 +293,7 @@ Agent directories are auto-detected on `install`. Override with `--target`:
 - Phase 2.8 (TUI deep optimization, table rendering, doc comments): complete
 - Phase 2.9 (UX polish, update semantics, output consistency): complete
 - Phase 2.95 (repo-cache sync, remove-all wildcard, Windows junctions, Docker bind mounts, install scripts): complete
+- Phase 2.97 (update reliability, interactive MultiSelect UX, cache clean, Docker ownership safety): complete
 - Phase 3 (crawler / taxonomy / curation): not yet implemented
 
 `eden-skills` is under active development. Avoid production use where breaking changes are not tolerable.

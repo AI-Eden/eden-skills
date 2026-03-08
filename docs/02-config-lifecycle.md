@@ -106,10 +106,20 @@ Interactive remove (TTY only, no args):
 eden-skills remove --config ./skills.lifecycle.toml
 ```
 
+This opens a checkbox selector so you can toggle multiple skills before the
+final confirmation prompt. The old `*` wildcard shortcut is no longer special;
+use the selector or pass explicit IDs.
+
 Non-interactive confirmation skip:
 
 ```bash
 eden-skills remove --config ./skills.lifecycle.toml skill-a -y
+```
+
+Remove and clean orphaned repo-cache entries afterwards:
+
+```bash
+eden-skills remove --config ./skills.lifecycle.toml skill-a --auto-clean
 ```
 
 JSON output for automation:
@@ -118,7 +128,15 @@ JSON output for automation:
 eden-skills remove --config ./skills.lifecycle.toml skill-a skill-b --json
 ```
 
-The JSON payload includes a `removed` array.
+The JSON payload includes a `removed` array. When `--auto-clean` is used, it
+also adds a nested `clean` object with removed cache paths and freed bytes.
+
+Docker ownership note:
+
+- If a target directory is marked as externally managed in `.eden-managed`,
+  `remove` defaults to config-only removal and keeps the files in place.
+- Use `--force` when you intentionally want to delete those files and clear the
+  manifest entry too.
 
 ## 5) Export a Normalized Config
 
@@ -160,6 +178,7 @@ After any mutation:
 ```bash
 eden-skills plan --config ./skills.lifecycle.toml
 eden-skills doctor --config ./skills.lifecycle.toml
+eden-skills clean --config ./skills.lifecycle.toml
 ```
 
 If drift is reported:

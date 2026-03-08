@@ -1,7 +1,7 @@
 phase: phase297_reliability_interactive_ux_docker_safety
-status: spec_frozen
+status: closeout_completed
 started_at: "2026-03-07"
-completed_at: ~
+completed_at: "2026-03-08"
 
 spec_files:
   - spec/phase2.97/README.md
@@ -55,7 +55,7 @@ batches:
     name: "Documentation + Regression + Closeout"
     work_packages: [WP-7]
     requirements: [DOC-001, DOC-002]
-    status: pending
+    status: completed
 
 builder_progress:
   batch_1_update_concurrency_fix:
@@ -155,3 +155,21 @@ builder_progress:
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
       current_test_inventory: 440
+  batch_6_documentation_regression_closeout:
+    status: completed
+    started_at: "2026-03-08"
+    completed_at: "2026-03-08"
+    requirements: DOC-001, DOC-002
+    scenarios: TM-P297-051, TM-P297-052, TM-P297-053, TM-P297-054, TM-P297-055, TM-P297-056
+    notes:
+      - updated `README.md` to document the new `clean` command, `remove --auto-clean`, checkbox-based interactive install/remove behavior, the expanded built-in agent target table, cache cleanup guidance, and the completed Phase 2.97 status line
+      - updated `docs/01-quickstart.md`, `docs/02-config-lifecycle.md`, `docs/04-docker-targets.md`, and `docs/06-troubleshooting.md` to document cache cleanup flows, MultiSelect-based remove/install UX, `.eden-managed` ownership guards, Docker cross-container safety, and the new orphan/ownership recovery paths
+      - completed Phase 2.97 closeout by filling `spec/phase2.97/SPEC_TRACEABILITY.md`, updating `trace/phase2.97/tracker.md`, refreshing root `STATUS.yaml` / `EXECUTION_TRACKER.md`, and syncing `spec/README.md` metadata to the final Phase 2.97 test-matrix range
+      - re-validated the full regression gate with formatting, clippy, full `--all-targets` tests, Windows target compilation, and a repository scan confirming there are no hardcoded ANSI escape sequences under `crates/`
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      windows_target_check: passed
+      ansi_escape_scan: passed
+      current_test_inventory: 451

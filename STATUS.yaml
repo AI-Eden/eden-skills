@@ -3,7 +3,7 @@ updated_at: "2026-03-08"
 project:
   name: eden-skills
   phase: phase297_reliability_interactive_ux_docker_safety
-  status: spec_frozen
+  status: closeout_completed
 
 authority_order:
   - spec
@@ -58,13 +58,12 @@ phases:
     completed_at: "2026-03-07"
     archive: trace/phase2.95/
   phase297:
-    status: spec_frozen
+    status: closeout_completed
     started_at: "2026-03-07"
-    completed_at: ~
+    completed_at: "2026-03-08"
     archive: trace/phase2.97/
 
 next_execution_targets:
-  - phase297_builder_implementation
   - phase3_taxonomy_model_architect
   - phase3_curation_rfc_architect
   - phase3_crawler_strategy_rfc_architect

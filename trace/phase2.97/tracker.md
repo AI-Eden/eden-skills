@@ -1,9 +1,9 @@
 # Phase 2.97 Execution Tracker
 
 Phase: Reliability, Interactive UX & Docker Safety
-Status: In Progress — Batches 1-5 Completed
+Status: Closeout Completed
 Started: 2026-03-07
-Completed: —
+Completed: 2026-03-08
 
 ## Batch Plan
 
@@ -14,7 +14,7 @@ Completed: —
 | 3 | Interactive UX (Remove + Install) | WP-3 | IUX-001~010 | completed |
 | 4 | Cache Clean | WP-4 | CCL-001~007 | completed |
 | 5 | Docker Management Domain | WP-5 | DMG-001~008 | completed |
-| 6 | Documentation + Regression + Closeout | WP-7 | DOC-001~002, TM regression | pending |
+| 6 | Documentation + Regression + Closeout | WP-7 | DOC-001~002, TM regression | completed |
 
 ## Dependency Constraints
 
@@ -118,3 +118,23 @@ Completed: —
   - Test inventory: `440`
 - Notes:
   - The `TM-P297-046` reclaim test uses a deterministic Docker bind-mount stub whose destination path matches the configured target path, so ownership rewrite behavior can be validated without a real Docker daemon.
+
+### Batch 6 — Documentation + Regression + Closeout (Completed 2026-03-08)
+
+- Requirements: `DOC-001`, `DOC-002`
+- Completed in this pass:
+  - Updated `README.md` to document `clean`, `remove --auto-clean`, the checkbox-based interactive install/remove flow, cache cleanup positioning, the expanded built-in supported-agent table, and the completed Phase 2.97 status line.
+  - Updated `docs/01-quickstart.md` to mention the checkbox selector and the standalone `clean` command for orphaned repo-cache and stale discovery temp cleanup.
+  - Updated `docs/02-config-lifecycle.md` to document interactive remove via checkbox selection, `--auto-clean`, additive remove JSON cleanup payloads, and the default config-only behavior for externally-managed Docker targets.
+  - Updated `docs/04-docker-targets.md` to explain `.eden-managed`, bind-mount versus `docker exec` / `docker cp` manifest I/O, cross-container remove/install/apply guard behavior, and the new Docker ownership doctor findings.
+  - Updated `docs/06-troubleshooting.md` with cache cleanup recovery steps plus actionable guidance for `DOCKER_OWNERSHIP_CHANGED` and `DOCKER_EXTERNALLY_REMOVED`.
+  - Filled the documentation rows in `spec/phase2.97/SPEC_TRACEABILITY.md`, refreshed `spec/README.md` metadata for the final Phase 2.97 test range, and synchronized the root `STATUS.yaml` / `EXECUTION_TRACKER.md` summaries with the completed closeout state.
+- Validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace --all-targets` ✅
+  - `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc` ✅
+  - `rg '\x1b\[' crates/` ✅
+  - Test inventory: `451`
+- Notes:
+  - The documentation closeout intentionally stayed behavior-neutral: no CLI semantics, exit codes, or JSON contracts changed beyond the previously implemented additive `remove.clean` field.

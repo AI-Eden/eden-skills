@@ -3,7 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.97.
 Use this file to recover accurate context after compression.
 
-**Status:** IN PROGRESS — Batches 1-5 populated by Builder during implementation.
+**Status:** COMPLETE — all Phase 2.97 requirements are populated by Builder closeout.
 
 ## 1. Update Fix Requirements
 
@@ -79,5 +79,5 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| DOC-001 | `README.md` | README updated with new commands and flags | — | TM-P297-051, TM-P297-052, TM-P297-054 | pending |
-| DOC-002 | `docs/` | User docs updated with interactive UX and new features | — | TM-P297-053 | pending |
+| DOC-001 | `README.md` | README updated with new commands and flags | `README.md` | TM-P297-051, TM-P297-052, TM-P297-054 | completed |
+| DOC-002 | `docs/` | User docs updated with interactive UX and new features | `docs/01-quickstart.md`, `docs/02-config-lifecycle.md`, `docs/04-docker-targets.md`, `docs/06-troubleshooting.md` | TM-P297-053 | completed |

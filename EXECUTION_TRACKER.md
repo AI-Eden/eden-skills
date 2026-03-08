@@ -7,7 +7,7 @@ This file quantifies implementation progress and enforces model responsibility b
 
 - Date: 2026-03-08
 - Workspace: `eden-skills`
-- Active Phase: **Phase 2.97** (Reliability, Interactive UX & Docker Safety)
+- Active Phase: **Phase 2.97 (completed)** (Reliability, Interactive UX & Docker Safety)
 
 ## 2. Responsibility Boundaries
 
@@ -39,8 +39,9 @@ Progress score (roadmap action items, Builder scope): `10 / 10 = 100%`
 
 - [x] CI gate setup for Linux + macOS + Windows (`.github/workflows/ci.yml`)
 - [x] Phase 2.95 closeout matrix re-verified (`fmt`, `clippy`, `test --all-targets`, Windows target check, ANSI scan); post-closeout `install.sh` PATH auto-rc follow-up revalidated on the full suite
+- [x] Phase 2.97 closeout matrix verified (`fmt`, `clippy`, `test --all-targets`, Windows target check, ANSI scan) after documentation and tracker sync
 
-Current automated tests: `436` (workspace unit/integration-style tests).
+Current automated tests: `451` (workspace unit/integration-style tests).
 
 ### 3.3 Phase 2.97 Work Packages
 
@@ -48,9 +49,9 @@ Current automated tests: `436` (workspace unit/integration-style tests).
 - [x] WP-2: Table/help/parse-error styling — comfy-table custom_styling + semantic help/footer/parse-error colorization (TST-001~010)
 - [x] WP-3: Interactive UX — MultiSelect for remove + install, description-on-hover (IUX-001~010)
 - [x] WP-4: Cache cleanup — `clean` command, `--auto-clean`, doctor orphan check (CCL-001~007)
-- [ ] WP-5: Docker managed — `.eden-managed` manifest, ownership guard (DMG-001~008)
+- [x] WP-5: Docker managed — `.eden-managed` manifest, ownership guard (DMG-001~008)
 - [x] WP-6: Hint sync — `→` → `~>` spec amendment (HSY-001~002)
-- [ ] WP-7: Documentation — README.md + docs/ update (DOC-001~002)
+- [x] WP-7: Documentation — README.md + docs/ update (DOC-001~002)
 
 ## 4. Pending Tasks with Planned LLM Ownership
 
@@ -80,4 +81,4 @@ Each directory contains `status.yaml` (machine-readable) and `tracker.md`
 | Phase 2.8 | Frozen | 2026-03-04 | 2026-03-05 | [trace/phase2.8/](trace/phase2.8/) |
 | Phase 2.9 | Frozen | 2026-03-05 | 2026-03-06 | [trace/phase2.9/](trace/phase2.9/) |
 | Phase 2.95 | Frozen | 2026-03-06 | 2026-03-07 | [trace/phase2.95/](trace/phase2.95/) |
-| **Phase 2.97** | **Spec Frozen** | 2026-03-07 | — | [trace/phase2.97/](trace/phase2.97/) |
+| **Phase 2.97** | **Closeout Completed** | 2026-03-07 | 2026-03-08 | [trace/phase2.97/](trace/phase2.97/) |

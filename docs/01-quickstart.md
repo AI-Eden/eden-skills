@@ -44,6 +44,9 @@ eden-skills install vercel-labs/agent-skills
 ```
 
 `eden-skills` auto-detects which agents you have installed (Claude Code, Cursor, Codex, Windsurf) and links each skill to the correct directory.
+In TTY sessions, the second form opens a checkbox selector when multiple skills
+are discovered. In non-interactive sessions, `install` falls back to installing
+all discovered skills.
 
 Verify:
 
@@ -65,6 +68,15 @@ eden-skills repair
 ```
 
 That is it. Skills are installed and ready.
+
+Optional cleanup:
+
+```bash
+eden-skills clean
+```
+
+Use `clean` any time you want to remove orphaned repo-cache entries or stale
+temporary discovery directories left behind by interrupted installs.
 
 ---
 
