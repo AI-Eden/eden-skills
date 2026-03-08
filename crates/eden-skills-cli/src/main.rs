@@ -49,6 +49,7 @@ fn print_domain_error(err: &EdenError) {
     } else {
         "error:".to_string()
     };
+    eprintln!();
     eprintln!("{prefix} {message}");
     if let Some(hint) = hint {
         eprintln!();
