@@ -9,9 +9,7 @@ use dialoguer::console::{measure_text_width, Key, Style, Term};
 use eden_skills_core::error::EdenError;
 
 #[cfg(windows)]
-use std::iter::once;
-#[cfg(windows)]
-use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
+use windows_sys::Win32::Foundation::CloseHandle;
 #[cfg(windows)]
 use windows_sys::Win32::System::Console::{
     FlushConsoleInputBuffer, WriteConsoleInputW, INPUT_RECORD, INPUT_RECORD_0, KEY_EVENT,

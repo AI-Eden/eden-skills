@@ -9,6 +9,7 @@ use std::time::Duration;
 use std::fs::File;
 #[cfg(unix)]
 use std::fs::OpenOptions;
+#[cfg(unix)]
 use std::io::IsTerminal;
 #[cfg(unix)]
 use std::os::fd::{AsRawFd, RawFd};
