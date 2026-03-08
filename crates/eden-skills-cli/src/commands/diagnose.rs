@@ -794,7 +794,7 @@ fn print_doctor_text(ui: &UiContext, findings: &[DoctorFinding]) {
     if findings.len() > 3 {
         let mut table = ui.table(&["Sev", "Code", "Skill"]);
         if let Some(column) = table.column_mut(0) {
-            column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(5)));
+            column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(5)));
         }
         for finding in findings {
             table.add_row(vec![

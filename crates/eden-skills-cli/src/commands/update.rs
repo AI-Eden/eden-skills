@@ -300,7 +300,7 @@ fn print_update_refresh_sections(
 
         let mut table = ui.table(&["Registry", "Status", "Detail"]);
         if let Some(column) = table.column_mut(1) {
-            column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(10)));
+            column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(10)));
         }
         for result in registry_results {
             table.add_row(vec![
@@ -325,7 +325,7 @@ fn print_update_refresh_sections(
         println!();
         let mut table = ui.table(&["Skill", "Status"]);
         if let Some(column) = table.column_mut(1) {
-            column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(12)));
+            column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(12)));
         }
         for result in skill_results {
             table.add_row(vec![

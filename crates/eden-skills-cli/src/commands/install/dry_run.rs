@@ -63,7 +63,7 @@ pub(super) fn print_install_dry_run(
 
     let mut skill_table = ui.table(&["#", "Skill", "Version", "Source"]);
     if let Some(column) = skill_table.column_mut(0) {
-        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(4)));
+        column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(4)));
     }
     for (index, row) in displayed_skills.iter().enumerate() {
         skill_table.add_row(vec![
@@ -89,7 +89,7 @@ pub(super) fn print_install_dry_run(
     println!();
     let mut target_table = ui.table(&["Agent", "Path", "Mode"]);
     if let Some(column) = target_table.column_mut(2) {
-        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
+        column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(8)));
     }
     for row in &preview_data.targets {
         target_table.add_row(vec![

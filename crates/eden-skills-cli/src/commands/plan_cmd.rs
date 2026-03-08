@@ -91,10 +91,10 @@ pub(crate) fn print_plan_text(ui: &UiContext, items: &[PlanItem]) {
 fn print_plan_table(ui: &UiContext, items: &[PlanItem]) {
     let mut table = ui.table(&["Action", "Skill", "Target", "Mode"]);
     if let Some(column) = table.column_mut(0) {
-        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(10)));
+        column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(10)));
     }
     if let Some(column) = table.column_mut(3) {
-        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
+        column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(8)));
     }
     for item in items {
         table.add_row(vec![

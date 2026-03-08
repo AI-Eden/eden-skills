@@ -8,8 +8,8 @@ use eden_skills_cli::ui::{configure_color_output, ColorWhen, UiContext};
 fn tm_p29_001_tty_table_factory_uses_content_driven_width() {
     let ui_source = read_source_file("src/ui/context.rs");
     assert!(
-        ui_source.contains("ContentArrangement::Disabled"),
-        "UiContext::table must use content-driven width (Disabled) in tty mode"
+        ui_source.contains("ContentArrangement::Dynamic"),
+        "UiContext::table must use terminal-adaptive width (Dynamic) in tty mode"
     );
     assert!(
         !ui_source.contains("ContentArrangement::DynamicFullWidth"),

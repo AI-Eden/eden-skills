@@ -163,7 +163,7 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
 
     let mut table = ui.table(&["Skill", "Mode", "Path", "Agents"]);
     if let Some(column) = table.column_mut(1) {
-        column.set_constraint(ColumnConstraint::UpperBoundary(Width::Fixed(8)));
+        column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(8)));
     }
     for skill in skills {
         let source_path = resolve_skill_source_path(&storage_root, skill);
