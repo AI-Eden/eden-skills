@@ -1,6 +1,6 @@
 # Eden-Skills: The Next-Gen Agent Skills Ecosystem
 
-**Version:** 1.0 | **Date:** Feb 2026 | **Status:** Execution In Progress (Phase 2 Complete)
+**Version:** 1.0 | **Date:** Feb–Mar 2026 | **Status:** Phase 2.97 Closeout Completed (Mar 2026)
 
 ---
 
