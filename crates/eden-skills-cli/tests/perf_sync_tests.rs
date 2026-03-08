@@ -2,7 +2,6 @@ mod common;
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use eden_skills_core::source::repo_cache_key;
 use tempfile::tempdir;
@@ -14,9 +13,9 @@ fn remote_install_reuses_discovery_clone_when_repo_cache_is_empty() {
     let repo_dir = init_remote_skill_repo(temp.path(), "remote-skill-repo", "remote-skill");
     let config_path = temp.path().join("skills.toml");
     let git_log = temp.path().join("git-clones.log");
-    let repo_url = as_file_url(&repo_dir);
+    let repo_url = common::path_to_file_url(&repo_dir);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env("EDEN_SKILLS_TEST_GIT_CLONE_LOG", &git_log)
         .args(["install", &repo_url, "--config"])
@@ -55,9 +54,9 @@ fn remote_install_falls_back_to_fresh_clone_when_cache_move_fails() {
     let repo_dir = init_remote_skill_repo(temp.path(), "rename-fallback-repo", "fallback-skill");
     let config_path = temp.path().join("skills.toml");
     let git_log = temp.path().join("git-clones.log");
-    let repo_url = as_file_url(&repo_dir);
+    let repo_url = common::path_to_file_url(&repo_dir);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env("EDEN_SKILLS_TEST_GIT_CLONE_LOG", &git_log)
         .env("EDEN_SKILLS_TEST_FORCE_DISCOVERY_RENAME_FAIL", "1")
@@ -107,7 +106,7 @@ description: Local skill
     .expect("write skill");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./local-skill", "--config"])
         .arg(&config_path)
@@ -144,9 +143,9 @@ fn tm_p295_031_install_batches_remote_sync_into_one_repo_fetch() {
     let config_path = temp.path().join("skills.toml");
     let clone_log = temp.path().join("git-clones.log");
     let fetch_log = temp.path().join("git-fetches.log");
-    let repo_url = as_file_url(&repo_dir);
+    let repo_url = common::path_to_file_url(&repo_dir);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env("EDEN_SKILLS_TEST_GIT_CLONE_LOG", &clone_log)
         .env("EDEN_SKILLS_TEST_GIT_FETCH_LOG", &fetch_log)
@@ -184,12 +183,12 @@ fn tm_p295_032_apply_reports_skipped_repo_without_fetching_unchanged_lock_entrie
     let target_root = temp.path().join("agent-skills");
     let config_path = write_mode_a_config(
         temp.path(),
-        &as_file_url(&repo_dir),
+        &common::path_to_file_url(&repo_dir),
         &storage_root,
         &target_root,
     );
 
-    let first_apply = eden_command(&home_dir)
+    let first_apply = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["apply", "--config"])
         .arg(&config_path)
@@ -203,7 +202,7 @@ fn tm_p295_032_apply_reports_skipped_repo_without_fetching_unchanged_lock_entrie
     );
 
     let fetch_log = temp.path().join("git-fetches.log");
-    let second_apply = eden_command(&home_dir)
+    let second_apply = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env("EDEN_SKILLS_TEST_GIT_FETCH_LOG", &fetch_log)
         .args(["apply", "--config"])
@@ -238,12 +237,12 @@ fn tm_p295_033_repair_always_fetches_repos_even_when_lock_entries_are_unchanged(
     let target_root = temp.path().join("agent-skills");
     let config_path = write_mode_a_config(
         temp.path(),
-        &as_file_url(&repo_dir),
+        &common::path_to_file_url(&repo_dir),
         &storage_root,
         &target_root,
     );
 
-    let first_apply = eden_command(&home_dir)
+    let first_apply = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["apply", "--config"])
         .arg(&config_path)
@@ -257,7 +256,7 @@ fn tm_p295_033_repair_always_fetches_repos_even_when_lock_entries_are_unchanged(
     );
 
     let fetch_log = temp.path().join("git-fetches.log");
-    let repair_output = eden_command(&home_dir)
+    let repair_output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env("EDEN_SKILLS_TEST_GIT_FETCH_LOG", &fetch_log)
         .args(["repair", "--config"])
@@ -283,14 +282,6 @@ fn tm_p295_033_repair_always_fetches_repos_even_when_lock_entries_are_unchanged(
     );
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
 fn init_remote_skill_repo(base: &Path, repo_name: &str, skill_name: &str) -> PathBuf {
     let repo = base.join(repo_name);
     fs::create_dir_all(&repo).expect("create repo dir");
@@ -307,12 +298,12 @@ description: Remote skill
     .expect("write skill");
     fs::write(repo.join("README.md"), "seed\n").expect("write readme");
 
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
+    common::run_git_cmd(&repo, &["init"]);
+    common::run_git_cmd(&repo, &["config", "user.email", "test@example.com"]);
+    common::run_git_cmd(&repo, &["config", "user.name", "eden-skills-test"]);
+    common::run_git_cmd(&repo, &["add", "."]);
+    common::run_git_cmd(&repo, &["commit", "-m", "init"]);
+    common::run_git_cmd(&repo, &["branch", "-M", "main"]);
     repo
 }
 
@@ -336,12 +327,12 @@ description: Remote skill
         fs::write(skill_dir.join("README.md"), format!("{skill_name}\n")).expect("write readme");
     }
 
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
+    common::run_git_cmd(&repo, &["init"]);
+    common::run_git_cmd(&repo, &["config", "user.email", "test@example.com"]);
+    common::run_git_cmd(&repo, &["config", "user.name", "eden-skills-test"]);
+    common::run_git_cmd(&repo, &["add", "."]);
+    common::run_git_cmd(&repo, &["commit", "-m", "init"]);
+    common::run_git_cmd(&repo, &["branch", "-M", "main"]);
     repo
 }
 
@@ -354,12 +345,12 @@ fn init_mode_a_origin_repo(base: &Path, repo_name: &str) -> PathBuf {
     )
     .expect("write source file");
 
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
+    common::run_git_cmd(&repo, &["init"]);
+    common::run_git_cmd(&repo, &["config", "user.email", "test@example.com"]);
+    common::run_git_cmd(&repo, &["config", "user.name", "eden-skills-test"]);
+    common::run_git_cmd(&repo, &["add", "."]);
+    common::run_git_cmd(&repo, &["commit", "-m", "init"]);
+    common::run_git_cmd(&repo, &["branch", "-M", "main"]);
     repo
 }
 
@@ -372,9 +363,9 @@ fn write_mode_a_config(
     let config_path = base.join("skills.toml");
     let config = format!(
         "version = 1\n\n[storage]\nroot = \"{}\"\n\n[[skills]]\nid = \"demo-skill\"\n\n[skills.source]\nrepo = \"{}\"\nsubpath = \"packages/browser\"\nref = \"main\"\n\n[skills.install]\nmode = \"symlink\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n\n[skills.verify]\nenabled = true\nchecks = [\"path-exists\", \"target-resolves\", \"is-symlink\"]\n\n[skills.safety]\nno_exec_metadata_only = false\n",
-        toml_escape_path(storage_root),
-        toml_escape_str(repo_url),
-        toml_escape_path(target_root)
+        common::toml_escape_path(storage_root),
+        common::toml_escape_string(repo_url),
+        common::toml_escape_path(target_root)
     );
     fs::write(&config_path, config).expect("write mode A config");
     config_path
@@ -396,39 +387,3 @@ fn event_count(log_path: &Path, event: &str) -> usize {
         .count()
 }
 
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
-}

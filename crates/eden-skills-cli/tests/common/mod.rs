@@ -6,11 +6,14 @@ use std::io::ErrorKind;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output};
 
 use eden_skills_cli::commands::CommandOptions;
 
 pub const SKILL_ID: &str = "demo-skill";
+
+pub const TEST_GIT_EMAIL: &str = "test@example.com";
+pub const TEST_GIT_NAME: &str = "eden-skills-test";
 
 pub fn default_options() -> CommandOptions {
     CommandOptions {
@@ -285,4 +288,81 @@ fn toml_escape(path: &Path) -> String {
 
 fn toml_escape_str(value: &str) -> String {
     value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+// ---- unified helpers added during WP-2 (Phase 2.99 Code Health) ----
+
+/// Build a `Command` for the eden-skills binary with `HOME` / `USERPROFILE`
+/// pointed at the given directory to isolate tests from the real home.
+pub fn eden_command(home_dir: &Path) -> Command {
+    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
+    command.env("HOME", home_dir);
+    #[cfg(windows)]
+    command.env("USERPROFILE", home_dir);
+    command
+}
+
+/// Assert that a command completed with exit code 0, printing stderr on
+/// failure.
+pub fn assert_success(output: &Output) {
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "command should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+/// Assert that a command completed with exit code 0, with a custom label
+/// in the failure message.
+pub fn assert_success_labeled(output: &Output, label: &str) {
+    assert_eq!(
+        output.status.code(),
+        Some(0),
+        "{label} should succeed, stderr={}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+}
+
+/// Convert a filesystem path to a `file://` URL, handling Windows drive
+/// letter normalization.
+pub fn path_to_file_url(path: &Path) -> String {
+    let mut normalized = path.display().to_string().replace('\\', "/");
+    if normalized
+        .as_bytes()
+        .get(1)
+        .is_some_and(|candidate| *candidate == b':')
+    {
+        normalized.insert(0, '/');
+    }
+    format!("file://{normalized}")
+}
+
+/// Escape a filesystem path for embedding inside a TOML double-quoted string.
+pub fn toml_escape_path(path: &Path) -> String {
+    path.display().to_string().replace('\\', "\\\\")
+}
+
+/// Escape an arbitrary string for embedding inside a TOML double-quoted string.
+pub fn toml_escape_string(value: &str) -> String {
+    value.replace('\\', "\\\\").replace('"', "\\\"")
+}
+
+/// Initialize a bare-bones git repo with a single commit.  `files` is a
+/// list of `(relative_path, content)` pairs written before the initial
+/// commit.
+pub fn init_git_repo(base: &Path, name: &str, files: &[(&str, &str)]) -> PathBuf {
+    let repo = base.join(name);
+    for (rel, content) in files {
+        let file_path = repo.join(rel);
+        fs::create_dir_all(file_path.parent().expect("parent")).expect("create parent dirs");
+        fs::write(&file_path, content).expect("write file");
+    }
+    run_git_cmd(&repo, &["init"]);
+    run_git_cmd(&repo, &["config", "user.email", TEST_GIT_EMAIL]);
+    run_git_cmd(&repo, &["config", "user.name", TEST_GIT_NAME]);
+    run_git_cmd(&repo, &["add", "."]);
+    run_git_cmd(&repo, &["commit", "-m", "init"]);
+    run_git_cmd(&repo, &["branch", "-M", "main"]);
+    repo
 }

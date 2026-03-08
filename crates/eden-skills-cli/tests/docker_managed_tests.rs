@@ -1,14 +1,18 @@
 #[cfg(unix)]
+mod common;
+
+#[cfg(unix)]
 use std::fs;
 #[cfg(unix)]
 use std::path::{Path, PathBuf};
-#[cfg(unix)]
-use std::process::Command;
 
 #[cfg(unix)]
 use serde_json::Value;
 #[cfg(unix)]
 use tempfile::tempdir;
+
+#[cfg(unix)]
+use common::{as_file_url, eden_command, run_git_cmd, toml_escape_path};
 
 #[cfg(unix)]
 #[test]
@@ -511,15 +515,6 @@ fn tm_p297_046_apply_force_reclaims_ownership_from_local_back_to_external() {
 }
 
 #[cfg(unix)]
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
-#[cfg(unix)]
 fn write_root_skill_repo(repo_dir: &Path, name: &str) {
     fs::create_dir_all(repo_dir).expect("create repo dir");
     fs::write(
@@ -802,12 +797,12 @@ fn init_apply_repo(repo_dir: &Path, name: &str) {
     )
     .expect("write SKILL.md");
     fs::write(repo_dir.join("README.md"), "repo version\n").expect("write README");
-    run_git(repo_dir, &["init"]);
-    run_git(repo_dir, &["config", "user.email", "test@example.com"]);
-    run_git(repo_dir, &["config", "user.name", "eden-skills-test"]);
-    run_git(repo_dir, &["add", "."]);
-    run_git(repo_dir, &["commit", "-m", "init"]);
-    run_git(repo_dir, &["branch", "-M", "main"]);
+    run_git_cmd(repo_dir, &["init"]);
+    run_git_cmd(repo_dir, &["config", "user.email", "test@example.com"]);
+    run_git_cmd(repo_dir, &["config", "user.name", "eden-skills-test"]);
+    run_git_cmd(repo_dir, &["add", "."]);
+    run_git_cmd(repo_dir, &["commit", "-m", "init"]);
+    run_git_cmd(repo_dir, &["branch", "-M", "main"]);
 }
 
 #[cfg(unix)]
@@ -831,34 +826,6 @@ fn read_config_skill_ids(config_path: &Path) -> Vec<String> {
                 .collect::<Vec<_>>()
         })
         .unwrap_or_default()
-}
-
-#[cfg(unix)]
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-#[cfg(unix)]
-fn as_file_url(path: &Path) -> String {
-    format!("file://{}", path.display())
-}
-
-#[cfg(unix)]
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
 }
 
 #[cfg(unix)]

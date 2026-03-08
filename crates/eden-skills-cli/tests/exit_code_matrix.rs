@@ -7,7 +7,10 @@ use std::process::Command;
 use eden_skills_core::source::resolve_repo_cache_root;
 use tempfile::tempdir;
 
-use common::{as_file_url, init_origin_repo, remove_symlink, write_config};
+use common::{
+    as_file_url, init_origin_repo, remove_symlink, toml_escape_path, toml_escape_string,
+    write_config,
+};
 
 #[test]
 fn apply_returns_exit_code_1_on_runtime_git_failure() {
@@ -560,9 +563,9 @@ fn write_multiskill_config(
 
     for (id, repo_url) in skills {
         content.push_str("[[skills]]\n");
-        content.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(id)));
+        content.push_str(&format!("id = \"{}\"\n\n", toml_escape_string(id)));
         content.push_str("[skills.source]\n");
-        content.push_str(&format!("repo = \"{}\"\n", toml_escape_str(repo_url)));
+        content.push_str(&format!("repo = \"{}\"\n", toml_escape_string(repo_url)));
         content.push_str("subpath = \"packages/browser\"\n");
         content.push_str("ref = \"main\"\n\n");
         content.push_str("[skills.install]\n");
@@ -580,12 +583,4 @@ fn write_multiskill_config(
     let config_path = base.join("skills.toml");
     fs::write(&config_path, content).expect("write config");
     config_path
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
 }

@@ -1,3 +1,10 @@
+//! Safety analysis: license detection and risk labeling for skill sources.
+//!
+//! Scans each skill's repository for a LICENSE file (MIT, Apache-2.0, BSD,
+//! ISC) and inspects the source tree for risk indicators such as shell
+//! scripts, executable permissions, and binary artifacts.  Results are
+//! persisted as `.eden-safety.toml` metadata files alongside each repo cache.
+
 use std::collections::BTreeSet;
 use std::fs;
 use std::io::Read;
@@ -43,6 +50,8 @@ pub struct SkillSafetyReport {
     pub retrieved_at_unix: u64,
 }
 
+/// Produce a safety report for every skill in the config: license
+/// detection, risk labeling, and commit-SHA capture.
 pub fn analyze_skills(
     config: &Config,
     config_dir: &Path,
@@ -77,6 +86,7 @@ pub fn analyze_skills(
     Ok(reports)
 }
 
+/// Write each report to its corresponding `.eden-safety.toml` file.
 pub fn persist_reports(reports: &[SkillSafetyReport]) -> Result<(), EdenError> {
     for report in reports {
         if let Some(parent) = report.metadata_path.parent() {

@@ -1,6 +1,7 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
 
 use tempfile::tempdir;
 
@@ -11,7 +12,7 @@ fn tty_install_output_contains_ansi_color_and_status_symbols() {
     let repo_dir = init_local_skill_repo(temp.path(), "tty-skill", "tty-skill");
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -21,7 +22,7 @@ fn tty_install_output_contains_ansi_color_and_status_symbols() {
         .arg(&config_path)
         .output()
         .expect("run install");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -41,7 +42,7 @@ fn no_color_disables_ansi_but_keeps_functional_status_output() {
     let repo_dir = init_local_skill_repo(temp.path(), "no-color-skill", "no-color-skill");
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("FORCE_COLOR")
         .env_remove("CI")
@@ -51,7 +52,7 @@ fn no_color_disables_ansi_but_keeps_functional_status_output() {
         .arg(&config_path)
         .output()
         .expect("run install");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -71,7 +72,7 @@ fn force_color_enables_ansi_even_on_non_tty() {
     let repo_dir = init_local_skill_repo(temp.path(), "force-color-skill", "force-color-skill");
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("CI")
@@ -80,7 +81,7 @@ fn force_color_enables_ansi_even_on_non_tty() {
         .arg(&config_path)
         .output()
         .expect("run install");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -96,7 +97,7 @@ fn ci_env_disables_ansi_even_when_tty_is_forced() {
     let repo_dir = init_local_skill_repo(temp.path(), "ci-skill", "ci-skill");
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -106,7 +107,7 @@ fn ci_env_disables_ansi_even_when_tty_is_forced() {
         .arg(&config_path)
         .output()
         .expect("run install");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -122,14 +123,14 @@ fn install_json_output_keeps_contract_and_omits_visual_elements() {
     let repo_dir = init_local_skill_repo(temp.path(), "json-skill-repo", "json-skill");
     let config_path = temp.path().join("skills.toml");
 
-    let init_output = eden_command(&home_dir)
+    let init_output = common::eden_command(&home_dir)
         .args(["init", "--config"])
         .arg(&config_path)
         .output()
         .expect("run init");
-    assert_success(&init_output);
+    common::assert_success(&init_output);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -144,7 +145,7 @@ fn install_json_output_keeps_contract_and_omits_visual_elements() {
         .arg(&config_path)
         .output()
         .expect("run install --json");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -186,10 +187,10 @@ fn tty_remote_install_clone_phase_shows_spinner_and_completion_status() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = init_git_skill_repo(temp.path(), "remote-spinner-repo", "remote-spinner-skill");
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
         .env_remove("CI")
@@ -198,7 +199,7 @@ fn tty_remote_install_clone_phase_shows_spinner_and_completion_status() {
         .arg(&config_path)
         .output()
         .expect("run install");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -216,10 +217,10 @@ fn non_tty_remote_install_disables_spinner_output() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = init_git_skill_repo(temp.path(), "remote-non-tty-repo", "remote-non-tty-skill");
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
         .env_remove("CI")
@@ -228,7 +229,7 @@ fn non_tty_remote_install_disables_spinner_output() {
         .arg(&config_path)
         .output()
         .expect("run install");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -239,14 +240,6 @@ fn non_tty_remote_install_disables_spinner_output() {
         !has_ansi_codes(&stdout),
         "non-TTY output should not contain ANSI escapes, stdout={stdout}"
     );
-}
-
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
 }
 
 fn init_local_skill_repo(base: &Path, name: &str, skill_name: &str) -> PathBuf {
@@ -263,39 +256,13 @@ fn init_local_skill_repo(base: &Path, name: &str, skill_name: &str) -> PathBuf {
 
 fn init_git_skill_repo(base: &Path, name: &str, skill_name: &str) -> PathBuf {
     let repo_dir = init_local_skill_repo(base, name, skill_name);
-    run_git(&repo_dir, &["init"]);
-    run_git(&repo_dir, &["config", "user.email", "test@example.com"]);
-    run_git(&repo_dir, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo_dir, &["add", "."]);
-    run_git(&repo_dir, &["commit", "-m", "init"]);
-    run_git(&repo_dir, &["branch", "-M", "main"]);
+    common::run_git_cmd(&repo_dir, &["init"]);
+    common::run_git_cmd(&repo_dir, &["config", "user.email", common::TEST_GIT_EMAIL]);
+    common::run_git_cmd(&repo_dir, &["config", "user.name", common::TEST_GIT_NAME]);
+    common::run_git_cmd(&repo_dir, &["add", "."]);
+    common::run_git_cmd(&repo_dir, &["commit", "-m", "init"]);
+    common::run_git_cmd(&repo_dir, &["branch", "-M", "main"]);
     repo_dir
-}
-
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
 }
 
 fn has_ansi_codes(text: &str) -> bool {
@@ -308,16 +275,4 @@ fn path_as_relative_arg(path: &Path) -> String {
         .and_then(|value| value.to_str())
         .expect("path should have valid UTF-8 file name");
     format!("./{file_name}")
-}
-
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
 }

@@ -17,9 +17,9 @@
 #[test]
 fn tm_p28_003_commands_modules_have_module_docs() {
     let cli_src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands");
-    let expected_modules = [
+    let expected_modules: &[&str] = &[
         "mod.rs",
-        "install.rs",
+        "install/mod.rs",
         "reconcile.rs",
         "diagnose.rs",
         "plan_cmd.rs",
@@ -27,6 +27,8 @@ fn tm_p28_003_commands_modules_have_module_docs() {
         "remove.rs",
         "update.rs",
         "common.rs",
+        "docker_cmd.rs",
+        "clean.rs",
     ];
     for module_name in expected_modules {
         let path = cli_src.join(module_name);
@@ -41,11 +43,11 @@ fn tm_p28_003_commands_modules_have_module_docs() {
 
 #[test]
 fn tm_p28_003_ui_has_module_doc() {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui.rs");
-    let content = std::fs::read_to_string(&path).expect("ui.rs should be readable");
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui/mod.rs");
+    let content = std::fs::read_to_string(&path).expect("ui/mod.rs should be readable");
     assert!(
         content.starts_with("//!"),
-        "ui.rs must start with //! module doc"
+        "ui/mod.rs must start with //! module doc"
     );
 }
 
@@ -71,7 +73,7 @@ fn tm_p28_034_public_command_functions_have_doc_comments() {
     let cli_src = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/commands");
 
     let checks: &[(&str, &[&str])] = &[
-        ("install.rs", &["pub async fn install_async"]),
+        ("install/mod.rs", &["pub async fn install_async"]),
         (
             "reconcile.rs",
             &["pub async fn apply_async", "pub async fn repair_async"],
@@ -123,15 +125,23 @@ fn tm_p28_035_core_modules_have_module_docs() {
         .unwrap()
         .join("eden-skills-core/src");
 
-    let expected_modules = [
+    let expected_modules: &[&str] = &[
         "reactor.rs",
         "lock.rs",
-        "adapter.rs",
+        "adapter/mod.rs",
         "source_format.rs",
         "discovery.rs",
         "config.rs",
         "plan.rs",
         "error.rs",
+        "registry.rs",
+        "source.rs",
+        "paths.rs",
+        "verify.rs",
+        "safety.rs",
+        "agents.rs",
+        "state.rs",
+        "managed.rs",
     ];
 
     for module_name in expected_modules {
@@ -151,41 +161,46 @@ fn tm_p28_035_core_modules_have_module_docs() {
 
 #[test]
 fn tm_p28_036_ui_public_items_have_doc_comments() {
-    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui.rs");
-    let content = std::fs::read_to_string(&path).expect("ui.rs should be readable");
+    let ui_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src/ui");
 
-    let expected_items = [
-        "pub enum ColorWhen",
-        "pub fn configure_color_output",
-        "pub fn color_output_enabled",
-        "pub enum StatusSymbol",
-        "pub struct UiContext",
-        "pub struct UiSpinner",
-        "pub fn abbreviate_home_path",
-        "pub fn abbreviate_repo_url",
+    let checks: &[(&str, &[&str])] = &[
+        (
+            "color.rs",
+            &[
+                "pub enum ColorWhen",
+                "pub fn configure_color_output",
+                "pub fn color_output_enabled",
+            ],
+        ),
+        ("table.rs", &["pub enum StatusSymbol"]),
+        (
+            "context.rs",
+            &["pub struct UiContext", "pub fn table(", "pub fn spinner("],
+        ),
+        (
+            "format.rs",
+            &[
+                "pub struct UiSpinner",
+                "pub fn abbreviate_home_path",
+                "pub fn abbreviate_repo_url",
+            ],
+        ),
     ];
 
-    for item in expected_items {
-        let pos = content
-            .find(item)
-            .unwrap_or_else(|| panic!("ui.rs: expected to find `{item}`"));
-        let before = &content[..pos];
-        assert!(
-            has_doc_comment_before(before),
-            "ui.rs: `{item}` must be preceded by a /// doc comment"
-        );
-    }
-
-    let method_items = ["pub fn table(", "pub fn spinner("];
-    for item in method_items {
-        let pos = content
-            .find(item)
-            .unwrap_or_else(|| panic!("ui.rs: expected to find `{item}`"));
-        let before = &content[..pos];
-        assert!(
-            has_doc_comment_before(before),
-            "ui.rs: `{item}` must be preceded by a /// doc comment"
-        );
+    for (file, items) in checks {
+        let path = ui_dir.join(file);
+        let content = std::fs::read_to_string(&path)
+            .unwrap_or_else(|_| panic!("ui/{file} should be readable"));
+        for item in *items {
+            let pos = content
+                .find(item)
+                .unwrap_or_else(|| panic!("ui/{file}: expected to find `{item}`"));
+            let before = &content[..pos];
+            assert!(
+                has_doc_comment_before(before),
+                "ui/{file}: `{item}` must be preceded by a /// doc comment"
+            );
+        }
     }
 }
 

@@ -2,14 +2,16 @@ mod common;
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use eden_skills_core::source::repo_cache_key;
 use serde_json::Value;
 use tempfile::tempdir;
 
-use common::{as_file_url, init_origin_repo, write_config, SKILL_ID};
+use common::{
+    as_file_url, assert_success, init_origin_repo, toml_escape_path, write_config, SKILL_ID,
+};
 
 #[test]
 fn tm_p297_029_clean_removes_orphaned_repo_cache_entries_not_in_config() {
@@ -311,15 +313,6 @@ fn eden_command(home_dir: &Path) -> Command {
     command
 }
 
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
 fn write_empty_config(config_path: &Path, storage_root: &Path) {
     let contents = format!(
         "version = 1\n\n[storage]\nroot = \"{}\"\n\nskills = []\n",
@@ -356,8 +349,4 @@ fn temp_root_for_home(home_dir: &Path) -> PathBuf {
         .parent()
         .expect("home dir should have a parent")
         .join("tmp")
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
 }

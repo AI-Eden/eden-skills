@@ -1,3 +1,9 @@
+//! `docker mount-hint` subcommand.
+//!
+//! Inspects the current `skills.toml` and a running Docker container to
+//! produce a list of recommended `-v` bind-mount flags.  The output can
+//! be copy-pasted into `docker run` or `docker-compose.yml`.
+
 use std::collections::HashSet;
 use std::path::{Path, PathBuf};
 
@@ -15,6 +21,8 @@ struct MountRecommendation {
     read_only: bool,
 }
 
+/// Print recommended `docker run -v` flags for the given container,
+/// based on the current `skills.toml` configuration.
 pub async fn docker_mount_hint_async(
     container_name: &str,
     config_path: &str,

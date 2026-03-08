@@ -1,9 +1,18 @@
+//! Path resolution, tilde expansion, and agent default-path registry.
+//!
+//! Provides the canonical mapping from [`AgentKind`] to its default
+//! global and project-scope skill directories, tilde (`~`) expansion,
+//! lexical path normalization (no filesystem access), and target-path
+//! resolution for both local and Docker environments.
+
 use std::env;
 use std::path::{Component, Path, PathBuf};
 
 use crate::config::{AgentKind, TargetConfig};
 use crate::error::EdenError;
 
+/// Well-known global skill directories across all supported agents.
+/// Used by auto-detection to probe the filesystem for installed agents.
 const KNOWN_DEFAULT_AGENT_PATHS: &[&str] = &[
     "~/.adal/skills",
     "~/.agents/skills",
@@ -45,6 +54,8 @@ const KNOWN_DEFAULT_AGENT_PATHS: &[&str] = &[
     "~/.zencoder/skills",
 ];
 
+/// Return the default global skill directory for the given agent, or
+/// `None` for [`AgentKind::Custom`].
 pub fn default_agent_path(agent: &AgentKind) -> Option<&'static str> {
     match agent {
         AgentKind::Amp => Some("~/.config/agents/skills"),
@@ -144,6 +155,7 @@ pub fn default_agent_project_path(agent: &AgentKind) -> Option<&'static str> {
     }
 }
 
+/// Expose the full list of known default agent paths for filesystem probing.
 pub fn known_default_agent_paths() -> &'static [&'static str] {
     KNOWN_DEFAULT_AGENT_PATHS
 }
@@ -177,6 +189,8 @@ pub fn colocated_agent_display_label(primary: &AgentKind) -> String {
         .join("/")
 }
 
+/// Resolve the absolute install target path for a skill target entry,
+/// trying `path` → `expected_path` → `default_agent_path` in order.
 pub fn resolve_target_path(target: &TargetConfig, config_dir: &Path) -> Result<PathBuf, EdenError> {
     if let Some(path) = &target.path {
         return resolve_path_string(path, config_dir);
@@ -192,6 +206,8 @@ pub fn resolve_target_path(target: &TargetConfig, config_dir: &Path) -> Result<P
     resolve_path_string(default_path, config_dir)
 }
 
+/// Expand `~` and resolve relative paths against `config_dir`, then
+/// normalize the result lexically (without touching the filesystem).
 pub fn resolve_path_string(input: &str, config_dir: &Path) -> Result<PathBuf, EdenError> {
     if input.trim().is_empty() {
         return Err(EdenError::Validation("path must not be empty".to_string()));
@@ -233,6 +249,8 @@ fn user_home_dir() -> Result<PathBuf, EdenError> {
     ))
 }
 
+/// Pure lexical normalization: collapse `.` and `..` components without
+/// any filesystem access.  Returns `"."` for an empty result.
 pub fn normalize_lexical(path: &Path) -> PathBuf {
     let mut normalized = PathBuf::new();
     for component in path.components() {

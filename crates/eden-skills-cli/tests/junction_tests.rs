@@ -1,6 +1,10 @@
+mod common;
+
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+#[cfg(windows)]
+use std::path::Path;
+use std::path::PathBuf;
+use std::process::Output;
 
 use eden_skills_core::lock::{lock_path_for_config, read_lock_file};
 use tempfile::TempDir;
@@ -12,7 +16,7 @@ const HARDCOPY_WARNING_SUBSTR: &str = "falling back to hardcopy mode";
 fn windows_symlink_available_uses_symlink_without_fallback_warning() {
     let fixture = InstallFixture::new("tm-p295-016");
     let output = fixture.run_install("1", Some("1"));
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -43,7 +47,7 @@ fn windows_symlink_available_uses_symlink_without_fallback_warning() {
 fn windows_symlink_unavailable_falls_back_to_junction_backed_symlink_mode() {
     let fixture = InstallFixture::new("tm-p295-017");
     let output = fixture.run_install("0", Some("1"));
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -65,7 +69,7 @@ fn windows_symlink_unavailable_falls_back_to_junction_backed_symlink_mode() {
 fn windows_symlink_and_junction_unavailable_fall_back_to_copy_mode() {
     let fixture = InstallFixture::new("tm-p295-018");
     let output = fixture.run_install("0", Some("0"));
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
@@ -97,7 +101,7 @@ fn windows_symlink_and_junction_unavailable_fall_back_to_copy_mode() {
 fn junction_backed_install_is_recorded_as_symlink_in_lock_file() {
     let fixture = InstallFixture::new("tm-p295-019");
     let output = fixture.run_install("0", Some("1"));
-    assert_success(&output);
+    common::assert_success(&output);
 
     assert_eq!(
         fixture.config_install_mode(),
@@ -118,7 +122,7 @@ fn junction_probe_creates_and_cleans_up_temp_junction() {
     let probe_log = fixture.temp.path().join("junction-probe.log");
 
     let output = fixture.run_probe_install(&probe_log);
-    assert_success(&output);
+    common::assert_success(&output);
 
     let log = fs::read_to_string(&probe_log).expect("read probe log");
     assert!(
@@ -174,7 +178,7 @@ impl InstallFixture {
     }
 
     fn run_install(&self, symlink_supported: &str, junction_supported: Option<&str>) -> Output {
-        let mut command = eden_command(&self.home_dir);
+        let mut command = common::eden_command(&self.home_dir);
         command.current_dir(self.temp.path());
         command.env(
             "EDEN_SKILLS_TEST_WINDOWS_SYMLINK_SUPPORTED",
@@ -199,7 +203,7 @@ impl InstallFixture {
 
     #[cfg(windows)]
     fn run_probe_install(&self, probe_log: &Path) -> Output {
-        let mut command = eden_command(&self.home_dir);
+        let mut command = common::eden_command(&self.home_dir);
         command.current_dir(self.temp.path());
         command.env("EDEN_SKILLS_TEST_WINDOWS_SYMLINK_SUPPORTED", "0");
         command.env_remove("EDEN_SKILLS_TEST_WINDOWS_JUNCTION_SUPPORTED");
@@ -251,25 +255,8 @@ impl InstallFixture {
     }
 }
 
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stdout=`{}` stderr=`{}`",
-        String::from_utf8_lossy(&output.stdout),
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
 #[cfg(windows)]
 fn parse_logged_path<'a>(log: &'a str, prefix: &str) -> Option<&'a str> {
     log.lines().find_map(|line| line.strip_prefix(prefix))
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}

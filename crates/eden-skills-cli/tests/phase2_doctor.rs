@@ -1,9 +1,13 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use tempfile::tempdir;
+
+use common::toml_escape_path;
 
 #[test]
 fn doctor_emits_registry_stale_when_last_sync_is_older_than_7_days() {
@@ -259,8 +263,4 @@ environment = "docker:test-container"
     )
     .expect("write config");
     config_path
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
 }

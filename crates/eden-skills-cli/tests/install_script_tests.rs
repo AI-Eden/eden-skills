@@ -1,3 +1,5 @@
+mod common;
+
 use std::fs;
 use std::path::PathBuf;
 
@@ -414,8 +416,8 @@ fn write_unix_release_fixture(base: &Path, version: &str, target: &str) -> UnixR
     .expect("write latest release json");
 
     UnixReleaseFixture {
-        api_url: to_file_url(&latest_json_path),
-        release_base_url: to_file_url(&release_root.join("download")),
+        api_url: common::as_file_url(&latest_json_path),
+        release_base_url: common::as_file_url(&release_root.join("download")),
     }
 }
 
@@ -516,11 +518,6 @@ fn workspace_root() -> PathBuf {
         .parent()
         .expect("workspace root")
         .to_path_buf()
-}
-
-#[cfg(not(windows))]
-fn to_file_url(path: &Path) -> String {
-    format!("file://{}", path.display())
 }
 
 #[cfg(not(windows))]

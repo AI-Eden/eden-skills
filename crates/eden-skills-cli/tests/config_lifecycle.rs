@@ -1,8 +1,11 @@
+mod common;
+
 use std::fs;
-use std::path::Path;
 use std::process::Command;
 
 use tempfile::tempdir;
+
+use common::eden_command;
 
 #[test]
 fn add_appends_skill_and_writes_valid_toml() {
@@ -361,7 +364,7 @@ fn remove_scans_known_agent_dirs_and_storage_root() {
     let home_dir = temp.path().join("home");
     let config_path = temp.path().join("skills.toml");
 
-    let init = eden_command_with_home(&home_dir)
+    let init = eden_command(&home_dir)
         .args(["init", "--config"])
         .arg(&config_path)
         .output()
@@ -373,7 +376,7 @@ fn remove_scans_known_agent_dirs_and_storage_root() {
         String::from_utf8_lossy(&init.stderr)
     );
 
-    let add = eden_command_with_home(&home_dir)
+    let add = eden_command(&home_dir)
         .args([
             "add",
             "--config",
@@ -401,7 +404,7 @@ fn remove_scans_known_agent_dirs_and_storage_root() {
     fs::create_dir_all(&shared_agents_target).expect("create shared agents target");
     fs::create_dir_all(&storage_target).expect("create storage target");
 
-    let remove = eden_command_with_home(&home_dir)
+    let remove = eden_command(&home_dir)
         .args([
             "remove",
             "scan-skill",
@@ -480,12 +483,4 @@ fn add_accepts_supported_agent_aliases_from_skills_ecosystem() {
         written.contains("agent = \"windsurf\""),
         "config should persist windsurf target alias, config=\n{written}"
     );
-}
-
-fn eden_command_with_home(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
 }

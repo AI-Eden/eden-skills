@@ -15,7 +15,7 @@ fn local_path_install_persists_absolute_repo_and_stages_source_into_storage_root
     fs::write(source_dir.join("README.md"), "demo skill").expect("write source file");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./test-skills", "--config"])
         .arg(&config_path)
@@ -67,7 +67,7 @@ fn install_warns_when_windows_symlink_and_junction_are_unavailable_and_falls_bac
     fs::write(source_dir.join("README.md"), "demo skill").expect("write source file");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env("EDEN_SKILLS_TEST_WINDOWS_SYMLINK_SUPPORTED", "0")
         .env("EDEN_SKILLS_TEST_WINDOWS_JUNCTION_SUPPORTED", "0")
@@ -120,7 +120,7 @@ fn install_fails_when_config_parent_directory_is_missing() {
     fs::write(source_dir.join("README.md"), "demo skill").expect("write source file");
 
     let missing_parent_config = temp.path().join("missing").join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./test-skills", "--config"])
         .arg(&missing_parent_config)
@@ -150,7 +150,7 @@ fn install_default_config_path_auto_creates_missing_parent_directory() {
         "test precondition: default config parent should be missing"
     );
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./test-skills"])
         .output()
@@ -181,7 +181,7 @@ fn local_path_precedence_wins_over_shorthand_shape() {
     fs::write(source_dir.join("README.md"), "demo skill").expect("write source file");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./owner/repo", "--config"])
         .arg(&config_path)
@@ -220,7 +220,7 @@ fn registry_name_input_still_uses_registry_mode() {
     write_registry_index_entry(
         &storage_root.join("registries").join("official"),
         "browser-tool",
-        &as_file_url(&skill_repo),
+        &common::path_to_file_url(&skill_repo),
         &head,
     );
 
@@ -249,14 +249,14 @@ ref = "main"
 agent = "custom"
 path = "{target_root}"
 "#,
-            storage_root = toml_escape_path(&storage_root),
-            skill_repo_url = as_file_url(&skill_repo),
-            target_root = toml_escape_path(&target_root),
+            storage_root = common::toml_escape_path(&storage_root),
+            skill_repo_url = common::path_to_file_url(&skill_repo),
+            target_root = common::toml_escape_path(&target_root),
         ),
     )
     .expect("write config");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["install", "browser-tool", "--config"])
         .arg(&config_path)
         .output()
@@ -285,7 +285,7 @@ fn install_url_mode_respects_id_override() {
     fs::write(source_dir.join("README.md"), "demo skill").expect("write source file");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["install", "./repo-name", "--id", "custom-name", "--config"])
         .arg(&config_path)
         .current_dir(temp.path())
@@ -337,7 +337,7 @@ agent = "claude-code"
     )
     .expect("write initial config");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["install", "./my-skill", "--config"])
         .arg(&config_path)
         .current_dir(temp.path())
@@ -369,24 +369,16 @@ agent = "claude-code"
     common::assert_paths_resolve_to_same_location(&source_dir, Path::new(actual_repo));
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
 fn init_git_repo(base: &Path, name: &str) -> std::path::PathBuf {
     let repo = base.join(name);
     fs::create_dir_all(repo.join("skill")).expect("create skill dir");
     fs::write(repo.join("skill/README.md"), "seed").expect("write file");
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
+    common::run_git_cmd(&repo, &["init"]);
+    common::run_git_cmd(&repo, &["config", "user.email", "test@example.com"]);
+    common::run_git_cmd(&repo, &["config", "user.name", "eden-skills-test"]);
+    common::run_git_cmd(&repo, &["add", "."]);
+    common::run_git_cmd(&repo, &["commit", "-m", "init"]);
+    common::run_git_cmd(&repo, &["branch", "-M", "main"]);
     repo
 }
 
@@ -442,35 +434,3 @@ fn git_head(repo: &Path) -> String {
     String::from_utf8_lossy(&output.stdout).trim().to_string()
 }
 
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}

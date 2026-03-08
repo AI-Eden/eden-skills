@@ -1,6 +1,8 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::Output;
 use std::sync::{Mutex, OnceLock};
 
 use eden_skills_cli::ui::{configure_color_output, ColorWhen, UiContext};
@@ -20,7 +22,7 @@ fn tm_p297_007_cli_cargo_toml_enables_custom_styling_feature() {
 fn tm_p297_008_list_table_headers_render_bold_when_colors_are_enabled() {
     let fixture = setup_list_fixture();
     let output = run_command_with_config(&fixture, "always", true, &["list"]);
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let header_line = stdout
@@ -40,7 +42,7 @@ fn tm_p297_008_list_table_headers_render_bold_when_colors_are_enabled() {
 fn tm_p297_009_list_skill_id_cells_render_bold_magenta_when_colors_are_enabled() {
     let fixture = setup_list_fixture();
     let output = run_command_with_config(&fixture, "always", true, &["list"]);
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let skill_line = stdout
@@ -121,7 +123,7 @@ fn tm_p297_011_styled_table_cells_keep_visible_column_alignment() {
 fn tm_p297_012_non_tty_list_output_contains_no_ansi_sequences() {
     let fixture = setup_list_fixture();
     let output = run_command_with_config(&fixture, "auto", false, &["list"]);
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -136,11 +138,11 @@ fn tm_p297_057_install_help_uses_colored_headers_literals_and_placeholders() {
     let home_dir = temp.path().join("home");
     fs::create_dir_all(&home_dir).expect("create HOME");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["--color", "always", "install", "--help"])
         .output()
         .expect("run install --help");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -164,7 +166,7 @@ fn tm_p297_057_install_help_uses_colored_headers_literals_and_placeholders() {
 fn tm_p297_058_list_uses_path_column_with_repo_cache_paths() {
     let fixture = setup_home_relative_list_fixture();
     let output = run_command_with_config(&fixture, "never", true, &["list"]);
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -181,7 +183,7 @@ fn tm_p297_058_list_uses_path_column_with_repo_cache_paths() {
 fn tm_p297_059_list_agents_column_truncates_after_five_with_yellow_suffix() {
     let fixture = setup_agents_overflow_fixture();
     let output = run_command_with_config(&fixture, "always", true, &["list"]);
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let skill_line = stdout
@@ -350,7 +352,11 @@ fn default_list_skills(base_dir: &Path) -> Vec<SkillEntry> {
 }
 
 fn write_skills_config(config_path: &Path, storage_root: &Path, skills: &[SkillEntry]) {
-    write_skills_config_with_storage_root(config_path, &toml_escape_path(storage_root), skills);
+    write_skills_config_with_storage_root(
+        config_path,
+        &common::toml_escape_path(storage_root),
+        skills,
+    );
 }
 
 fn write_skills_config_with_storage_root(
@@ -362,21 +368,24 @@ fn write_skills_config_with_storage_root(
 
     for skill in skills {
         config.push_str("\n[[skills]]\n");
-        config.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(&skill.id)));
+        config.push_str(&format!("id = \"{}\"\n\n", common::toml_escape_string(&skill.id)));
         config.push_str("[skills.source]\n");
-        config.push_str(&format!("repo = \"{}\"\n", toml_escape_str(&skill.repo)));
+        config.push_str(&format!("repo = \"{}\"\n", common::toml_escape_string(&skill.repo)));
         config.push_str(&format!(
             "subpath = \"{}\"\n",
-            toml_escape_str(&skill.subpath)
+            common::toml_escape_string(&skill.subpath)
         ));
         config.push_str("ref = \"main\"\n\n");
         config.push_str("[skills.install]\n");
-        config.push_str(&format!("mode = \"{}\"\n", toml_escape_str(&skill.mode)));
+        config.push_str(&format!("mode = \"{}\"\n", common::toml_escape_string(&skill.mode)));
         for target in &skill.targets {
             config.push_str("\n[[skills.targets]]\n");
-            config.push_str(&format!("agent = \"{}\"\n", toml_escape_str(&target.agent)));
+            config.push_str(&format!(
+                "agent = \"{}\"\n",
+                common::toml_escape_string(&target.agent)
+            ));
             if let Some(path) = &target.path {
-                config.push_str(&format!("path = \"{}\"\n", toml_escape_str(path)));
+                config.push_str(&format!("path = \"{}\"\n", common::toml_escape_string(path)));
             }
         }
         config.push_str("\n[skills.verify]\n");
@@ -398,7 +407,7 @@ fn run_command_with_config(
     force_tty: bool,
     command_args: &[&str],
 ) -> Output {
-    let mut command = eden_command(&fixture.home_dir);
+    let mut command = common::eden_command(&fixture.home_dir);
     command
         .current_dir(fixture.temp.path())
         .env_remove("NO_COLOR")
@@ -415,31 +424,6 @@ fn run_command_with_config(
     command.args(command_args);
     command.arg("--config").arg(&fixture.config_path);
     command.output().expect("run eden-skills command")
-}
-
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('\"', "\\\"")
 }
 
 fn has_ansi_codes(text: &str) -> bool {

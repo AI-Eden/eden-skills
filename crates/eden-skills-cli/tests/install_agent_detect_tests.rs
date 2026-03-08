@@ -1,6 +1,7 @@
+mod common;
+
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
 use tempfile::tempdir;
 
@@ -14,7 +15,7 @@ fn install_without_target_detects_multiple_agent_directories() {
     write_root_skill_repo(&repo_dir, "agent-skill");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./agent-detect-repo", "--config"])
         .arg(&config_path)
@@ -51,7 +52,7 @@ fn install_without_target_falls_back_to_claude_with_warning() {
     write_root_skill_repo(&repo_dir, "fallback-skill");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./fallback-repo", "--config"])
         .arg(&config_path)
@@ -88,7 +89,7 @@ fn install_without_target_detects_parent_only_global_agent_root() {
     write_root_skill_repo(&repo_dir, "opencode-parent-skill");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./parent-only-opencode-repo", "--config"])
         .arg(&config_path)
@@ -121,7 +122,7 @@ fn repeated_install_backfills_newly_detected_agent_target_for_existing_skill() {
     write_root_skill_repo(&repo_dir, "backfill-skill");
 
     let config_path = temp.path().join("skills.toml");
-    let first = eden_command(&home_dir)
+    let first = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./reinstall-backfill-repo", "--config"])
         .arg(&config_path)
@@ -145,7 +146,7 @@ fn repeated_install_backfills_newly_detected_agent_target_for_existing_skill() {
 
     fs::create_dir_all(home_dir.join(".config/opencode")).expect("create .config/opencode");
 
-    let second = eden_command(&home_dir)
+    let second = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./reinstall-backfill-repo", "--config"])
         .arg(&config_path)
@@ -194,7 +195,7 @@ fn explicit_target_override_skips_auto_detection() {
     write_root_skill_repo(&repo_dir, "override-skill");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "install",
@@ -234,7 +235,7 @@ fn explicit_shared_global_target_alias_installs_to_config_agents_path() {
     write_root_skill_repo(&repo_dir, "shared-global-skill");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "install",
@@ -285,7 +286,7 @@ fn install_with_docker_target_detects_multiple_agents_inside_container() {
     write_root_skill_repo(&repo_dir, "docker-agent-skill");
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env("PATH", &path_dir)
         .current_dir(temp.path())
         .args([
@@ -342,7 +343,7 @@ fn install_with_docker_target_falls_back_to_claude_when_container_has_no_agents(
     write_root_skill_repo(&repo_dir, "docker-fallback-skill");
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env("PATH", &path_dir)
         .current_dir(temp.path())
         .args([
@@ -439,7 +440,7 @@ no_exec_metadata_only = false
     )
     .expect("write manual docker config");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env("PATH", &path_dir)
         .current_dir(temp.path())
         .args([
@@ -473,14 +474,6 @@ no_exec_metadata_only = false
         !home_dir.join(".claude/skills/manual-docker-skill").exists(),
         "local auto-detection must not replace an existing manual docker target"
     );
-}
-
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
 }
 
 fn write_root_skill_repo(repo_dir: &Path, name: &str) {

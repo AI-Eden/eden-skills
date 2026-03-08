@@ -1,3 +1,10 @@
+//! Runtime agent auto-detection.
+//!
+//! Probes the user's home directory for known agent config roots and
+//! returns a list of [`TargetConfig`] values representing locally
+//! installed agents.  Used by `install --all` and `install --auto-detect`
+//! to discover targets without explicit configuration.
+
 use std::env;
 use std::path::{Path, PathBuf};
 use std::sync::OnceLock;
@@ -33,11 +40,15 @@ fn agent_rules() -> &'static [AgentDetectionRule] {
         .as_slice()
 }
 
+/// Detect all locally installed agents by probing `$HOME` for known
+/// config directories.
 pub fn detect_installed_agent_targets() -> Result<Vec<TargetConfig>, EdenError> {
     let home = user_home_dir()?;
     Ok(detect_installed_agent_targets_from_home(&home))
 }
 
+/// Like [`detect_installed_agent_targets`] but accepts an explicit home
+/// directory (useful in tests).
 pub fn detect_installed_agent_targets_from_home(home: &Path) -> Vec<TargetConfig> {
     let mut detected = Vec::new();
     for rule in agent_rules() {

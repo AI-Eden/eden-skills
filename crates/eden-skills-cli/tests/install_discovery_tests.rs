@@ -1,6 +1,7 @@
+mod common;
+
 use std::fs;
 use std::path::Path;
-use std::process::Command;
 
 use serde_json::Value;
 use tempfile::tempdir;
@@ -23,7 +24,7 @@ description: Root skill
     fs::write(repo_dir.join("README.md"), "demo").expect("write readme");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./single-repo", "--config"])
         .arg(&config_path)
@@ -49,7 +50,7 @@ fn skills_directory_discovery_with_all_installs_all_skills() {
     write_skill(&repo_dir.join("skills/b/SKILL.md"), "skill-b", "B");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./multi-skills", "--all", "--config"])
         .arg(&config_path)
@@ -76,7 +77,7 @@ fn packages_directory_discovery_with_all_installs_all_skills() {
     write_skill(&repo_dir.join("packages/y/SKILL.md"), "pkg-y", "Y");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./multi-packages", "--all", "--config"])
         .arg(&config_path)
@@ -103,7 +104,7 @@ fn missing_skill_markdown_installs_root_with_warning() {
     fs::write(repo_dir.join("README.md"), "demo").expect("write readme");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./no-skill-md", "--config"])
         .arg(&config_path)
@@ -134,7 +135,7 @@ fn single_discovered_skill_with_unmatched_skill_flag_returns_error() {
     write_skill(&repo_dir.join("SKILL.md"), "single-skill", "demo");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "install",
@@ -166,7 +167,7 @@ fn missing_skill_markdown_with_skill_flag_returns_error_instead_of_root_fallback
     fs::write(repo_dir.join("README.md"), "demo").expect("write readme");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "install",
@@ -204,7 +205,7 @@ fn list_flag_prints_discovered_skills_without_modifying_config() {
     );
 
     let config_path = temp.path().join("skills.toml");
-    let init_output = eden_command(&home_dir)
+    let init_output = common::eden_command(&home_dir)
         .args(["init", "--config"])
         .arg(&config_path)
         .output()
@@ -217,7 +218,7 @@ fn list_flag_prints_discovered_skills_without_modifying_config() {
     );
 
     let before = fs::read_to_string(&config_path).expect("read before");
-    let list_output = eden_command(&home_dir)
+    let list_output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./list-repo", "--list", "--config"])
         .arg(&config_path)
@@ -254,7 +255,7 @@ fn tm_p29_015_install_list_shows_card_style_numbered_list() {
     );
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "--color",
@@ -301,7 +302,7 @@ fn tm_p29_017_discovery_description_uses_indented_followup_line() {
     );
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "--color",
@@ -338,7 +339,7 @@ fn tm_p29_018_discovery_skill_without_description_renders_name_only_line() {
     write_skill_without_description(&repo_dir.join("skills/plain/SKILL.md"), "plain-skill");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "--color",
@@ -379,7 +380,7 @@ fn skill_flags_install_only_selected_skills() {
     write_skill(&repo_dir.join("skills/c/SKILL.md"), "skill-c", "C");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "install",
@@ -414,7 +415,7 @@ fn unknown_skill_name_returns_error_with_available_names() {
     write_skill(&repo_dir.join("skills/b/SKILL.md"), "skill-b", "B");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "install",
@@ -447,7 +448,7 @@ fn interactive_tty_test_indices_install_all() {
     write_skill(&repo_dir.join("skills/b/SKILL.md"), "skill-b", "B");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
@@ -477,7 +478,7 @@ fn interactive_tty_test_indices_select_named_skills() {
     write_skill(&repo_dir.join("skills/b/SKILL.md"), "skill-b", "B");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
@@ -506,7 +507,7 @@ fn non_tty_defaults_to_install_all_for_multi_skill_repo() {
     write_skill(&repo_dir.join("skills/b/SKILL.md"), "skill-b", "B");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args(["install", "./non-tty-default", "--config"])
         .arg(&config_path)
@@ -529,10 +530,10 @@ fn remote_url_with_all_installs_all_discovered_skills() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = init_git_skill_repo(temp.path(), "remote-multi-all", &["skill-a", "skill-b"]);
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["install", &source, "--all", "--config"])
         .arg(&config_path)
         .output()
@@ -558,10 +559,10 @@ fn remote_url_with_skill_installs_only_selected_skill() {
         "remote-multi-select",
         &["skill-a", "skill-b", "skill-c"],
     );
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["install", &source, "--skill", "skill-b", "--config"])
         .arg(&config_path)
         .output()
@@ -582,10 +583,10 @@ fn remote_url_list_does_not_create_config_or_install_targets() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = init_git_skill_repo(temp.path(), "remote-list-only", &["skill-a", "skill-b"]);
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["install", &source, "--list", "--config"])
         .arg(&config_path)
         .output()
@@ -627,7 +628,7 @@ fn agent_convention_skill_directory_supports_skill_flag_selection() {
     );
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "install",
@@ -667,7 +668,7 @@ fn recursive_fallback_discovery_supports_skill_flag_selection() {
     );
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "install",
@@ -695,10 +696,10 @@ fn remote_url_missing_skill_markdown_with_skill_flag_returns_error() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = init_git_repo_without_skill(temp.path(), "remote-no-skill-select");
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["install", &source, "--skill", "missing", "--config"])
         .arg(&config_path)
         .output()
@@ -717,10 +718,10 @@ fn tm_p29_020_source_sync_shows_step_style_progress_in_tty() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = init_git_skill_repo(temp.path(), "remote-progress-tty", &["skill-a", "skill-b"]);
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .args([
@@ -759,10 +760,10 @@ fn tm_p29_021_source_sync_prints_summary_line_after_completion() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = init_git_skill_repo(temp.path(), "remote-sync-summary-tty", &["skill-a"]);
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .args([
@@ -801,10 +802,10 @@ fn tm_p29_022_non_tty_source_sync_skips_progress_bar_and_keeps_summary() {
     let temp = tempdir().expect("tempdir");
     let home_dir = temp.path().join("home");
     let repo_dir = init_git_skill_repo(temp.path(), "remote-sync-summary-non-tty", &["skill-a"]);
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("EDEN_SKILLS_FORCE_TTY")
         .args([
             "--color",
@@ -855,7 +856,7 @@ fn tm_p29_023_install_results_use_tree_display_with_connectors() {
     );
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "--color",
@@ -915,7 +916,7 @@ fn tm_p29_024_tree_groups_skill_name_once_per_skill_group() {
     );
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "--color",
@@ -969,7 +970,7 @@ fn tm_p29_027_install_list_json_contract_returns_discovered_skill_array() {
     );
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "--color",
@@ -1040,7 +1041,7 @@ fn interactive_confirm_interrupt_cancels_without_error_output() {
     write_skill(&repo_dir.join("skills/b/SKILL.md"), "skill-b", "B");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
@@ -1087,7 +1088,7 @@ fn dry_run_multi_skill_preview_defaults_to_eight_skill_rows() {
     }
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "--color",
@@ -1172,7 +1173,7 @@ fn dry_run_multi_skill_with_list_shows_all_skill_rows() {
     }
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .args([
             "--color",
@@ -1206,14 +1207,6 @@ fn dry_run_multi_skill_with_list_shows_all_skill_rows() {
         !stdout.contains("use --dry-run --list to show all"),
         "dry-run --list should not emit truncation footer, stdout={stdout}"
     );
-}
-
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
 }
 
 fn write_skill(skill_md_path: &Path, name: &str, description: &str) {
@@ -1257,12 +1250,12 @@ fn init_git_skill_repo(base: &Path, name: &str, skills: &[&str]) -> std::path::P
             &format!("{skill} description"),
         );
     }
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
+    common::run_git_cmd(&repo, &["init"]);
+    common::run_git_cmd(&repo, &["config", "user.email", common::TEST_GIT_EMAIL]);
+    common::run_git_cmd(&repo, &["config", "user.name", common::TEST_GIT_NAME]);
+    common::run_git_cmd(&repo, &["add", "."]);
+    common::run_git_cmd(&repo, &["commit", "-m", "init"]);
+    common::run_git_cmd(&repo, &["branch", "-M", "main"]);
     repo
 }
 
@@ -1270,42 +1263,13 @@ fn init_git_repo_without_skill(base: &Path, name: &str) -> std::path::PathBuf {
     let repo = base.join(name);
     fs::create_dir_all(&repo).expect("mkdir repo");
     fs::write(repo.join("README.md"), "demo").expect("write readme");
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
+    common::run_git_cmd(&repo, &["init"]);
+    common::run_git_cmd(&repo, &["config", "user.email", common::TEST_GIT_EMAIL]);
+    common::run_git_cmd(&repo, &["config", "user.name", common::TEST_GIT_NAME]);
+    common::run_git_cmd(&repo, &["add", "."]);
+    common::run_git_cmd(&repo, &["commit", "-m", "init"]);
+    common::run_git_cmd(&repo, &["branch", "-M", "main"]);
     repo
-}
-
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
 }
 
 fn combined_output_text(output: &std::process::Output) -> String {

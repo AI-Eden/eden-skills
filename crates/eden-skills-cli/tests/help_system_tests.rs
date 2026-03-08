@@ -1,8 +1,12 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
 use toml::Value;
+
+use common::{assert_success, eden_command};
 
 #[test]
 fn version_flag_and_short_alias_print_package_version() {
@@ -379,14 +383,6 @@ fn run_eden_force_color<const N: usize>(args: [&str; N]) -> Output {
         .expect("run eden-skills with FORCE_COLOR")
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
 fn init_local_skill_repo(base: &Path, name: &str, skill_name: &str) -> PathBuf {
     let repo_dir = base.join(name);
     fs::create_dir_all(&repo_dir).expect("create local skill repo");
@@ -397,13 +393,4 @@ fn init_local_skill_repo(base: &Path, name: &str, skill_name: &str) -> PathBuf {
     .expect("write SKILL.md");
     fs::write(repo_dir.join("README.md"), "demo").expect("write README.md");
     repo_dir
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
 }

@@ -1,7 +1,8 @@
+mod common;
+
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::process::{Command, Output};
 
 use eden_skills_core::config::{load_from_file, LoadOptions};
 use eden_skills_core::lock::{
@@ -20,12 +21,12 @@ fn batch_remove_multiple_skills_updates_config_and_lock() {
     write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
     write_lock_snapshot(&config_path);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["remove", "a", "c", "--color", "never", "--config"])
         .arg(&config_path)
         .output()
         .expect("run batch remove");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let remaining = read_skill_ids(&config_path);
     assert_eq!(remaining, vec!["b".to_string()]);
@@ -51,7 +52,7 @@ fn batch_remove_unknown_id_fails_atomically_without_partial_removal() {
     write_config(&config_path, &storage_root, &target_root, &["a", "b"]);
     write_lock_snapshot(&config_path);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["remove", "a", "nonexistent", "--color", "never", "--config"])
         .arg(&config_path)
         .output()
@@ -92,7 +93,7 @@ fn remove_without_args_on_tty_enters_interactive_selection_mode() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0,2")
@@ -101,7 +102,7 @@ fn remove_without_args_on_tty_enters_interactive_selection_mode() {
         .arg(&config_path)
         .output()
         .expect("run interactive remove");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let remaining = read_skill_ids(&config_path);
     assert_eq!(remaining, vec!["b".to_string()]);
@@ -116,7 +117,7 @@ fn remove_without_args_selects_all_skills_from_zero_based_indices() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0,1,2")
@@ -125,7 +126,7 @@ fn remove_without_args_selects_all_skills_from_zero_based_indices() {
         .arg(&config_path)
         .output()
         .expect("run interactive remove with all indices");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let first = stdout
@@ -158,7 +159,7 @@ fn remove_without_args_rejects_star_as_special_remove_syntax() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "*")
@@ -196,7 +197,7 @@ fn remove_without_args_empty_confirmation_uses_default_no_and_cancels() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0,2")
@@ -205,7 +206,7 @@ fn remove_without_args_empty_confirmation_uses_default_no_and_cancels() {
         .arg(&config_path)
         .output()
         .expect("run interactive remove with empty confirmation");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -230,7 +231,7 @@ fn remove_without_args_on_non_tty_fails_with_usage_hint() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["a"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["remove", "--color", "never", "--config"])
         .arg(&config_path)
         .output()
@@ -258,7 +259,7 @@ fn remove_yes_flag_skips_confirmation_prompt() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["browser-tool"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_CONFIRM", "n")
@@ -273,7 +274,7 @@ fn remove_yes_flag_skips_confirmation_prompt() {
         .arg(&config_path)
         .output()
         .expect("run remove --yes");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let remaining = read_skill_ids(&config_path);
     assert!(
@@ -291,7 +292,7 @@ fn remove_index_selection_yes_flag_skips_confirmation_prompt_and_removes_all() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0,1,2")
@@ -299,7 +300,7 @@ fn remove_index_selection_yes_flag_skips_confirmation_prompt_and_removes_all() {
         .arg(&config_path)
         .output()
         .expect("run remove -y with index selection");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let remaining = read_skill_ids(&config_path);
     assert!(
@@ -317,7 +318,7 @@ fn remove_confirm_interrupt_is_handled_as_graceful_cancellation() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["interrupt-me"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_CONFIRM", "interrupt")
@@ -325,7 +326,7 @@ fn remove_confirm_interrupt_is_handled_as_graceful_cancellation() {
         .arg(&config_path)
         .output()
         .expect("run remove with interrupted confirmation");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -349,7 +350,7 @@ fn remove_without_args_declined_confirmation_cancels_removal() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0,2")
@@ -358,7 +359,7 @@ fn remove_without_args_declined_confirmation_cancels_removal() {
         .arg(&config_path)
         .output()
         .expect("run interactive remove with declined confirmation");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -383,7 +384,7 @@ fn remove_selection_interrupt_is_handled_as_graceful_cancellation() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["a", "b"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "interrupt")
@@ -391,7 +392,7 @@ fn remove_selection_interrupt_is_handled_as_graceful_cancellation() {
         .arg(&config_path)
         .output()
         .expect("run interactive remove with interrupted selection");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -415,7 +416,7 @@ fn install_yes_flag_skips_prompts_for_multi_skill_repo() {
     write_skill(&repo_dir.join("skills/b/SKILL.md"), "skill-b", "B");
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
@@ -424,7 +425,7 @@ fn install_yes_flag_skips_prompts_for_multi_skill_repo() {
         .arg(&config_path)
         .output()
         .expect("run install -y on multi-skill repo");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let mut installed = read_skill_ids(&config_path);
     installed.sort();
@@ -441,14 +442,14 @@ fn remove_without_args_on_empty_config_reports_nothing_to_remove() {
     let config_path = temp.path().join("skills.toml");
     write_empty_config(&config_path, &temp.path().join("storage"));
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .args(["remove", "--color", "never", "--config"])
         .arg(&config_path)
         .output()
         .expect("run remove with empty config");
-    assert_success(&output);
+    common::assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Skills   0 configured"), "stdout={stdout}");
     assert!(stdout.contains("Nothing to remove."), "stdout={stdout}");
@@ -463,12 +464,12 @@ fn batch_remove_json_output_contains_removed_array() {
     let target_root = temp.path().join("targets");
     write_config(&config_path, &storage_root, &target_root, &["a", "b", "c"]);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["remove", "a", "b", "--json", "--config"])
         .arg(&config_path)
         .output()
         .expect("run batch remove --json");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     let payload: Value = serde_json::from_str(&stdout).expect("remove --json should be valid JSON");
@@ -487,27 +488,10 @@ fn batch_remove_json_output_contains_removed_array() {
     assert_eq!(removed, vec!["a".to_string(), "b".to_string()]);
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
 fn write_empty_config(config_path: &Path, storage_root: &Path) {
     let contents = format!(
         "version = 1\n\n[storage]\nroot = \"{}\"\n\nskills = []\n",
-        toml_escape_path(storage_root)
+        common::toml_escape_path(storage_root)
     );
     fs::write(config_path, contents).expect("write empty config");
 }
@@ -523,14 +507,14 @@ fn write_config(config_path: &Path, storage_root: &Path, target_root: &Path, ids
 
     let mut contents = format!(
         "version = 1\n\n[storage]\nroot = \"{}\"\n\n",
-        toml_escape_path(storage_root)
+        common::toml_escape_path(storage_root)
     );
     for id in ids {
         contents.push_str(&format!(
             "[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"{}\"\nsubpath = \".\"\nref = \"main\"\n\n[skills.install]\nmode = \"symlink\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n\n[skills.verify]\nenabled = true\nchecks = [\"path-exists\", \"target-resolves\", \"is-symlink\"]\n\n[skills.safety]\nno_exec_metadata_only = false\n\n",
-            toml_escape_str(id),
-            toml_escape_path(&repo_root),
-            toml_escape_path(target_root),
+            common::toml_escape_string(id),
+            common::toml_escape_path(&repo_root),
+            common::toml_escape_path(target_root),
         ));
     }
 
@@ -583,12 +567,4 @@ fn write_skill(skill_md_path: &Path, name: &str, description: &str) {
         .parent()
         .expect("skill directory should exist");
     fs::write(skill_dir.join("README.md"), "demo").expect("write skill README");
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
 }

@@ -1,7 +1,10 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::Output;
 
+use common::{assert_success, create_symlink, eden_command, init_git_repo, path_to_file_url, remove_symlink, toml_escape_path, toml_escape_string};
 use eden_skills_core::lock::{
     lock_path_for_config, read_lock_file, write_lock_file, LockSkillEntry, LockTarget,
 };
@@ -412,7 +415,7 @@ fn setup_fixture(skill_ids: &[&str], target_labels: &[&str]) -> Fixture {
         "origin-repo",
         &[("packages/browser/README.md", "seed\n")],
     );
-    let repo_url = as_file_url(&origin_repo);
+    let repo_url = path_to_file_url(&origin_repo);
     let config_path = temp.path().join("skills.toml");
     write_config(
         &config_path,
@@ -445,9 +448,9 @@ fn write_config(
 
     for skill_id in skill_ids {
         config.push_str("\n[[skills]]\n");
-        config.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(skill_id)));
+        config.push_str(&format!("id = \"{}\"\n\n", toml_escape_string(skill_id)));
         config.push_str("[skills.source]\n");
-        config.push_str(&format!("repo = \"{}\"\n", toml_escape_str(repo_url)));
+        config.push_str(&format!("repo = \"{}\"\n", toml_escape_string(repo_url)));
         config.push_str("subpath = \"packages/browser\"\n");
         config.push_str("ref = \"main\"\n\n");
         config.push_str("[skills.install]\n");
@@ -492,102 +495,7 @@ fn run_command_with_config(
     command.output().expect("run eden-skills command")
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
-fn init_git_repo(base: &Path, name: &str, files: &[(&str, &str)]) -> PathBuf {
-    let repo = base.join(name);
-    for (rel, content) in files {
-        let path = repo.join(rel);
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).expect("create parent directory");
-        }
-        fs::write(path, content).expect("write repo file");
-    }
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
-    repo
-}
-
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
 fn has_ansi_codes(text: &str) -> bool {
     text.as_bytes().windows(2).any(|window| window == b"\x1b[")
 }
 
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('\"', "\\\"")
-}
-
-#[cfg(unix)]
-fn remove_symlink(path: &Path) -> std::io::Result<()> {
-    fs::remove_file(path)
-}
-
-#[cfg(windows)]
-fn remove_symlink(path: &Path) -> std::io::Result<()> {
-    match fs::remove_file(path) {
-        Ok(()) => Ok(()),
-        Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => fs::remove_dir(path),
-        Err(err) => Err(err),
-    }
-}
-
-#[cfg(unix)]
-fn create_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
-    std::os::unix::fs::symlink(source, target)
-}
-
-#[cfg(windows)]
-fn create_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
-    std::os::windows::fs::symlink_dir(source, target)
-}

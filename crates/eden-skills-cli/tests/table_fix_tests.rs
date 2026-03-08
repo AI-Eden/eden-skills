@@ -6,7 +6,7 @@ use eden_skills_cli::ui::{configure_color_output, ColorWhen, UiContext};
 
 #[test]
 fn tm_p29_001_tty_table_factory_uses_content_driven_width() {
-    let ui_source = read_source_file("src/ui.rs");
+    let ui_source = read_source_file("src/ui/context.rs");
     assert!(
         ui_source.contains("ContentArrangement::Disabled"),
         "UiContext::table must use content-driven width (Disabled) in tty mode"
@@ -98,13 +98,14 @@ fn tm_p29_003_fixed_columns_apply_upper_boundary_constraints_at_call_sites() {
         "update registry table constraints",
     );
 
-    let install = read_source_file("src/commands/install.rs");
+    let discovery = read_source_file("src/commands/install/discovery.rs");
     assert!(
-        !install.contains("ui.table(&[\"#\", \"Name\", \"Description\"])"),
+        !discovery.contains("ui.table(&[\"#\", \"Name\", \"Description\"])"),
         "install discovery preview should no longer use a table renderer in Phase 2.9"
     );
+    let dry_run = read_source_file("src/commands/install/dry_run.rs");
     assert_contains_all(
-        &install,
+        &dry_run,
         &[
             "ui.table(&[\"Agent\", \"Path\", \"Mode\"])",
             "column_mut(2)",

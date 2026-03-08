@@ -1,7 +1,10 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::Output;
 
+use common::{assert_success, eden_command, path_to_file_url, remove_symlink, run_git_cmd, toml_escape_path, toml_escape_string};
 use tempfile::{tempdir, TempDir};
 
 struct Fixture {
@@ -321,7 +324,7 @@ fn setup_fixture(
     }
 
     let origin_repo = init_git_repo(temp.path(), "origin-repo", include_license);
-    let repo_url = as_file_url(&origin_repo);
+    let repo_url = path_to_file_url(&origin_repo);
     let config_path = temp.path().join("skills.toml");
     write_config(
         &config_path,
@@ -350,7 +353,7 @@ fn write_config(
 ) {
     let checks = verify_checks
         .iter()
-        .map(|check| format!("\"{}\"", toml_escape_str(check)))
+        .map(|check| format!("\"{}\"", toml_escape_string(check)))
         .collect::<Vec<_>>()
         .join(", ");
 
@@ -361,9 +364,9 @@ fn write_config(
 
     for skill_id in skill_ids {
         config.push_str("\n[[skills]]\n");
-        config.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(skill_id)));
+        config.push_str(&format!("id = \"{}\"\n\n", toml_escape_string(skill_id)));
         config.push_str("[skills.source]\n");
-        config.push_str(&format!("repo = \"{}\"\n", toml_escape_str(repo_url)));
+        config.push_str(&format!("repo = \"{}\"\n", toml_escape_string(repo_url)));
         config.push_str("subpath = \"packages/browser\"\n");
         config.push_str("ref = \"main\"\n\n");
         config.push_str("[skills.install]\n");
@@ -414,14 +417,6 @@ fn run_command_with_config(
     command.output().expect("run eden-skills command")
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
 fn setup_local_discovery_repo(base: &Path, name: &str, skills: &[(&str, &str)]) -> PathBuf {
     let repo_dir = base.join(name);
     for (skill_name, description) in skills {
@@ -457,71 +452,12 @@ fn init_git_repo(base: &Path, name: &str, include_license: bool) -> PathBuf {
         )
         .expect("write license");
     }
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
+    run_git_cmd(&repo, &["init"]);
+    run_git_cmd(&repo, &["config", "user.email", common::TEST_GIT_EMAIL]);
+    run_git_cmd(&repo, &["config", "user.name", common::TEST_GIT_NAME]);
+    run_git_cmd(&repo, &["add", "."]);
+    run_git_cmd(&repo, &["commit", "-m", "init"]);
+    run_git_cmd(&repo, &["branch", "-M", "main"]);
     repo
 }
 
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('\"', "\\\"")
-}
-
-#[cfg(unix)]
-fn remove_symlink(path: &Path) -> std::io::Result<()> {
-    fs::remove_file(path)
-}
-
-#[cfg(windows)]
-fn remove_symlink(path: &Path) -> std::io::Result<()> {
-    match fs::remove_file(path) {
-        Ok(()) => Ok(()),
-        Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => fs::remove_dir(path),
-        Err(err) => Err(err),
-    }
-}

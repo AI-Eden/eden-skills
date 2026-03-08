@@ -1,3 +1,5 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
@@ -19,7 +21,7 @@ struct ModeAFixture {
 fn tm_p29_006_update_with_mode_a_skills_fetches_and_reports_status() {
     let fixture = setup_mode_a_fixture("symlink", false);
     let apply_output = run_command(&fixture, "never", false, &["apply"]);
-    assert_success(&apply_output);
+    common::assert_success(&apply_output);
 
     commit_file(
         &fixture.skill_repo,
@@ -29,7 +31,7 @@ fn tm_p29_006_update_with_mode_a_skills_fetches_and_reports_status() {
     );
 
     let update_output = run_command(&fixture, "never", false, &["update"]);
-    assert_success(&update_output);
+    common::assert_success(&update_output);
     let stdout = String::from_utf8_lossy(&update_output.stdout);
 
     assert!(
@@ -50,7 +52,7 @@ fn tm_p29_006_update_with_mode_a_skills_fetches_and_reports_status() {
 fn tm_p29_007_update_without_apply_does_not_mutate_local_state() {
     let fixture = setup_mode_a_fixture("symlink", false);
     let apply_output = run_command(&fixture, "never", false, &["apply"]);
-    assert_success(&apply_output);
+    common::assert_success(&apply_output);
 
     commit_file(
         &fixture.skill_repo,
@@ -62,7 +64,7 @@ fn tm_p29_007_update_without_apply_does_not_mutate_local_state() {
     let local_repo = mode_a_repo_dir(&fixture);
     let local_head_before = git_head(&local_repo);
     let update_output = run_command(&fixture, "never", false, &["update"]);
-    assert_success(&update_output);
+    common::assert_success(&update_output);
     let local_head_after = git_head(&local_repo);
     let stdout = String::from_utf8_lossy(&update_output.stdout);
 
@@ -80,7 +82,7 @@ fn tm_p29_007_update_without_apply_does_not_mutate_local_state() {
 fn tm_p29_008_update_apply_reconciles_skills_with_new_commits() {
     let fixture = setup_mode_a_fixture("copy", false);
     let apply_output = run_command(&fixture, "never", false, &["apply"]);
-    assert_success(&apply_output);
+    common::assert_success(&apply_output);
 
     let installed_readme = fixture.target_root.join("mode-a-skill/README.md");
     let before_content = fs::read_to_string(&installed_readme).expect("read target before update");
@@ -98,7 +100,7 @@ fn tm_p29_008_update_apply_reconciles_skills_with_new_commits() {
     let origin_head = git_head(&fixture.skill_repo);
 
     let update_output = run_command(&fixture, "never", false, &["update", "--apply"]);
-    assert_success(&update_output);
+    common::assert_success(&update_output);
     let stdout = String::from_utf8_lossy(&update_output.stdout);
 
     let after_content = fs::read_to_string(&installed_readme).expect("read target after update");
@@ -129,7 +131,7 @@ fn tm_p29_009_update_with_no_registries_and_no_skills_shows_guidance() {
         &config_path,
         format!(
             "version = 1\n\n[storage]\nroot = \"{}\"\n\nskills = []\n",
-            toml_escape_path(&storage_root)
+            common::toml_escape_path(&storage_root)
         ),
     )
     .expect("write empty config");
@@ -142,7 +144,7 @@ fn tm_p29_009_update_with_no_registries_and_no_skills_shows_guidance() {
         &["update"],
         &config_path,
     );
-    assert_success(&output);
+    common::assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     assert!(
@@ -159,7 +161,7 @@ fn tm_p29_009_update_with_no_registries_and_no_skills_shows_guidance() {
 fn tm_p29_010_update_skill_refresh_renders_as_table() {
     let fixture = setup_mode_a_fixture("symlink", false);
     let output = run_command(&fixture, "never", false, &["update"]);
-    assert_success(&output);
+    common::assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     assert!(
@@ -176,7 +178,7 @@ fn tm_p29_010_update_skill_refresh_renders_as_table() {
 fn tm_p29_011_update_skill_status_cells_are_semantically_styled() {
     let fixture = setup_mode_a_fixture("symlink", false);
     let output = run_command(&fixture, "always", true, &["update"]);
-    assert_success(&output);
+    common::assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     let status_line = stdout
@@ -196,7 +198,7 @@ fn tm_p29_011_update_skill_status_cells_are_semantically_styled() {
 fn tm_p29_012_update_json_includes_skills_array() {
     let fixture = setup_mode_a_fixture("symlink", false);
     let output = run_command(&fixture, "never", false, &["update", "--json"]);
-    assert_success(&output);
+    common::assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
     let payload: Value = serde_json::from_str(&stdout).unwrap_or_else(|err| {
         panic!("update --json should emit valid JSON, err={err} stdout={stdout}")
@@ -226,7 +228,7 @@ fn tm_p29_012_update_json_includes_skills_array() {
 fn tm_p29_013_update_with_registries_and_skills_shows_both_sections() {
     let fixture = setup_mode_a_fixture("symlink", true);
     let output = run_command(&fixture, "never", false, &["update"]);
-    assert_success(&output);
+    common::assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
 
     assert!(
@@ -265,7 +267,7 @@ fn tm_p29_014_update_skill_refresh_uses_reactor_concurrency() {
 fn tm_p295_034_update_mode_a_refresh_uses_repo_cache_paths() {
     let fixture = setup_mode_a_fixture("symlink", false);
     let apply_output = run_command(&fixture, "never", false, &["apply"]);
-    assert_success(&apply_output);
+    common::assert_success(&apply_output);
 
     let legacy_per_skill_dir = fixture.storage_root.join("mode-a-skill");
     fs::create_dir_all(&legacy_per_skill_dir).expect("create legacy per-skill dir");
@@ -283,7 +285,7 @@ fn tm_p295_034_update_mode_a_refresh_uses_repo_cache_paths() {
     );
 
     let update_output = run_command(&fixture, "never", false, &["update"]);
-    assert_success(&update_output);
+    common::assert_success(&update_output);
     let stdout = String::from_utf8_lossy(&update_output.stdout);
 
     assert!(
@@ -305,7 +307,7 @@ fn setup_mode_a_fixture(install_mode: &str, with_registries: bool) -> ModeAFixtu
     fs::create_dir_all(&target_root).expect("create target root");
     let config_path = temp.path().join("skills.toml");
 
-    let skill_repo = init_git_repo(
+    let skill_repo = common::init_git_repo(
         temp.path(),
         "skill-origin",
         &[("packages/browser/README.md", "seed\n")],
@@ -313,24 +315,24 @@ fn setup_mode_a_fixture(install_mode: &str, with_registries: bool) -> ModeAFixtu
 
     let mut registries: Vec<(String, String, i64)> = Vec::new();
     if with_registries {
-        let official_registry = init_git_repo(
+        let official_registry = common::init_git_repo(
             temp.path(),
             "registry-official",
             &[("manifest.toml", "format_version = 1\nname = \"official\"\n")],
         );
-        let forge_registry = init_git_repo(
+        let forge_registry = common::init_git_repo(
             temp.path(),
             "registry-forge",
             &[("manifest.toml", "format_version = 1\nname = \"forge\"\n")],
         );
-        registries.push(("official".to_string(), as_file_url(&official_registry), 100));
-        registries.push(("forge".to_string(), as_file_url(&forge_registry), 10));
+        registries.push(("official".to_string(), common::path_to_file_url(&official_registry), 100));
+        registries.push(("forge".to_string(), common::path_to_file_url(&forge_registry), 10));
     }
 
     write_mode_a_config(
         &config_path,
         &storage_root,
-        &as_file_url(&skill_repo),
+        &common::path_to_file_url(&skill_repo),
         &target_root,
         install_mode,
         &registries,
@@ -356,15 +358,15 @@ fn write_mode_a_config(
 ) {
     let mut config = format!(
         "version = 1\n\n[storage]\nroot = \"{}\"\n",
-        toml_escape_path(storage_root)
+        common::toml_escape_path(storage_root)
     );
     if !registries.is_empty() {
         config.push_str("\n[registries]\n");
         for (name, url, priority) in registries {
             config.push_str(&format!(
                 "{} = {{ url = \"{}\", priority = {} }}\n",
-                toml_escape_str(name),
-                toml_escape_str(url),
+                common::toml_escape_string(name),
+                common::toml_escape_string(url),
                 priority
             ));
         }
@@ -395,9 +397,9 @@ checks = ["path-exists"]
 [skills.safety]
 no_exec_metadata_only = false
 "#,
-        skill_repo_url = toml_escape_str(skill_repo_url),
-        install_mode = toml_escape_str(install_mode),
-        target_root = toml_escape_path(target_root),
+        skill_repo_url = common::toml_escape_string(skill_repo_url),
+        install_mode = common::toml_escape_string(install_mode),
+        target_root = common::toml_escape_path(target_root),
     ));
     fs::write(config_path, config).expect("write mode A config");
 }
@@ -426,7 +428,7 @@ fn run_command_raw(
     command_args: &[&str],
     config_path: &Path,
 ) -> Output {
-    let mut command = eden_command(home_dir);
+    let mut command = common::eden_command(home_dir);
     command
         .current_dir(cwd)
         .env_remove("NO_COLOR")
@@ -443,38 +445,12 @@ fn run_command_raw(
     command.output().expect("run eden-skills command")
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
 fn mode_a_repo_dir(fixture: &ModeAFixture) -> PathBuf {
     resolve_repo_cache_root(
         &fixture.storage_root,
-        &as_file_url(&fixture.skill_repo),
+        &common::path_to_file_url(&fixture.skill_repo),
         "main",
     )
-}
-
-fn init_git_repo(base: &Path, name: &str, files: &[(&str, &str)]) -> PathBuf {
-    let repo = base.join(name);
-    for (rel, content) in files {
-        let path = repo.join(rel);
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).expect("create parent");
-        }
-        fs::write(path, content).expect("write file");
-    }
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
-    repo
 }
 
 fn commit_file(repo: &Path, rel_path: &str, content: &str, message: &str) {
@@ -483,8 +459,8 @@ fn commit_file(repo: &Path, rel_path: &str, content: &str, message: &str) {
         fs::create_dir_all(parent).expect("create parent");
     }
     fs::write(file_path, content).expect("write commit content");
-    run_git(repo, &["add", "."]);
-    run_git(repo, &["commit", "-m", message]);
+    common::run_git_cmd(repo, &["add", "."]);
+    common::run_git_cmd(repo, &["commit", "-m", message]);
 }
 
 fn git_head(repo: &Path) -> String {
@@ -502,52 +478,7 @@ fn git_head(repo: &Path) -> String {
     String::from_utf8_lossy(&output.stdout).trim().to_string()
 }
 
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('\"', "\\\"")
-}
-
 fn has_ansi_codes(text: &str) -> bool {
     text.as_bytes().windows(2).any(|window| window == b"\x1b[")
 }
 
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}

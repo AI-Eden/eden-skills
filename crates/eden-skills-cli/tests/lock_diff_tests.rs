@@ -8,20 +8,7 @@ use eden_skills_core::lock::{
     LOCK_VERSION,
 };
 
-fn default_options() -> CommandOptions {
-    CommandOptions {
-        strict: false,
-        json: false,
-    }
-}
-
-fn toml_escape(p: &std::path::Path) -> String {
-    p.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(s: &str) -> String {
-    s.replace('\\', "\\\\").replace('"', "\\\"")
-}
+use common::{default_options, toml_escape_path, toml_escape_string};
 
 // ---------------------------------------------------------------------------
 // TM-P27-004: Orphan removal via apply
@@ -73,9 +60,9 @@ path = "{target}"
 enabled = true
 checks = ["path-exists", "target-resolves", "is-symlink"]
 "#,
-        storage = toml_escape(&storage),
-        repo = toml_escape_str(&repo_url),
-        target = toml_escape(&target),
+        storage = toml_escape_path(&storage),
+        repo = toml_escape_string(&repo_url),
+        target = toml_escape_path(&target),
     );
 
     let config_path = dir.path().join("skills.toml");
@@ -118,9 +105,9 @@ path = "{target}"
 enabled = true
 checks = ["path-exists", "target-resolves", "is-symlink"]
 "#,
-        storage = toml_escape(&storage),
-        repo = toml_escape_str(&repo_url),
-        target = toml_escape(&target),
+        storage = toml_escape_path(&storage),
+        repo = toml_escape_string(&repo_url),
+        target = toml_escape_path(&target),
     );
     fs::write(&config_path, config_a_only).unwrap();
 
@@ -165,7 +152,7 @@ fn plan_shows_remove_actions_for_orphans() {
 [storage]
 root = "{}"
 "#,
-        toml_escape(&storage),
+        toml_escape_path(&storage),
     );
     let config_path = dir.path().join("skills.toml");
     fs::write(&config_path, config_content).unwrap();
@@ -206,7 +193,7 @@ fn plan_json_includes_remove_action() {
 [storage]
 root = "{}"
 "#,
-        toml_escape(&storage),
+        toml_escape_path(&storage),
     );
     let config_path = dir.path().join("skills.toml");
     fs::write(&config_path, config_content).unwrap();
@@ -370,9 +357,9 @@ path = "{target}"
 enabled = true
 checks = ["path-exists", "target-resolves", "is-symlink"]
 "#,
-        storage = toml_escape(&storage),
-        repo = toml_escape_str(&repo_url),
-        target = toml_escape(&target),
+        storage = toml_escape_path(&storage),
+        repo = toml_escape_string(&repo_url),
+        target = toml_escape_path(&target),
     );
 
     let config_path = dir.path().join("skills.toml");
@@ -395,7 +382,7 @@ checks = ["path-exists", "target-resolves", "is-symlink"]
 [storage]
 root = "{}"
 "#,
-        toml_escape(&storage),
+        toml_escape_path(&storage),
     );
     fs::write(&config_path, empty_config).unwrap();
 
@@ -463,9 +450,9 @@ path = "{target}"
 enabled = true
 checks = ["path-exists", "target-resolves", "is-symlink"]
 "#,
-        storage = toml_escape(&storage),
-        repo = toml_escape_str(&repo_url),
-        target = toml_escape(&target),
+        storage = toml_escape_path(&storage),
+        repo = toml_escape_string(&repo_url),
+        target = toml_escape_path(&target),
     );
 
     let config_path = dir.path().join("skills.toml");
@@ -506,7 +493,7 @@ fi
 echo "unsupported docker call: $@" >&2
 exit 1
 "#,
-        toml_escape(&docker_calls)
+        toml_escape_path(&docker_calls)
     );
     fs::write(&docker_stub, script).unwrap();
     let mut perms = fs::metadata(&docker_stub).unwrap().permissions();

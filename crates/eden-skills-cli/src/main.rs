@@ -1,3 +1,9 @@
+//! Binary entry point for the `eden-skills` CLI.
+//!
+//! Handles process-level concerns: tokio runtime bootstrap, SIGINT /
+//! cursor-restore, exit-code mapping, and styled error rendering for
+//! both domain errors ([`EdenError`]) and clap parse errors.
+
 use std::io::{IsTerminal, Write};
 use std::process::ExitCode;
 use std::sync::Once;

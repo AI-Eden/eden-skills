@@ -1,7 +1,10 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
 
+use common::{assert_success, eden_command, path_to_file_url, run_git_cmd};
 use eden_skills_core::source::resolve_repo_cache_root;
 use serde_json::Value;
 use tempfile::{tempdir, TempDir};
@@ -79,7 +82,7 @@ fn tm_p297_003_update_clears_stale_index_lock_before_fetching() {
     let fixture = setup_remote_install_fixture(&["lock-skill"]);
     let repo_dir = resolve_repo_cache_root(
         &storage_root(&fixture),
-        &as_file_url(&fixture.source_root),
+        &path_to_file_url(&fixture.source_root),
         "main",
     );
     let index_lock = repo_dir.join(".git").join("index.lock");
@@ -120,7 +123,7 @@ fn tm_p297_004_update_clears_stale_shallow_lock_before_fetching() {
     let fixture = setup_remote_install_fixture(&["lock-skill"]);
     let repo_dir = resolve_repo_cache_root(
         &storage_root(&fixture),
-        &as_file_url(&fixture.source_root),
+        &path_to_file_url(&fixture.source_root),
         "main",
     );
     let shallow_lock = repo_dir.join(".git").join("shallow.lock");
@@ -236,7 +239,7 @@ fn setup_remote_install_fixture(skill_names: &[&str]) -> InstallFixture {
         &home_dir,
         &config_path,
         &target_root,
-        &as_file_url(&source_root),
+        &path_to_file_url(&source_root),
     );
     assert_success(&install_output);
 
@@ -257,7 +260,7 @@ fn setup_local_install_fixture(skill_names: &[&str]) -> InstallFixture {
     let config_path = temp.path().join("skills.toml");
     let source_root = init_multi_skill_repo(temp.path(), "local-source", skill_names);
 
-    run_git(
+    run_git_cmd(
         &source_root,
         &[
             "remote",
@@ -349,12 +352,12 @@ description: Test skill
         fs::write(skill_dir.join("README.md"), format!("{skill_name}\n")).expect("write readme");
     }
 
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
+    run_git_cmd(&repo, &["init"]);
+    run_git_cmd(&repo, &["config", "user.email", common::TEST_GIT_EMAIL]);
+    run_git_cmd(&repo, &["config", "user.name", common::TEST_GIT_NAME]);
+    run_git_cmd(&repo, &["add", "."]);
+    run_git_cmd(&repo, &["commit", "-m", "init"]);
+    run_git_cmd(&repo, &["branch", "-M", "main"]);
     repo
 }
 
@@ -364,8 +367,8 @@ fn commit_file(repo: &Path, rel_path: &str, content: &str, message: &str) {
         fs::create_dir_all(parent).expect("create parent");
     }
     fs::write(file_path, content).expect("write commit content");
-    run_git(repo, &["add", "."]);
-    run_git(repo, &["commit", "-m", message]);
+    run_git_cmd(repo, &["add", "."]);
+    run_git_cmd(repo, &["commit", "-m", message]);
 }
 
 fn write_stale_lock(lock_path: &Path) {
@@ -422,48 +425,3 @@ fn fetch_count(log_path: &Path) -> usize {
         .count()
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}

@@ -1,6 +1,7 @@
+mod common;
+
 use std::fs;
 use std::path::Path;
-use std::process::{Command, Output};
 use std::sync::{Mutex, MutexGuard, OnceLock};
 
 use dialoguer::console::{measure_text_width, set_colors_enabled, set_colors_enabled_stderr};
@@ -24,7 +25,7 @@ fn remove_without_args_selects_expected_skills_from_test_indices() {
         &["alpha", "beta", "gamma"],
     );
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0,2")
@@ -33,7 +34,7 @@ fn remove_without_args_selects_expected_skills_from_test_indices() {
         .arg(&config_path)
         .output()
         .expect("run interactive remove");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let remaining = read_skill_ids(&config_path);
     assert_eq!(remaining, vec!["beta".to_string()]);
@@ -57,7 +58,7 @@ fn install_uses_test_indices_for_multi_skill_selection() {
     );
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
@@ -67,7 +68,7 @@ fn install_uses_test_indices_for_multi_skill_selection() {
         .arg(&config_path)
         .output()
         .expect("run interactive install");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let mut installed = read_skill_ids(&config_path);
     installed.sort();
@@ -90,7 +91,7 @@ fn install_all_flag_bypasses_interactive_test_input() {
     write_skill(&repo_dir.join("skills/beta/SKILL.md"), "beta-skill", "Beta");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
@@ -99,7 +100,7 @@ fn install_all_flag_bypasses_interactive_test_input() {
         .arg(&config_path)
         .output()
         .expect("run install --all");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let mut installed = read_skill_ids(&config_path);
     installed.sort();
@@ -122,7 +123,7 @@ fn install_skill_flag_bypasses_interactive_test_input() {
     write_skill(&repo_dir.join("skills/beta/SKILL.md"), "beta-skill", "Beta");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
@@ -137,7 +138,7 @@ fn install_skill_flag_bypasses_interactive_test_input() {
         .arg(&config_path)
         .output()
         .expect("run install --skill");
-    assert_success(&output);
+    common::assert_success(&output);
 
     assert_eq!(read_skill_ids(&config_path), vec!["beta-skill".to_string()]);
 }
@@ -150,7 +151,7 @@ fn install_single_discovered_skill_bypasses_interactive_test_input() {
     write_skill(&repo_dir.join("SKILL.md"), "solo-skill", "Solo");
 
     let config_path = temp.path().join("skills.toml");
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
@@ -159,7 +160,7 @@ fn install_single_discovered_skill_bypasses_interactive_test_input() {
         .arg(&config_path)
         .output()
         .expect("run install single");
-    assert_success(&output);
+    common::assert_success(&output);
 
     assert_eq!(read_skill_ids(&config_path), vec!["solo-skill".to_string()]);
 }
@@ -178,7 +179,7 @@ fn remove_test_input_interrupt_cancels_without_modifying_config() {
         &["alpha", "beta"],
     );
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "interrupt")
@@ -186,7 +187,7 @@ fn remove_test_input_interrupt_cancels_without_modifying_config() {
         .arg(&config_path)
         .output()
         .expect("run interrupted interactive remove");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("◆  Remove canceled"), "stdout={stdout}");
@@ -210,7 +211,7 @@ fn remove_star_input_is_not_treated_as_wildcard() {
         &["alpha", "beta", "gamma"],
     );
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "*")
@@ -250,7 +251,7 @@ fn remove_explicit_ids_ignore_interactive_test_input() {
         &["alpha", "beta", "gamma"],
     );
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0,2")
@@ -259,7 +260,7 @@ fn remove_explicit_ids_ignore_interactive_test_input() {
         .arg(&config_path)
         .output()
         .expect("run explicit remove");
-    assert_success(&output);
+    common::assert_success(&output);
 
     assert_eq!(
         read_skill_ids(&config_path),
@@ -281,7 +282,7 @@ fn remove_selection_declined_confirmation_keeps_config_unchanged() {
         &["alpha", "beta", "gamma"],
     );
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0,2")
@@ -290,7 +291,7 @@ fn remove_selection_declined_confirmation_keeps_config_unchanged() {
         .arg(&config_path)
         .output()
         .expect("run declined interactive remove");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(stdout.contains("Remove cancelled"), "stdout={stdout}");
@@ -501,23 +502,6 @@ fn ui_context_signal_cancelled_line_uses_red_diamond() {
     assert!(rendered.contains("\u{1b}[31m"), "rendered={rendered}");
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
 fn write_config(config_path: &Path, storage_root: &Path, target_root: &Path, ids: &[&str]) {
     let repo_root = config_path
         .parent()
@@ -529,14 +513,14 @@ fn write_config(config_path: &Path, storage_root: &Path, target_root: &Path, ids
 
     let mut contents = format!(
         "version = 1\n\n[storage]\nroot = \"{}\"\n\n",
-        toml_escape_path(storage_root)
+        common::toml_escape_path(storage_root)
     );
     for id in ids {
         contents.push_str(&format!(
             "[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"{}\"\nsubpath = \".\"\nref = \"main\"\n\n[skills.install]\nmode = \"symlink\"\n\n[[skills.targets]]\nagent = \"custom\"\npath = \"{}\"\n\n[skills.verify]\nenabled = true\nchecks = [\"path-exists\", \"target-resolves\", \"is-symlink\"]\n\n[skills.safety]\nno_exec_metadata_only = false\n\n",
-            toml_escape_str(id),
-            toml_escape_path(&repo_root),
-            toml_escape_path(target_root),
+            common::toml_escape_string(id),
+            common::toml_escape_path(&repo_root),
+            common::toml_escape_path(target_root),
         ));
     }
 
@@ -580,14 +564,6 @@ fn write_skill(skill_md_path: &Path, name: &str, description: &str) {
         .parent()
         .expect("skill directory should exist");
     fs::write(skill_dir.join("README.md"), "demo").expect("write skill README");
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
 fn test_env_lock() -> &'static Mutex<()> {

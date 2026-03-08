@@ -1,3 +1,11 @@
+//! Git source synchronization and repo-level caching.
+//!
+//! Manages the `.repos/` cache directory under the storage root.  Each
+//! unique `(repo_url, ref)` pair maps to a single cache directory keyed by
+//! [`repo_cache_key`].  Synchronization is parallelized through the
+//! [`SkillReactor`] and supports clone, fetch, checkout, and
+//! fast-forward pull stages.
+
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -79,6 +87,8 @@ struct GitOutput {
     stdout: String,
 }
 
+/// Normalize a git URL into a flat, lowercase, filesystem-safe string
+/// suitable for use as a cache directory name component.
 pub fn normalize_repo_url(url: &str) -> String {
     let without_scheme = url.split_once("://").map_or(url, |(_, rest)| rest);
     let scp_normalized = if let Some(rest) = without_scheme.strip_prefix("git@") {
@@ -103,6 +113,8 @@ pub fn normalize_repo_url(url: &str) -> String {
         .collect()
 }
 
+/// Strip non-portable characters from a git ref so it can safely appear
+/// in a filesystem path.
 pub fn sanitize_ref(reference: &str) -> String {
     reference
         .chars()
@@ -115,6 +127,8 @@ pub fn sanitize_ref(reference: &str) -> String {
         .collect()
 }
 
+/// Build the canonical cache key for a `(repo_url, ref)` pair:
+/// `normalize_repo_url(url)@sanitize_ref(ref)`.
 pub fn repo_cache_key(repo_url: &str, reference: &str) -> String {
     format!(
         "{}@{}",
@@ -123,6 +137,8 @@ pub fn repo_cache_key(repo_url: &str, reference: &str) -> String {
     )
 }
 
+/// Resolve the absolute path to a repo cache directory under
+/// `<storage_root>/.repos/<cache_key>`.
 pub fn resolve_repo_cache_root(storage_root: &Path, repo_url: &str, reference: &str) -> PathBuf {
     normalize_lexical(
         &storage_root
@@ -131,6 +147,9 @@ pub fn resolve_repo_cache_root(storage_root: &Path, repo_url: &str, reference: &
     )
 }
 
+/// Resolve the storage root for a single skill — either the repo cache
+/// directory (for remote sources) or `<storage_root>/<skill_id>` (for
+/// local absolute-path sources).
 pub fn resolve_skill_storage_root(storage_root: &Path, skill: &SkillConfig) -> PathBuf {
     if is_local_source_repo(&skill.source.repo) {
         normalize_lexical(&storage_root.join(&skill.id))
@@ -139,11 +158,16 @@ pub fn resolve_skill_storage_root(storage_root: &Path, skill: &SkillConfig) -> P
     }
 }
 
+/// Resolve the full source path for a skill by joining its storage root
+/// with the configured `subpath`.
 pub fn resolve_skill_source_path(storage_root: &Path, skill: &SkillConfig) -> PathBuf {
     let source_root = resolve_skill_storage_root(storage_root, skill);
     normalize_lexical(&source_root.join(&skill.source.subpath))
 }
 
+/// Synchronous wrapper around [`sync_sources_async`].  Creates a
+/// single-threaded tokio runtime; panics if called from within an
+/// existing async context.
 pub fn sync_sources(config: &Config, config_dir: &Path) -> Result<SyncSummary, ReactorError> {
     if tokio::runtime::Handle::try_current().is_ok() {
         return Err(ReactorError::RuntimeInitialization {
@@ -160,6 +184,8 @@ pub fn sync_sources(config: &Config, config_dir: &Path) -> Result<SyncSummary, R
     runtime.block_on(sync_sources_async(config, config_dir))
 }
 
+/// Clone or update all remote skill sources in parallel using the
+/// default [`SkillReactor`].
 pub async fn sync_sources_async(
     config: &Config,
     config_dir: &Path,
@@ -174,6 +200,8 @@ pub async fn sync_sources_async(
     .await
 }
 
+/// Like [`sync_sources_async`] but accepts a custom reactor (for
+/// concurrency tuning).
 pub async fn sync_sources_async_with_reactor(
     config: &Config,
     config_dir: &Path,
@@ -183,6 +211,9 @@ pub async fn sync_sources_async_with_reactor(
     sync_sources_async_with_reactor_skipping_repos(config, config_dir, reactor, &skip_repos).await
 }
 
+/// Full-featured async sync entry point.  Deduplicates by
+/// [`repo_cache_key`], skips repos in `skip_repos`, and groups
+/// remaining tasks for parallel execution via the reactor.
 pub async fn sync_sources_async_with_reactor_skipping_repos(
     config: &Config,
     config_dir: &Path,

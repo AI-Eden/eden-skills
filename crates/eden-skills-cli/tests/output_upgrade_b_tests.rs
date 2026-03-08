@@ -1,7 +1,10 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
+use std::process::Output;
 
+use common::{assert_success, eden_command, init_git_repo, path_to_file_url, toml_escape_path, toml_escape_string};
 use serde_json::Value;
 use tempfile::{tempdir, TempDir};
 
@@ -410,7 +413,7 @@ fn setup_plan_fixture(skill_count: usize) -> Fixture {
         "plan-origin",
         &[("packages/browser/README.md", "seed\n")],
     );
-    let repo_url = as_file_url(&origin_repo);
+    let repo_url = path_to_file_url(&origin_repo);
     let storage_root = temp.path().join("storage");
     let config_path = temp.path().join("skills.toml");
 
@@ -495,9 +498,9 @@ checks = ["path-exists"]
 no_exec_metadata_only = false
 "#,
         storage_root = toml_escape_path(&storage_root),
-        official_url = toml_escape_str(&as_file_url(&official_registry)),
-        forge_url = toml_escape_str(&as_file_url(&forge_registry)),
-        skill_url = toml_escape_str(&as_file_url(&skill_repo)),
+        official_url = toml_escape_string(&path_to_file_url(&official_registry)),
+        forge_url = toml_escape_string(&path_to_file_url(&forge_registry)),
+        skill_url = toml_escape_string(&path_to_file_url(&skill_repo)),
         target_root = toml_escape_path(&target_root),
     );
     fs::write(&config_path, config).expect("write update fixture config");
@@ -517,21 +520,21 @@ fn write_skills_config(config_path: &Path, storage_root: &Path, skills: &[SkillE
 
     for skill in skills {
         config.push_str("\n[[skills]]\n");
-        config.push_str(&format!("id = \"{}\"\n\n", toml_escape_str(&skill.id)));
+        config.push_str(&format!("id = \"{}\"\n\n", toml_escape_string(&skill.id)));
         config.push_str("[skills.source]\n");
-        config.push_str(&format!("repo = \"{}\"\n", toml_escape_str(&skill.repo)));
+        config.push_str(&format!("repo = \"{}\"\n", toml_escape_string(&skill.repo)));
         config.push_str(&format!(
             "subpath = \"{}\"\n",
-            toml_escape_str(&skill.subpath)
+            toml_escape_string(&skill.subpath)
         ));
         config.push_str("ref = \"main\"\n\n");
         config.push_str("[skills.install]\n");
-        config.push_str(&format!("mode = \"{}\"\n", toml_escape_str(&skill.mode)));
+        config.push_str(&format!("mode = \"{}\"\n", toml_escape_string(&skill.mode)));
         for target in &skill.targets {
             config.push_str("\n[[skills.targets]]\n");
-            config.push_str(&format!("agent = \"{}\"\n", toml_escape_str(&target.agent)));
+            config.push_str(&format!("agent = \"{}\"\n", toml_escape_string(&target.agent)));
             if let Some(path) = &target.path {
-                config.push_str(&format!("path = \"{}\"\n", toml_escape_str(path)));
+                config.push_str(&format!("path = \"{}\"\n", toml_escape_string(path)));
             }
         }
         config.push_str("\n[skills.verify]\n");
@@ -572,14 +575,6 @@ fn run_command_with_config(
     command.output().expect("run eden-skills command")
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
 fn setup_local_discovery_repo(base: &Path, name: &str, skills: &[(&str, &str)]) -> PathBuf {
     let repo_dir = base.join(name);
     for (skill_name, description) in skills {
@@ -603,70 +598,7 @@ fn path_as_relative_arg(path: &Path) -> String {
     format!("./{file_name}")
 }
 
-fn init_git_repo(base: &Path, name: &str, files: &[(&str, &str)]) -> PathBuf {
-    let repo = base.join(name);
-    for (rel, content) in files {
-        let path = repo.join(rel);
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).expect("create parent directory");
-        }
-        fs::write(path, content).expect("write repo file");
-    }
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
-    repo
-}
-
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
-}
-
 fn has_ansi_codes(text: &str) -> bool {
     text.as_bytes().windows(2).any(|window| window == b"\x1b[")
 }
 
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_str(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('\"', "\\\"")
-}

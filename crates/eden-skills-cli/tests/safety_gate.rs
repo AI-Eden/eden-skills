@@ -12,7 +12,8 @@ use tempfile::tempdir;
 
 use common::{
     as_file_url, default_options, expected_safety_metadata_path, expected_source_path,
-    expected_target_path, init_origin_repo, run_git_cmd, write_config, write_config_with_safety,
+    expected_target_path, init_origin_repo, run_git_cmd, toml_escape_path, toml_escape_string,
+    write_config, write_config_with_safety,
 };
 
 #[test]
@@ -379,12 +380,4 @@ fn write_multiskill_safety_config(
     let config_path = base.join("skills.toml");
     fs::write(&config_path, config).expect("write config");
     config_path
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-fn toml_escape_string(value: &str) -> String {
-    value.replace('\\', "\\\\").replace('"', "\\\"")
 }

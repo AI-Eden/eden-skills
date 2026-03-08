@@ -1,6 +1,7 @@
+mod common;
+
 use std::fs;
 use std::path::Path;
-use std::process::{Command, Output};
 
 use tempfile::tempdir;
 
@@ -11,14 +12,14 @@ fn tm_p29_028_add_shows_added_line_with_abbreviated_path() {
     let config_path = home_dir.join(".eden-skills/skills.toml");
     fs::create_dir_all(&home_dir).expect("create HOME");
 
-    let init = eden_command(&home_dir)
+    let init = common::eden_command(&home_dir)
         .args(["--color", "never", "init", "--config"])
         .arg(&config_path)
         .output()
         .expect("run init");
-    assert_success(&init);
+    common::assert_success(&init);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["--color", "never", "add", "--config"])
         .arg(&config_path)
         .args([
@@ -31,7 +32,7 @@ fn tm_p29_028_add_shows_added_line_with_abbreviated_path() {
         ])
         .output()
         .expect("run add");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -51,14 +52,14 @@ fn tm_p29_029_set_shows_updated_line_with_abbreviated_path() {
     let config_path = home_dir.join(".eden-skills/skills.toml");
     fs::create_dir_all(&home_dir).expect("create HOME");
 
-    let init = eden_command(&home_dir)
+    let init = common::eden_command(&home_dir)
         .args(["--color", "never", "init", "--config"])
         .arg(&config_path)
         .output()
         .expect("run init");
-    assert_success(&init);
+    common::assert_success(&init);
 
-    let add = eden_command(&home_dir)
+    let add = common::eden_command(&home_dir)
         .args(["--color", "never", "add", "--config"])
         .arg(&config_path)
         .args([
@@ -71,15 +72,15 @@ fn tm_p29_029_set_shows_updated_line_with_abbreviated_path() {
         ])
         .output()
         .expect("run add before set");
-    assert_success(&add);
+    common::assert_success(&add);
 
-    let set = eden_command(&home_dir)
+    let set = common::eden_command(&home_dir)
         .args(["--color", "never", "set", "ocn-set", "--config"])
         .arg(&config_path)
         .args(["--repo", "https://example.com/other.git"])
         .output()
         .expect("run set");
-    assert_success(&set);
+    common::assert_success(&set);
 
     let stdout = String::from_utf8_lossy(&set.stdout);
     assert!(
@@ -117,14 +118,14 @@ agent = "claude-code"
     )
     .expect("write import source");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["--color", "never", "config", "import", "--from"])
         .arg(&from_path)
         .args(["--config"])
         .arg(&config_path)
         .output()
         .expect("run config import");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -139,7 +140,7 @@ agent = "claude-code"
 
 #[test]
 fn tm_p29_035_ui_context_exposes_styled_path_method() {
-    let ui_source = read_source_file("src/ui.rs");
+    let ui_source = read_source_file("src/ui/context.rs");
     assert!(
         ui_source.contains("pub fn styled_path(&self, path: &str) -> String"),
         "UiContext must expose styled_path(path) API"
@@ -182,14 +183,14 @@ fn tm_p29_032_remove_cancellation_uses_skipped_symbol_line() {
     let config_path = home_dir.join(".eden-skills/skills.toml");
     fs::create_dir_all(&home_dir).expect("create HOME");
 
-    let init = eden_command(&home_dir)
+    let init = common::eden_command(&home_dir)
         .args(["--color", "never", "init", "--config"])
         .arg(&config_path)
         .output()
         .expect("run init");
-    assert_success(&init);
+    common::assert_success(&init);
 
-    let add = eden_command(&home_dir)
+    let add = common::eden_command(&home_dir)
         .args(["--color", "never", "add", "--config"])
         .arg(&config_path)
         .args([
@@ -202,9 +203,9 @@ fn tm_p29_032_remove_cancellation_uses_skipped_symbol_line() {
         ])
         .output()
         .expect("run add");
-    assert_success(&add);
+    common::assert_success(&add);
 
-    let remove = eden_command(&home_dir)
+    let remove = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_CONFIRM", "n")
@@ -212,7 +213,7 @@ fn tm_p29_032_remove_cancellation_uses_skipped_symbol_line() {
         .arg(&config_path)
         .output()
         .expect("run interactive remove cancellation");
-    assert_success(&remove);
+    common::assert_success(&remove);
 
     let stdout = String::from_utf8_lossy(&remove.stdout);
     assert!(
@@ -232,12 +233,12 @@ fn tm_p29_033_remove_interactive_selection_no_longer_renders_candidate_table() {
     let config_path = home_dir.join(".eden-skills/skills.toml");
     fs::create_dir_all(&home_dir).expect("create HOME");
 
-    let init = eden_command(&home_dir)
+    let init = common::eden_command(&home_dir)
         .args(["--color", "never", "init", "--config"])
         .arg(&config_path)
         .output()
         .expect("run init");
-    assert_success(&init);
+    common::assert_success(&init);
 
     add_skill(
         &home_dir,
@@ -252,7 +253,7 @@ fn tm_p29_033_remove_interactive_selection_no_longer_renders_candidate_table() {
         "https://github.com/vercel-labs/agent-skills.git",
     );
 
-    let remove = eden_command(&home_dir)
+    let remove = common::eden_command(&home_dir)
         .env_remove("CI")
         .env("EDEN_SKILLS_FORCE_TTY", "1")
         .env("EDEN_SKILLS_TEST_REMOVE_INPUT", "0")
@@ -261,7 +262,7 @@ fn tm_p29_033_remove_interactive_selection_no_longer_renders_candidate_table() {
         .arg(&config_path)
         .output()
         .expect("run interactive remove without ids");
-    assert_success(&remove);
+    common::assert_success(&remove);
 
     let stdout = String::from_utf8_lossy(&remove.stdout);
     assert!(
@@ -315,29 +316,12 @@ fn contains_raw_warning_eprintln(source: &str) -> bool {
     false
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
 fn add_skill(home_dir: &Path, config_path: &Path, skill_id: &str, repo: &str) {
-    let add = eden_command(home_dir)
+    let add = common::eden_command(home_dir)
         .args(["--color", "never", "add", "--config"])
         .arg(config_path)
         .args(["--id", skill_id, "--repo", repo, "--target", "claude-code"])
         .output()
         .expect("run add");
-    assert_success(&add);
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
+    common::assert_success(&add);
 }

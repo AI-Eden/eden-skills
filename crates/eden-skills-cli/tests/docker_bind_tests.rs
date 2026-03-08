@@ -1,9 +1,9 @@
+mod common;
+
 #[cfg(unix)]
 use std::fs;
 #[cfg(unix)]
 use std::path::{Path, PathBuf};
-#[cfg(unix)]
-use std::process::Command;
 
 #[cfg(unix)]
 use tempfile::tempdir;
@@ -29,7 +29,7 @@ fn docker_mount_hint_outputs_recommended_bind_mounts() {
     );
     let config_path = write_mount_hint_config(temp.path(), &storage_root, "my-container");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env("PATH", &path_dir)
         .args(["docker", "mount-hint", "my-container", "--config"])
         .arg(&config_path)
@@ -101,7 +101,7 @@ fn docker_mount_hint_reports_already_mounted_when_all_paths_are_covered() {
     );
     let config_path = write_mount_hint_config(temp.path(), &storage_root, "my-container");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env("PATH", &path_dir)
         .args(["docker", "mount-hint", "my-container", "--config"])
         .arg(&config_path)
@@ -140,7 +140,7 @@ fn install_with_docker_target_emits_bind_mount_tip_after_docker_cp_fallback() {
     write_root_skill_repo(&repo_dir, "docker-tip-skill");
     let config_path = temp.path().join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env("PATH", &path_dir)
         .current_dir(temp.path())
         .args([
@@ -171,15 +171,6 @@ fn install_with_docker_target_emits_bind_mount_tip_after_docker_cp_fallback() {
         ),
         "combined output={combined}"
     );
-}
-
-#[cfg(unix)]
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
 }
 
 #[cfg(unix)]
@@ -231,7 +222,7 @@ checks = ["path-exists", "content-present"]
 [skills.safety]
 no_exec_metadata_only = false
 "#,
-            storage_root = toml_escape_path(storage_root),
+            storage_root = common::toml_escape_path(storage_root),
             container_name = container_name,
         ),
     )
@@ -328,9 +319,4 @@ exit 1
     use std::os::unix::fs::PermissionsExt;
     perms.set_mode(0o755);
     fs::set_permissions(docker_bin, perms).expect("set docker stub executable");
-}
-
-#[cfg(unix)]
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
 }

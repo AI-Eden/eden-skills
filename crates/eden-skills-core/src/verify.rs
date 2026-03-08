@@ -1,3 +1,10 @@
+//! Post-install integrity verification checks.
+//!
+//! Runs the checks declared in each skill's `[verify]` table against
+//! the live filesystem.  Supported checks: `path-exists`, `is-symlink`,
+//! `target-resolves`, and `content-present`.  Results are collected as
+//! [`VerifyIssue`] values consumed by the `doctor` / `repair` commands.
+
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -14,6 +21,9 @@ pub struct VerifyIssue {
     pub message: String,
 }
 
+/// Run all enabled verification checks for every skill in `config` and
+/// collect the resulting issues.  Skips skills with
+/// `no_exec_metadata_only` or `verify.enabled = false`.
 pub fn verify_config_state(
     config: &Config,
     config_dir: &Path,

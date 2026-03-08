@@ -1,8 +1,19 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use tempfile::tempdir;
+
+use common::{
+    create_symlink, eden_command, init_git_repo, path_to_file_url, remove_symlink, toml_escape_path,
+};
+
+/// Wrapper: takes test_root and uses test_root.join("home") as HOME (phase2_commands convention).
+fn eden_command_from_root(test_root: &Path) -> Command {
+    eden_command(&test_root.join("home"))
+}
 
 #[test]
 fn update_clones_configured_registries() {
@@ -52,15 +63,15 @@ agent = "custom"
 path = "{target_root}"
 "#,
             storage_root = toml_escape_path(&storage_root),
-            official_url = as_file_url(&official_registry),
-            forge_url = as_file_url(&forge_registry),
-            skill_url = as_file_url(&skill_repo),
+            official_url = path_to_file_url(&official_registry),
+            forge_url = path_to_file_url(&forge_registry),
+            skill_url = path_to_file_url(&skill_repo),
             target_root = toml_escape_path(&target_root),
         ),
     )
     .expect("write config");
 
-    let output = eden_command(temp.path())
+    let output = eden_command_from_root(temp.path())
         .args(["update", "--config"])
         .arg(&config_path)
         .output()
@@ -127,7 +138,7 @@ fn install_resolves_skill_from_registry_and_persists_mode_b_entry() {
     write_registry_index_entry(
         &registry_cache,
         "google-search",
-        &as_file_url(&skill_repo),
+        &path_to_file_url(&skill_repo),
         "1.2.0",
         "main",
         &head,
@@ -159,13 +170,13 @@ agent = "custom"
 path = "{target_root}"
 "#,
             storage_root = toml_escape_path(&storage_root),
-            skill_url = as_file_url(&skill_repo),
+            skill_url = path_to_file_url(&skill_repo),
             target_root = toml_escape_path(&target_root),
         ),
     )
     .expect("write config");
 
-    let output = eden_command(temp.path())
+    let output = eden_command_from_root(temp.path())
         .args(["install", "google-search", "--config"])
         .arg(&config_path)
         .output()
@@ -205,7 +216,7 @@ fn apply_and_repair_resolve_mode_b_skills_before_source_sync() {
     write_registry_index_entry(
         &registry_cache,
         "google-search",
-        &as_file_url(&skill_repo),
+        &path_to_file_url(&skill_repo),
         "1.2.0",
         "main",
         &head,
@@ -242,7 +253,7 @@ path = "{target_root}"
     )
     .expect("write config");
 
-    let apply_output = eden_command(temp.path())
+    let apply_output = eden_command_from_root(temp.path())
         .args(["apply", "--config"])
         .arg(&config_path)
         .output()
@@ -267,7 +278,7 @@ path = "{target_root}"
     let broken = temp.path().join("broken-link-target");
     create_symlink(&broken, &target_skill).expect("create broken symlink");
 
-    let repair_output = eden_command(temp.path())
+    let repair_output = eden_command_from_root(temp.path())
         .args(["repair", "--config"])
         .arg(&config_path)
         .output()
@@ -320,13 +331,13 @@ agent = "custom"
 path = "{target_root}"
 "#,
             storage_root = toml_escape_path(&storage_root),
-            skill_url = as_file_url(&skill_repo),
+            skill_url = path_to_file_url(&skill_repo),
             target_root = toml_escape_path(&target_root),
         ),
     )
     .expect("write config");
 
-    let apply_output = eden_command(temp.path())
+    let apply_output = eden_command_from_root(temp.path())
         .args(["apply", "--concurrency", "1", "--config"])
         .arg(&config_path)
         .output()
@@ -338,7 +349,7 @@ path = "{target_root}"
         String::from_utf8_lossy(&apply_output.stderr)
     );
 
-    let repair_output = eden_command(temp.path())
+    let repair_output = eden_command_from_root(temp.path())
         .args(["repair", "--concurrency", "1", "--config"])
         .arg(&config_path)
         .output()
@@ -393,14 +404,14 @@ agent = "custom"
 path = "{target_root_b}"
 "#,
             storage_root = toml_escape_path(&storage_root),
-            skill_url = as_file_url(&skill_repo),
+            skill_url = path_to_file_url(&skill_repo),
             target_root_a = toml_escape_path(&target_root_a),
             target_root_b = toml_escape_path(&target_root_b),
         ),
     )
     .expect("write config");
 
-    let apply_output = eden_command(temp.path())
+    let apply_output = eden_command_from_root(temp.path())
         .args(["--color", "never", "apply", "--config"])
         .arg(&config_path)
         .output()
@@ -438,7 +449,7 @@ path = "{target_root_b}"
     let broken = temp.path().join("broken-link-target-tree");
     create_symlink(&broken, &target_skill).expect("create broken symlink");
 
-    let repair_output = eden_command(temp.path())
+    let repair_output = eden_command_from_root(temp.path())
         .args(["--color", "never", "repair", "--config"])
         .arg(&config_path)
         .output()
@@ -512,13 +523,13 @@ agent = "custom"
 path = "{target_root}"
 "#,
             storage_root = toml_escape_path(&storage_root),
-            skill_url = as_file_url(&skill_repo),
+            skill_url = path_to_file_url(&skill_repo),
             target_root = toml_escape_path(&target_root),
         ),
     )
     .expect("write config");
 
-    let output = eden_command(temp.path())
+    let output = eden_command_from_root(temp.path())
         .args(["apply", "--concurrency", "0", "--config"])
         .arg(&config_path)
         .output()
@@ -552,7 +563,7 @@ fn install_dry_run_displays_resolution_without_side_effects() {
     write_registry_index_entry(
         &registry_cache,
         "google-search",
-        &as_file_url(&skill_repo),
+        &path_to_file_url(&skill_repo),
         "1.2.0",
         "main",
         &head,
@@ -584,14 +595,14 @@ agent = "custom"
 path = "{target_root}"
 "#,
             storage_root = toml_escape_path(&storage_root),
-            skill_url = as_file_url(&skill_repo),
+            skill_url = path_to_file_url(&skill_repo),
             target_root = toml_escape_path(&target_root),
         ),
     )
     .expect("write config");
     let original_config = fs::read_to_string(&config_path).expect("read original config");
 
-    let output = eden_command(temp.path())
+    let output = eden_command_from_root(temp.path())
         .args(["install", "google-search", "--dry-run", "--config"])
         .arg(&config_path)
         .output()
@@ -628,7 +639,7 @@ path = "{target_root}"
         !stdout.contains("target agent="),
         "legacy dry-run key=value target format should be removed, stdout={stdout}"
     );
-    let resolved_repo = as_file_url(&skill_repo);
+    let resolved_repo = path_to_file_url(&skill_repo);
     let compact_stdout = stdout
         .chars()
         .filter(|ch| !ch.is_ascii_whitespace() && *ch != '|')
@@ -690,13 +701,13 @@ agent = "custom"
 path = "{target_root}"
 "#,
             storage_root = toml_escape_path(&storage_root),
-            skill_url = as_file_url(&skill_repo),
+            skill_url = path_to_file_url(&skill_repo),
             target_root = toml_escape_path(&target_root),
         ),
     )
     .expect("write config");
 
-    let output = eden_command(temp.path())
+    let output = eden_command_from_root(temp.path())
         .args(["install", "google-search", "--config"])
         .arg(&config_path)
         .output()
@@ -730,7 +741,7 @@ fn install_warns_when_registry_manifest_is_missing() {
     write_registry_index_entry_without_manifest(
         &registry_cache,
         "google-search",
-        &as_file_url(&skill_repo),
+        &path_to_file_url(&skill_repo),
         "1.2.0",
         "main",
         &head,
@@ -762,13 +773,13 @@ agent = "custom"
 path = "{target_root}"
 "#,
             storage_root = toml_escape_path(&storage_root),
-            skill_url = as_file_url(&skill_repo),
+            skill_url = path_to_file_url(&skill_repo),
             target_root = toml_escape_path(&target_root),
         ),
     )
     .expect("write config");
 
-    let output = eden_command(temp.path())
+    let output = eden_command_from_root(temp.path())
         .args(["install", "google-search", "--config"])
         .arg(&config_path)
         .output()
@@ -795,7 +806,7 @@ fn windows_style_file_url_is_toml_safe_in_test_configs() {
 [skills.source]
 repo = "{repo_url}"
 "#,
-        repo_url = as_file_url(&windows_like_repo),
+        repo_url = path_to_file_url(&windows_like_repo),
     );
 
     let parsed = toml::from_str::<toml::Value>(&document);
@@ -803,24 +814,6 @@ repo = "{repo_url}"
         parsed.is_ok(),
         "expected windows-style file URL to remain TOML-safe, got: {parsed:?}"
     );
-}
-
-fn init_git_repo(base: &Path, name: &str, files: &[(&str, &str)]) -> PathBuf {
-    let repo = base.join(name);
-    for (rel, content) in files {
-        let path = repo.join(rel);
-        if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent).expect("create parent");
-        }
-        fs::write(path, content).expect("write file");
-    }
-    run_git(&repo, &["init"]);
-    run_git(&repo, &["config", "user.email", "test@example.com"]);
-    run_git(&repo, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo, &["add", "."]);
-    run_git(&repo, &["commit", "-m", "init"]);
-    run_git(&repo, &["branch", "-M", "main"]);
-    repo
 }
 
 fn write_registry_index_entry(
@@ -908,71 +901,3 @@ fn git_head(repo: &Path) -> String {
     String::from_utf8_lossy(&output.stdout).trim().to_string()
 }
 
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    if output.status.success() {
-        return;
-    }
-
-    panic!(
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn eden_command(test_root: &Path) -> Command {
-    let home_dir = test_root.join("home");
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", &home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", &home_dir);
-    command
-}
-
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
-}
-
-#[cfg(unix)]
-fn create_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
-    std::os::unix::fs::symlink(source, target)
-}
-
-#[cfg(windows)]
-fn create_symlink(source: &Path, target: &Path) -> std::io::Result<()> {
-    std::os::windows::fs::symlink_dir(source, target)
-}
-
-#[cfg(unix)]
-fn remove_symlink(path: &Path) -> std::io::Result<()> {
-    fs::remove_file(path)
-}
-
-#[cfg(windows)]
-fn remove_symlink(path: &Path) -> std::io::Result<()> {
-    match fs::remove_file(path) {
-        Ok(()) => Ok(()),
-        Err(err) if err.kind() == std::io::ErrorKind::PermissionDenied => fs::remove_dir(path),
-        Err(err) => Err(err),
-    }
-}

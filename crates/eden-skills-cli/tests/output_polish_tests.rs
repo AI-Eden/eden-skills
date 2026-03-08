@@ -1,6 +1,7 @@
+mod common;
+
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Output};
 
 use serde_json::Value;
 use tempfile::tempdir;
@@ -8,7 +9,17 @@ use tempfile::tempdir;
 #[test]
 fn no_hardcoded_ansi_literals_in_ui_and_commands_sources() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
-    let mut sources_to_check: Vec<PathBuf> = vec![crate_root.join("src/ui.rs")];
+    let mut sources_to_check: Vec<PathBuf> = Vec::new();
+    let ui_dir = crate_root.join("src/ui");
+    if ui_dir.is_dir() {
+        for entry in fs::read_dir(&ui_dir).expect("read src/ui/") {
+            let entry = entry.expect("read dir entry");
+            let path = entry.path();
+            if path.extension().is_some_and(|ext| ext == "rs") {
+                sources_to_check.push(path);
+            }
+        }
+    }
     let commands_dir = crate_root.join("src/commands");
     if commands_dir.is_dir() {
         for entry in fs::read_dir(&commands_dir).expect("read src/commands/") {
@@ -54,7 +65,7 @@ fn color_flag_auto_enables_on_tty_and_disables_on_non_tty() {
     let repo_dir = init_local_skill_repo(temp.path(), "auto-color-repo", "auto-color-skill");
     let source = path_as_relative_arg(&repo_dir);
 
-    let tty_output = eden_command(&home_dir)
+    let tty_output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -64,14 +75,14 @@ fn color_flag_auto_enables_on_tty_and_disables_on_non_tty() {
         .arg(&config_tty)
         .output()
         .expect("run install --color auto in forced tty");
-    assert_success(&tty_output);
+    common::assert_success(&tty_output);
     let tty_stdout = String::from_utf8_lossy(&tty_output.stdout);
     assert!(
         has_ansi_codes(&tty_stdout),
         "--color auto should emit ANSI in tty mode, stdout={tty_stdout}"
     );
 
-    let non_tty_output = eden_command(&home_dir)
+    let non_tty_output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -81,7 +92,7 @@ fn color_flag_auto_enables_on_tty_and_disables_on_non_tty() {
         .arg(&config_pipe)
         .output()
         .expect("run install --color auto in non-tty");
-    assert_success(&non_tty_output);
+    common::assert_success(&non_tty_output);
     let non_tty_stdout = String::from_utf8_lossy(&non_tty_output.stdout);
     assert!(
         !has_ansi_codes(&non_tty_stdout),
@@ -97,7 +108,7 @@ fn color_flag_never_disables_ansi_even_when_tty_forced() {
     let repo_dir = init_local_skill_repo(temp.path(), "never-color-repo", "never-color-skill");
     let source = path_as_relative_arg(&repo_dir);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -107,7 +118,7 @@ fn color_flag_never_disables_ansi_even_when_tty_forced() {
         .arg(&config_path)
         .output()
         .expect("run install --color never");
-    assert_success(&output);
+    common::assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         !has_ansi_codes(&stdout),
@@ -123,7 +134,7 @@ fn color_flag_always_enables_ansi_on_non_tty() {
     let repo_dir = init_local_skill_repo(temp.path(), "always-color-repo", "always-color-skill");
     let source = path_as_relative_arg(&repo_dir);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -133,7 +144,7 @@ fn color_flag_always_enables_ansi_on_non_tty() {
         .arg(&config_path)
         .output()
         .expect("run install --color always");
-    assert_success(&output);
+    common::assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         has_ansi_codes(&stdout),
@@ -154,7 +165,7 @@ fn windows_color_always_enables_ansi_sequences() {
     );
     let source = path_as_relative_arg(&repo_dir);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -164,7 +175,7 @@ fn windows_color_always_enables_ansi_sequences() {
         .arg(&config_path)
         .output()
         .expect("run install --color always on windows");
-    assert_success(&output);
+    common::assert_success(&output);
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
         has_ansi_codes(&stdout),
@@ -178,7 +189,7 @@ fn error_output_uses_error_prefix_and_hint_for_missing_config() {
     let home_dir = temp.path().join("home");
     let missing_config = temp.path().join("does-not-exist").join("skills.toml");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["list", "--color", "always", "--config"])
         .arg(&missing_config)
         .output()
@@ -227,7 +238,7 @@ fn remove_unknown_skill_includes_available_skills_hint() {
     let config_path = temp.path().join("skills.toml");
     write_single_skill_config(&config_path, temp.path(), "known-skill");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .args(["remove", "missing-skill", "--color", "never", "--config"])
         .arg(&config_path)
         .output()
@@ -262,7 +273,7 @@ fn palette_avoids_truecolor_and_256color_sequences() {
     let repo_dir = init_local_skill_repo(temp.path(), "palette-repo", "palette-skill");
     let source = path_as_relative_arg(&repo_dir);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -271,7 +282,7 @@ fn palette_avoids_truecolor_and_256color_sequences() {
         .arg(&config_path)
         .output()
         .expect("run install with forced color");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -292,7 +303,7 @@ fn json_mode_ignores_color_always_and_emits_clean_json() {
     let repo_dir = init_local_skill_repo(temp.path(), "json-color-repo", "json-color-skill");
     let source = path_as_relative_arg(&repo_dir);
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .current_dir(temp.path())
         .env_remove("NO_COLOR")
         .env_remove("FORCE_COLOR")
@@ -304,7 +315,7 @@ fn json_mode_ignores_color_always_and_emits_clean_json() {
         .arg(&config_path)
         .output()
         .expect("run install --json --color always");
-    assert_success(&output);
+    common::assert_success(&output);
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
@@ -333,11 +344,11 @@ fn preflight_reports_missing_git_before_clone_attempt() {
     let home_dir = temp.path().join("home");
     let config_path = temp.path().join("skills.toml");
     let repo_dir = init_git_skill_repo(temp.path(), "missing-git-repo", "missing-git-skill");
-    let source = as_file_url(&repo_dir);
+    let source = common::path_to_file_url(&repo_dir);
     let no_git_path = temp.path().join("no-git-bin");
     fs::create_dir_all(&no_git_path).expect("create no-git PATH directory");
 
-    let output = eden_command(&home_dir)
+    let output = common::eden_command(&home_dir)
         .env("PATH", &no_git_path)
         .args(["install", &source, "--color", "never", "--config"])
         .arg(&config_path)
@@ -361,14 +372,6 @@ fn preflight_reports_missing_git_before_clone_attempt() {
     );
 }
 
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
 fn init_local_skill_repo(base: &Path, name: &str, skill_name: &str) -> PathBuf {
     let repo_dir = base.join(name);
     fs::create_dir_all(&repo_dir).expect("create local skill repo");
@@ -383,12 +386,12 @@ fn init_local_skill_repo(base: &Path, name: &str, skill_name: &str) -> PathBuf {
 
 fn init_git_skill_repo(base: &Path, name: &str, skill_name: &str) -> PathBuf {
     let repo_dir = init_local_skill_repo(base, name, skill_name);
-    run_git(&repo_dir, &["init"]);
-    run_git(&repo_dir, &["config", "user.email", "test@example.com"]);
-    run_git(&repo_dir, &["config", "user.name", "eden-skills-test"]);
-    run_git(&repo_dir, &["add", "."]);
-    run_git(&repo_dir, &["commit", "-m", "init"]);
-    run_git(&repo_dir, &["branch", "-M", "main"]);
+    common::run_git_cmd(&repo_dir, &["init"]);
+    common::run_git_cmd(&repo_dir, &["config", "user.email", common::TEST_GIT_EMAIL]);
+    common::run_git_cmd(&repo_dir, &["config", "user.name", common::TEST_GIT_NAME]);
+    common::run_git_cmd(&repo_dir, &["add", "."]);
+    common::run_git_cmd(&repo_dir, &["commit", "-m", "init"]);
+    common::run_git_cmd(&repo_dir, &["branch", "-M", "main"]);
     repo_dir
 }
 
@@ -396,36 +399,10 @@ fn write_single_skill_config(config_path: &Path, root: &Path, skill_id: &str) {
     let storage_root = root.join("storage");
     let config = format!(
         "version = 1\n\n[storage]\nroot = \"{}\"\n\n[[skills]]\nid = \"{}\"\n\n[skills.source]\nrepo = \"https://example.com/repo.git\"\nsubpath = \".\"\nref = \"main\"\n\n[skills.install]\nmode = \"symlink\"\n\n[[skills.targets]]\nagent = \"claude-code\"\n\n[skills.verify]\nenabled = true\nchecks = [\"path-exists\", \"target-resolves\", \"is-symlink\"]\n\n[skills.safety]\nno_exec_metadata_only = false\n",
-        toml_escape_path(&storage_root),
+        common::toml_escape_path(&storage_root),
         skill_id
     );
     fs::write(config_path, config).expect("write test config");
-}
-
-fn run_git(cwd: &Path, args: &[&str]) {
-    let output = Command::new("git")
-        .args(args)
-        .current_dir(cwd)
-        .output()
-        .expect("spawn git");
-    assert!(
-        output.status.success(),
-        "git {:?} failed in {}: status={} stderr=`{}` stdout=`{}`",
-        args,
-        cwd.display(),
-        output.status,
-        String::from_utf8_lossy(&output.stderr).trim(),
-        String::from_utf8_lossy(&output.stdout).trim()
-    );
-}
-
-fn assert_success(output: &Output) {
-    assert_eq!(
-        output.status.code(),
-        Some(0),
-        "command should succeed, stderr={}",
-        String::from_utf8_lossy(&output.stderr)
-    );
 }
 
 fn has_ansi_codes(text: &str) -> bool {
@@ -438,20 +415,4 @@ fn path_as_relative_arg(path: &Path) -> String {
         .and_then(|value| value.to_str())
         .expect("path should have valid UTF-8 file name");
     format!("./{file_name}")
-}
-
-fn as_file_url(path: &Path) -> String {
-    let mut normalized = path.display().to_string().replace('\\', "/");
-    if normalized
-        .as_bytes()
-        .get(1)
-        .is_some_and(|candidate| *candidate == b':')
-    {
-        normalized.insert(0, '/');
-    }
-    format!("file://{normalized}")
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
 }

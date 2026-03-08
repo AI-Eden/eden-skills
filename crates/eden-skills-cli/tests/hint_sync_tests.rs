@@ -1,12 +1,10 @@
 mod common;
 
 use std::fs;
-use std::path::Path;
-use std::process::Command;
 
 use tempfile::tempdir;
 
-use common::{as_file_url, init_origin_repo, write_config};
+use common::{as_file_url, eden_command, init_origin_repo, toml_escape_path, write_config};
 
 #[test]
 fn tm_p297_047_error_hints_use_tilde_arrow_prefix_instead_of_unicode_arrow() {
@@ -132,16 +130,4 @@ fn tm_p297_050_update_guidance_uses_tilde_arrow_prefix() {
             && !stdout.contains("  → "),
         "update guidance must use the ~> prefix and not the unicode arrow, stdout={stdout}"
     );
-}
-
-fn eden_command(home_dir: &Path) -> Command {
-    let mut command = Command::new(env!("CARGO_BIN_EXE_eden-skills"));
-    command.env("HOME", home_dir);
-    #[cfg(windows)]
-    command.env("USERPROFILE", home_dir);
-    command
-}
-
-fn toml_escape_path(path: &Path) -> String {
-    path.display().to_string().replace('\\', "\\\\")
 }

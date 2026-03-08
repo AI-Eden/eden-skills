@@ -1,3 +1,11 @@
+//! Dual-track registry resolution for named skill lookups.
+//!
+//! A *registry* is a git repository containing a TOML-based skill index.
+//! Each skill entry advertises one or more semver-tagged versions pointing
+//! back to a source repo + subpath + commit.  Multiple registries can be
+//! configured with different priorities; resolution walks them in
+//! descending-priority order and returns the first match.
+
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -7,6 +15,7 @@ use serde::Deserialize;
 
 pub use crate::error::RegistryError;
 
+/// A single registry entry parsed from the `[registries]` table in `skills.toml`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RegistrySpec {
     pub name: String,
@@ -14,6 +23,7 @@ pub struct RegistrySpec {
     pub priority: u32,
 }
 
+/// A cloned registry whose index is available on the local filesystem.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RegistrySource {
     pub name: String,
@@ -21,6 +31,8 @@ pub struct RegistrySource {
     pub root: PathBuf,
 }
 
+/// A fully resolved skill entry returned after registry lookup, including
+/// the exact repo URL, subpath, version, git ref, and commit.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedSkill {
     pub registry_name: String,
@@ -32,6 +44,7 @@ pub struct ResolvedSkill {
     pub commit: String,
 }
 
+/// Parse the `[registries]` table from a raw TOML config string.
 pub fn parse_registry_specs_from_toml(
     config_toml: &str,
 ) -> Result<Vec<RegistrySpec>, RegistryError> {
@@ -57,6 +70,8 @@ pub fn parse_registry_specs_from_toml(
     Ok(specs)
 }
 
+/// Return a copy of `registries` sorted by descending priority, with
+/// lexicographic name as tie-breaker.
 pub fn sort_registry_specs_by_priority(registries: &[RegistrySpec]) -> Vec<RegistrySpec> {
     let mut sorted = registries.to_vec();
     sorted.sort_by(|a, b| {
@@ -67,6 +82,10 @@ pub fn sort_registry_specs_by_priority(registries: &[RegistrySpec]) -> Vec<Regis
     sorted
 }
 
+/// Walk the given registry sources in priority order and resolve the
+/// named skill.  Returns the highest non-yanked version matching the
+/// optional semver constraint, or the latest stable version if no
+/// constraint is given.
 pub fn resolve_skill_from_registry_sources(
     sources: &[RegistrySource],
     skill_name: &str,
