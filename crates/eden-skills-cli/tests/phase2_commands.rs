@@ -900,4 +900,3 @@ fn git_head(repo: &Path) -> String {
     );
     String::from_utf8_lossy(&output.stdout).trim().to_string()
 }
-

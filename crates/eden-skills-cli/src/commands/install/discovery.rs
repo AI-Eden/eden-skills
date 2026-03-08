@@ -332,11 +332,7 @@ pub(super) fn print_install_interrupted(ui: &UiContext) {
     }
 }
 
-pub(super) fn print_discovery_preview(
-    ui: &UiContext,
-    skills: &[DiscoveredSkill],
-    show_all: bool,
-) {
+pub(super) fn print_discovery_preview(ui: &UiContext, skills: &[DiscoveredSkill], show_all: bool) {
     const MAX_DISPLAY: usize = 8;
     println!(
         "{}  {} skills in repository:",

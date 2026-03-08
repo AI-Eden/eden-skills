@@ -424,4 +424,3 @@ fn fetch_count(log_path: &Path) -> usize {
         .filter(|line| *line == "fetch")
         .count()
 }
-

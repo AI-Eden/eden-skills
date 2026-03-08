@@ -259,4 +259,3 @@ impl InstallFixture {
 fn parse_logged_path<'a>(log: &'a str, prefix: &str) -> Option<&'a str> {
     log.lines().find_map(|line| line.strip_prefix(prefix))
 }
-

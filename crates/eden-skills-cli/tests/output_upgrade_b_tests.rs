@@ -4,7 +4,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 
-use common::{assert_success, eden_command, init_git_repo, path_to_file_url, toml_escape_path, toml_escape_string};
+use common::{
+    assert_success, eden_command, init_git_repo, path_to_file_url, toml_escape_path,
+    toml_escape_string,
+};
 use serde_json::Value;
 use tempfile::{tempdir, TempDir};
 
@@ -532,7 +535,10 @@ fn write_skills_config(config_path: &Path, storage_root: &Path, skills: &[SkillE
         config.push_str(&format!("mode = \"{}\"\n", toml_escape_string(&skill.mode)));
         for target in &skill.targets {
             config.push_str("\n[[skills.targets]]\n");
-            config.push_str(&format!("agent = \"{}\"\n", toml_escape_string(&target.agent)));
+            config.push_str(&format!(
+                "agent = \"{}\"\n",
+                toml_escape_string(&target.agent)
+            ));
             if let Some(path) = &target.path {
                 config.push_str(&format!("path = \"{}\"\n", toml_escape_string(path)));
             }
@@ -601,4 +607,3 @@ fn path_as_relative_arg(path: &Path) -> String {
 fn has_ansi_codes(text: &str) -> bool {
     text.as_bytes().windows(2).any(|window| window == b"\x1b[")
 }
-

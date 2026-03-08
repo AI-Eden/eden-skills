@@ -19,7 +19,9 @@ pub use crate::error::AdapterError;
 
 pub use self::docker::DockerAdapter;
 pub use self::local::LocalAdapter;
-pub use self::manifest::{read_managed_manifest, write_managed_manifest, ManagedManifestReadResult};
+pub use self::manifest::{
+    read_managed_manifest, write_managed_manifest, ManagedManifestReadResult,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AdapterEnvironment {

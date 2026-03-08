@@ -232,4 +232,3 @@ fn write_registry_config(config_path: &Path, base: &Path, registry_repo: &Path) 
     );
     fs::write(config_path, config).expect("write update config");
 }
-

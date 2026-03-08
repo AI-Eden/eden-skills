@@ -4,7 +4,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 
-use common::{assert_success, eden_command, path_to_file_url, remove_symlink, run_git_cmd, toml_escape_path, toml_escape_string};
+use common::{
+    assert_success, eden_command, path_to_file_url, remove_symlink, run_git_cmd, toml_escape_path,
+    toml_escape_string,
+};
 use tempfile::{tempdir, TempDir};
 
 struct Fixture {
@@ -460,4 +463,3 @@ fn init_git_repo(base: &Path, name: &str, include_license: bool) -> PathBuf {
     run_git_cmd(&repo, &["branch", "-M", "main"]);
     repo
 }
-

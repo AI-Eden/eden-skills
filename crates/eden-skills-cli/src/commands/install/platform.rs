@@ -203,7 +203,10 @@ fn windows_supports_junction_creation() -> bool {
 }
 
 #[cfg(windows)]
-fn cleanup_windows_junction_probe(probe_root: &std::path::Path, junction_path: &std::path::Path) -> bool {
+fn cleanup_windows_junction_probe(
+    probe_root: &std::path::Path,
+    junction_path: &std::path::Path,
+) -> bool {
     use std::fs;
 
     let junction_deleted = if junction::exists(junction_path).unwrap_or(false) {

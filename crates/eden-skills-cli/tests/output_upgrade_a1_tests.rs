@@ -4,7 +4,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::Output;
 
-use common::{assert_success, create_symlink, eden_command, init_git_repo, path_to_file_url, remove_symlink, toml_escape_path, toml_escape_string};
+use common::{
+    assert_success, create_symlink, eden_command, init_git_repo, path_to_file_url, remove_symlink,
+    toml_escape_path, toml_escape_string,
+};
 use eden_skills_core::lock::{
     lock_path_for_config, read_lock_file, write_lock_file, LockSkillEntry, LockTarget,
 };
@@ -498,4 +501,3 @@ fn run_command_with_config(
 fn has_ansi_codes(text: &str) -> bool {
     text.as_bytes().windows(2).any(|window| window == b"\x1b[")
 }
-

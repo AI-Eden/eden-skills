@@ -386,4 +386,3 @@ fn event_count(log_path: &Path, event: &str) -> usize {
         .filter(|line| *line == event)
         .count()
 }
-

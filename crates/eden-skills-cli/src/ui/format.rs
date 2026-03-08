@@ -9,22 +9,24 @@ use std::time::Duration;
 use std::fs::File;
 #[cfg(unix)]
 use std::fs::OpenOptions;
+use std::io::IsTerminal;
 #[cfg(unix)]
 use std::os::fd::{AsRawFd, RawFd};
-use std::io::IsTerminal;
 
 #[cfg(windows)]
 use std::iter::once;
 #[cfg(windows)]
-use windows_sys::Win32::Foundation::{CloseHandle, GENERIC_READ, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE};
+use windows_sys::Win32::Foundation::{
+    CloseHandle, GENERIC_READ, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE,
+};
 #[cfg(windows)]
 use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, FILE_SHARE_READ, FILE_SHARE_WRITE, OPEN_EXISTING,
 };
 #[cfg(windows)]
 use windows_sys::Win32::System::Console::{
-    FlushConsoleInputBuffer, GetConsoleMode, GetStdHandle, SetConsoleMode,
-    CONSOLE_MODE, ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, STD_INPUT_HANDLE,
+    FlushConsoleInputBuffer, GetConsoleMode, GetStdHandle, SetConsoleMode, CONSOLE_MODE,
+    ENABLE_ECHO_INPUT, ENABLE_LINE_INPUT, STD_INPUT_HANDLE,
 };
 
 use indicatif::{ProgressBar, ProgressStyle};

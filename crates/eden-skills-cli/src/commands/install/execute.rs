@@ -18,11 +18,11 @@ use eden_skills_core::source::resolve_skill_source_path;
 
 use crate::ui::UiContext;
 
+use super::platform::default_install_mode;
 use crate::commands::common::{
     apply_plan_item, copy_recursively, ensure_parent_dir, path_is_symlink_or_junction,
     print_warning, remove_path,
 };
-use super::platform::default_install_mode;
 
 #[derive(Debug, Default)]
 pub(super) struct InstallExecutionSummary {

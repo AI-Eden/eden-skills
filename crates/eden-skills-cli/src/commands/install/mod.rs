@@ -43,7 +43,8 @@ use super::InstallRequest;
 use self::adapter::DockerAdapter;
 use self::discovery::{
     discover_remote_skills_via_temp_clone, join_scoped_subpath, print_discovery_json,
-    print_discovery_preview, resolve_local_install_selection, seed_repo_cache_from_discovery_checkout,
+    print_discovery_preview, resolve_local_install_selection,
+    seed_repo_cache_from_discovery_checkout,
 };
 use self::dry_run::print_install_dry_run;
 use self::execute::{

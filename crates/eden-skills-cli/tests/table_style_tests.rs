@@ -368,16 +368,25 @@ fn write_skills_config_with_storage_root(
 
     for skill in skills {
         config.push_str("\n[[skills]]\n");
-        config.push_str(&format!("id = \"{}\"\n\n", common::toml_escape_string(&skill.id)));
+        config.push_str(&format!(
+            "id = \"{}\"\n\n",
+            common::toml_escape_string(&skill.id)
+        ));
         config.push_str("[skills.source]\n");
-        config.push_str(&format!("repo = \"{}\"\n", common::toml_escape_string(&skill.repo)));
+        config.push_str(&format!(
+            "repo = \"{}\"\n",
+            common::toml_escape_string(&skill.repo)
+        ));
         config.push_str(&format!(
             "subpath = \"{}\"\n",
             common::toml_escape_string(&skill.subpath)
         ));
         config.push_str("ref = \"main\"\n\n");
         config.push_str("[skills.install]\n");
-        config.push_str(&format!("mode = \"{}\"\n", common::toml_escape_string(&skill.mode)));
+        config.push_str(&format!(
+            "mode = \"{}\"\n",
+            common::toml_escape_string(&skill.mode)
+        ));
         for target in &skill.targets {
             config.push_str("\n[[skills.targets]]\n");
             config.push_str(&format!(
@@ -385,7 +394,10 @@ fn write_skills_config_with_storage_root(
                 common::toml_escape_string(&target.agent)
             ));
             if let Some(path) = &target.path {
-                config.push_str(&format!("path = \"{}\"\n", common::toml_escape_string(path)));
+                config.push_str(&format!(
+                    "path = \"{}\"\n",
+                    common::toml_escape_string(path)
+                ));
             }
         }
         config.push_str("\n[skills.verify]\n");

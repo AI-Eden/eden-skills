@@ -325,8 +325,16 @@ fn setup_mode_a_fixture(install_mode: &str, with_registries: bool) -> ModeAFixtu
             "registry-forge",
             &[("manifest.toml", "format_version = 1\nname = \"forge\"\n")],
         );
-        registries.push(("official".to_string(), common::path_to_file_url(&official_registry), 100));
-        registries.push(("forge".to_string(), common::path_to_file_url(&forge_registry), 10));
+        registries.push((
+            "official".to_string(),
+            common::path_to_file_url(&official_registry),
+            100,
+        ));
+        registries.push((
+            "forge".to_string(),
+            common::path_to_file_url(&forge_registry),
+            10,
+        ));
     }
 
     write_mode_a_config(
@@ -481,4 +489,3 @@ fn git_head(repo: &Path) -> String {
 fn has_ansi_codes(text: &str) -> bool {
     text.as_bytes().windows(2).any(|window| window == b"\x1b[")
 }
-
