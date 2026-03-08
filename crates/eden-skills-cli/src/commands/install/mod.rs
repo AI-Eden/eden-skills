@@ -64,16 +64,17 @@ mod adapter {
     pub(super) use eden_skills_core::adapter::DockerAdapter;
 }
 
-struct SourceSyncProgress {
+struct StepProgress {
     progress_bar: Option<ProgressBar>,
+    label: String,
     total_steps: usize,
     synced: usize,
     failed: usize,
     emit_test_step_lines: bool,
 }
 
-impl SourceSyncProgress {
-    fn new(ui: &UiContext, total_steps: usize) -> Self {
+impl StepProgress {
+    fn new(ui: &UiContext, label: &str, total_steps: usize) -> Self {
         let progress_bar = if ui.spinner_enabled() && total_steps > 0 {
             let bar = ProgressBar::with_draw_target(
                 Some(total_steps as u64),
@@ -82,7 +83,7 @@ impl SourceSyncProgress {
             let style = ProgressStyle::with_template("  {prefix} [{pos}/{len}] {msg}")
                 .unwrap_or_else(|_| ProgressStyle::default_bar());
             bar.set_style(style);
-            bar.set_prefix(ui.action_prefix("Syncing"));
+            bar.set_prefix(ui.action_prefix(label));
             Some(bar)
         } else {
             None
@@ -90,6 +91,7 @@ impl SourceSyncProgress {
 
         Self {
             progress_bar,
+            label: label.to_string(),
             total_steps,
             synced: 0,
             failed: 0,
@@ -120,7 +122,7 @@ impl SourceSyncProgress {
         if self.emit_test_step_lines {
             println!(
                 "  {} [{}/{}] {}…",
-                ui.action_prefix("Syncing"),
+                ui.action_prefix(&self.label),
                 zero_based_step + 1,
                 self.total_steps,
                 skill_id
@@ -131,11 +133,17 @@ impl SourceSyncProgress {
         }
     }
 
-    fn finish(self, ui: &UiContext) {
+    fn finish_with_sync_summary(self, ui: &UiContext) {
         if let Some(bar) = self.progress_bar {
             bar.finish_and_clear();
         }
         print_source_sync_step_summary_human(ui, self.synced, self.failed);
+    }
+
+    fn finish_quiet(self) {
+        if let Some(bar) = self.progress_bar {
+            bar.finish_and_clear();
+        }
     }
 }
 
@@ -270,12 +278,12 @@ async fn install_registry_mode_async(
     write_normalized_config(config_path, &config)?;
 
     ensure_git_available()?;
-    let mut sync_progress = SourceSyncProgress::new(ui, 1);
+    let mut sync_progress = StepProgress::new(ui, "Syncing", 1);
     sync_progress.start_step(skill_name);
     let sync_summary = sync_sources_async(&single_skill_config, &config_dir).await?;
     sync_progress.record_step(ui, 0, skill_name, sync_summary.failed > 0);
     if !req.options.json {
-        sync_progress.finish(ui);
+        sync_progress.finish_with_sync_summary(ui);
     }
     if let Some(err) = source_sync_failure_error(&sync_summary) {
         return Err(err);
@@ -454,37 +462,42 @@ async fn install_remote_url_mode_async(
         &source_ref,
     )?;
 
-    let mut execution_summary = InstallExecutionSummary::default();
-    let mut sync_progress = SourceSyncProgress::new(ui, selected_ids.len());
-    if let Some(first_skill_id) = selected_ids.first() {
-        sync_progress.start_step(first_skill_id);
-    }
+    let sync_spinner = ui.spinner("Syncing", format!("{} skill sources…", selected_ids.len()));
     let sync_summary = sync_sources_async(&selected_config, &config_dir).await?;
     if sync_summary.failed > 0 {
-        if let Some(first_skill_id) = selected_ids.first() {
-            sync_progress.record_step(ui, 0, first_skill_id, true);
-        }
+        sync_spinner.finish_failure(ui, &format!("{} source(s) failed", sync_summary.failed));
     } else {
-        for (index, skill_id) in selected_ids.iter().enumerate() {
-            sync_progress.start_step(skill_id);
-            sync_progress.record_step(ui, index, skill_id, false);
-            let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
-            let skill_summary = execute_install_plan_async(
-                &single_skill_config,
-                &config_dir,
-                req.options.strict,
-                req.force,
-                ui,
-            )
-            .await?;
-            execution_summary.merge(skill_summary);
-        }
+        sync_spinner.finish_success(ui);
     }
     if !req.options.json {
-        sync_progress.finish(ui);
+        print_source_sync_step_summary_human(
+            ui,
+            sync_summary.cloned + sync_summary.updated + sync_summary.skipped,
+            sync_summary.failed,
+        );
     }
     if let Some(err) = source_sync_failure_error(&sync_summary) {
         return Err(err);
+    }
+
+    let mut execution_summary = InstallExecutionSummary::default();
+    let mut install_progress = StepProgress::new(ui, "Installing", selected_ids.len());
+    for (index, skill_id) in selected_ids.iter().enumerate() {
+        install_progress.start_step(skill_id);
+        let single_skill_config = select_single_skill_config(&selected_config, skill_id)?;
+        let skill_summary = execute_install_plan_async(
+            &single_skill_config,
+            &config_dir,
+            req.options.strict,
+            req.force,
+            ui,
+        )
+        .await?;
+        install_progress.record_step(ui, index, skill_id, false);
+        execution_summary.merge(skill_summary);
+    }
+    if !req.options.json {
+        install_progress.finish_quiet();
     }
 
     let full_loaded = load_config_with_context(config_path, false)?;
