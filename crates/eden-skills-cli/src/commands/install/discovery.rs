@@ -16,7 +16,9 @@ use crate::ui::{
 };
 
 use crate::commands::clean::DISCOVERY_TEMP_DIR_PREFIX;
-use crate::commands::common::run_git_command;
+use crate::commands::common::{
+    extract_git_clone_failure_reason, git_clone_failure_hint, run_git_command,
+};
 
 #[derive(Debug)]
 pub(super) struct RemoteDiscoveryResult {
@@ -181,8 +183,11 @@ fn clone_repo_for_discovery(
             ),
         );
         if let Err(fallback_error) = fallback_clone {
+            let combined_stderr = format!("{branch_error}\n{fallback_error}");
+            let reason = extract_git_clone_failure_reason(&combined_stderr);
+            let hint = git_clone_failure_hint(reason, repo_url);
             return Err(EdenError::Runtime(format!(
-                "branch clone attempt failed: {branch_error}; fallback clone attempt failed: {fallback_error}"
+                "failed to clone `{repo_url}` — {reason}\nhint: {hint}"
             )));
         }
         run_git_command(
@@ -196,7 +201,13 @@ fn clone_repo_for_discovery(
                 repo_dir.display()
             ),
         )
-        .map_err(EdenError::Runtime)?;
+        .map_err(|_| {
+            let reason = "remote branch not found";
+            let hint = git_clone_failure_hint(reason, repo_url);
+            EdenError::Runtime(format!(
+                "failed to checkout ref `{reference}` in `{repo_url}` — {reason}\nhint: {hint}"
+            ))
+        })?;
     }
 
     Ok(())

@@ -17,21 +17,24 @@ eden-skills doctor --config "$CONFIG"
 eden-skills repair --config "$CONFIG"
 ```
 
-1. If source sync failed, inspect the `source sync failed ...` detail line (includes `skill`, `stage`, `repo_dir`, `detail`).
+1. If source sync failed, inspect the `source sync failed ...` error line and the `~>` hint for guidance.
 
 ## Common Cases
 
-### A) `source sync failed ... stage=clone|fetch|checkout`
+### A) `source sync failed for N repo(s)` (clone / fetch / checkout)
 
 Meaning:
 
-- Git source synchronization failed before mutation.
+- Git source synchronization failed before mutation. The error message
+  extracts the root cause from git stderr (e.g. `repository not found`,
+  `authentication failed`, `could not resolve host`).
 
 Fixes:
 
-- Verify repo URL and credentials
-- Ensure local filesystem permissions for storage root
-- Retry with network connectivity restored
+- Verify repo URL spelling and ensure the repository exists
+- Check git credentials and SSH key configuration
+- Ensure network connectivity and DNS resolution
+- For ref-not-found errors, verify the branch/tag exists in the remote
 
 ### B) `BROKEN_SYMLINK` / `TARGET_RESOLVE_MISMATCH`
 

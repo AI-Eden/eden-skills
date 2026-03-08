@@ -361,7 +361,18 @@ async fn install_remote_url_mode_async(
                 discovery
             }
             Err(err) => {
-                clone_spinner.finish_failure(ui, &err.to_string());
+                let spinner_summary = err
+                    .to_string()
+                    .split('\n')
+                    .next()
+                    .unwrap_or("clone failed")
+                    .strip_prefix("failed to clone ")
+                    .and_then(|rest| rest.split_once(" — "))
+                    .map_or_else(
+                        || "clone failed".to_string(),
+                        |(_, reason)| reason.to_string(),
+                    );
+                clone_spinner.finish_failure(ui, &spinner_summary);
                 return Err(err);
             }
         };

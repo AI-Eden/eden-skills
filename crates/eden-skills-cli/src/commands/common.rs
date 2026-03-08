@@ -211,6 +211,59 @@ pub(crate) fn run_git_command(command: &mut Command, context: &str) -> Result<St
     ))
 }
 
+pub(crate) fn extract_git_clone_failure_reason(stderr: &str) -> &str {
+    let lower = stderr.to_ascii_lowercase();
+    if lower.contains("repository not found") {
+        return "repository not found";
+    }
+    if lower.contains("could not resolve host") {
+        return "could not resolve host";
+    }
+    if lower.contains("authentication failed") {
+        return "authentication failed";
+    }
+    if lower.contains("permission denied") {
+        return "permission denied (publickey)";
+    }
+    if lower.contains("could not find remote branch") || lower.contains("not found in upstream") {
+        return "remote branch not found";
+    }
+    if lower.contains("connection refused") {
+        return "connection refused";
+    }
+    if lower.contains("connection timed out") || lower.contains("timed out") {
+        return "connection timed out";
+    }
+    if lower.contains("ssl certificate problem") {
+        return "SSL certificate error";
+    }
+    if lower.contains("unable to access") {
+        return "unable to access remote";
+    }
+    "git clone failed"
+}
+
+pub(crate) fn git_clone_failure_hint(reason: &str, repo_url: &str) -> String {
+    match reason {
+        "repository not found" => {
+            format!("Check the URL spelling and ensure `{repo_url}` exists and is accessible.")
+        }
+        "could not resolve host" | "connection refused" | "connection timed out" => {
+            "Check your internet connection and DNS settings.".to_string()
+        }
+        "authentication failed" | "permission denied (publickey)" => {
+            format!(
+                "Ensure you have access to `{repo_url}` and your git credentials are configured."
+            )
+        }
+        "remote branch not found" => {
+            "Check that the branch, tag, or commit exists in the repository.".to_string()
+        }
+        "SSL certificate error" => "Check your system's SSL/TLS certificates.".to_string(),
+        _ => format!("Run `git clone {repo_url}` manually to diagnose the issue."),
+    }
+}
+
 pub(crate) fn read_head_sha(repo_dir: &Path) -> Option<String> {
     let stdout = run_git_command(
         Command::new("git")
@@ -316,20 +369,32 @@ pub(crate) fn source_sync_failure_error(summary: &SyncSummary) -> Option<EdenErr
         .failures
         .iter()
         .map(|failure| {
+            let reason = extract_git_clone_failure_reason(&failure.detail);
             format!(
-                "skill={} stage={} repo_dir={} detail={}",
+                "'{}' ({} — {reason})",
                 failure.skill_id,
-                failure.stage.as_str(),
-                failure.repo_dir,
-                failure.detail
+                failure.stage.as_str()
             )
         })
         .collect::<Vec<_>>()
-        .join("; ");
+        .join(", ");
+
+    let hint = summary
+        .failures
+        .first()
+        .map(|f| {
+            let reason = extract_git_clone_failure_reason(&f.detail);
+            git_clone_failure_hint(reason, &f.repo_dir)
+        })
+        .unwrap_or_default();
 
     Some(EdenError::Runtime(format!(
-        "source sync failed for {} skill(s): {details}",
-        summary.failed
+        "source sync failed for {}: {details}\nhint: {hint}",
+        if summary.failed == 1 {
+            "1 repo".to_string()
+        } else {
+            format!("{} repos", summary.failed)
+        }
     )))
 }
 

@@ -42,15 +42,15 @@ fn apply_returns_exit_code_1_on_runtime_git_failure() {
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("source sync failed for 1 skill(s):"),
+        stderr.contains("source sync failed for 1 repo:"),
         "stderr should include source sync failure summary, got: {stderr}"
     );
     assert!(
-        stderr.contains("skill=demo-skill"),
+        stderr.contains("'demo-skill'"),
         "stderr should include skill identifier, got: {stderr}"
     );
     assert!(
-        stderr.contains("stage=clone"),
+        stderr.contains("clone"),
         "stderr should include clone failure stage, got: {stderr}"
     );
 }
@@ -138,16 +138,12 @@ fn apply_returns_exit_code_1_with_fetch_failure_diagnostics() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("skill=demo-skill"),
+        stderr.contains("'demo-skill'"),
         "stderr should include skill identifier, got: {stderr}"
     );
     assert!(
-        stderr.contains("stage=fetch"),
+        stderr.contains("fetch"),
         "stderr should include fetch failure stage, got: {stderr}"
-    );
-    assert!(
-        stderr.contains(&format!("repo_dir={}", fake_repo_dir.display())),
-        "stderr should include repo directory, got: {stderr}"
     );
 }
 
@@ -185,11 +181,11 @@ fn apply_returns_exit_code_1_with_checkout_failure_diagnostics() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(
-        stderr.contains("skill=demo-skill"),
+        stderr.contains("'demo-skill'"),
         "stderr should include skill identifier, got: {stderr}"
     );
     assert!(
-        stderr.contains("stage=checkout"),
+        stderr.contains("checkout"),
         "stderr should include checkout failure stage, got: {stderr}"
     );
 }
@@ -312,11 +308,9 @@ fn apply_aggregates_multiskill_source_failures_in_config_order() {
 
     let stderr = String::from_utf8_lossy(&output.stderr);
     let alpha_pos = stderr
-        .find("skill=alpha-skill")
+        .find("'alpha-skill'")
         .expect("alpha-skill diagnostic");
-    let beta_pos = stderr
-        .find("skill=beta-skill")
-        .expect("beta-skill diagnostic");
+    let beta_pos = stderr.find("'beta-skill'").expect("beta-skill diagnostic");
     assert!(
         alpha_pos < beta_pos,
         "failure diagnostics should preserve config order, stderr={stderr}"
@@ -360,7 +354,7 @@ fn apply_strict_source_sync_failure_takes_precedence_over_conflict_exit_code() {
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("source sync failed for 1 skill(s):"),
+        String::from_utf8_lossy(&output.stderr).contains("source sync failed for 1 repo:"),
         "expected source sync failure diagnostics in stderr"
     );
     assert!(
@@ -406,7 +400,7 @@ fn repair_strict_source_sync_failure_takes_precedence_over_conflict_exit_code() 
         String::from_utf8_lossy(&output.stderr)
     );
     assert!(
-        String::from_utf8_lossy(&output.stderr).contains("source sync failed for 1 skill(s):"),
+        String::from_utf8_lossy(&output.stderr).contains("source sync failed for 1 repo:"),
         "expected source sync failure diagnostics in stderr"
     );
     assert!(
