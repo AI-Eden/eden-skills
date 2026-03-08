@@ -219,6 +219,21 @@ eden-skills apply --config "$CONFIG"
 eden-skills remove --config "$CONFIG" <skill-id>
 ```
 
+### N) Sync skips even though remote has changes
+
+Meaning:
+
+- The source sync uses a 5-minute freshness window. If a repo was fetched
+  within the last 5 minutes, subsequent `install` and `apply` commands skip
+  the network fetch and reuse the cached checkout.
+
+Fixes:
+
+- Use `eden-skills update` to force a fresh fetch (always bypasses the
+  freshness window).
+- Use `eden-skills repair` (also bypasses the freshness window).
+- Wait 5 minutes for the window to expire naturally.
+
 ## JSON Diagnostics for Tooling
 
 Use JSON output in automation:

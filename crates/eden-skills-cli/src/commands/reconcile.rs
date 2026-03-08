@@ -275,7 +275,7 @@ pub async fn repair_async(
         ensure_git_available()?;
     }
     let sync_summary =
-        sync_sources_async_with_reactor(&execution_config, &config_dir, reactor).await?;
+        sync_sources_async_with_reactor(&execution_config, &config_dir, reactor, true).await?;
     print_source_sync_summary_human(&ui, &sync_summary);
     let safety_reports = analyze_skills(&execution_config, &config_dir)?;
     persist_reports(&safety_reports)?;

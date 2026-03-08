@@ -750,7 +750,7 @@ async fn apply_refreshed_skills(
     materialize_fetch_heads(&selected_config, config_dir)?;
 
     let reactor = SkillReactor::new(concurrency).map_err(EdenError::from)?;
-    let sync_summary = sync_sources_async_with_reactor(&selected_config, config_dir, reactor)
+    let sync_summary = sync_sources_async_with_reactor(&selected_config, config_dir, reactor, true)
         .await
         .map_err(EdenError::from)?;
     if emit_human_output {

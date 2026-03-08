@@ -9,11 +9,15 @@
 use std::collections::{BTreeMap, HashSet};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::config::{Config, SkillConfig};
 use crate::error::ReactorError;
 use crate::paths::{normalize_lexical, resolve_path_string};
 use crate::reactor::SkillReactor;
+
+const FETCHED_AT_FILE: &str = ".eden-fetched-at";
+const DEFAULT_FRESHNESS_SECS: u64 = 300;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct SyncSummary {
@@ -80,6 +84,7 @@ struct SyncTask {
     reference: String,
     repo_dir: PathBuf,
     skip: bool,
+    force_refresh: bool,
 }
 
 #[derive(Debug)]
@@ -185,30 +190,34 @@ pub fn sync_sources(config: &Config, config_dir: &Path) -> Result<SyncSummary, R
 }
 
 /// Clone or update all remote skill sources in parallel using the
-/// default [`SkillReactor`].
+/// default [`SkillReactor`].  Skips repos that were fetched within the
+/// last 5 minutes (freshness window).
 pub async fn sync_sources_async(
     config: &Config,
     config_dir: &Path,
 ) -> Result<SyncSummary, ReactorError> {
     let skip_repos = HashSet::new();
-    sync_sources_async_with_reactor_skipping_repos(
+    sync_sources_async_inner(
         config,
         config_dir,
         SkillReactor::default(),
         &skip_repos,
+        false,
     )
     .await
 }
 
 /// Like [`sync_sources_async`] but accepts a custom reactor (for
-/// concurrency tuning).
+/// concurrency tuning).  When `force_refresh` is true, the freshness
+/// window is bypassed and every repo is fetched unconditionally.
 pub async fn sync_sources_async_with_reactor(
     config: &Config,
     config_dir: &Path,
     reactor: SkillReactor,
+    force_refresh: bool,
 ) -> Result<SyncSummary, ReactorError> {
     let skip_repos = HashSet::new();
-    sync_sources_async_with_reactor_skipping_repos(config, config_dir, reactor, &skip_repos).await
+    sync_sources_async_inner(config, config_dir, reactor, &skip_repos, force_refresh).await
 }
 
 /// Full-featured async sync entry point.  Deduplicates by
@@ -219,6 +228,16 @@ pub async fn sync_sources_async_with_reactor_skipping_repos(
     config_dir: &Path,
     reactor: SkillReactor,
     skip_repos: &HashSet<String>,
+) -> Result<SyncSummary, ReactorError> {
+    sync_sources_async_inner(config, config_dir, reactor, skip_repos, false).await
+}
+
+async fn sync_sources_async_inner(
+    config: &Config,
+    config_dir: &Path,
+    reactor: SkillReactor,
+    skip_repos: &HashSet<String>,
+    force_refresh: bool,
 ) -> Result<SyncSummary, ReactorError> {
     let storage_root = resolve_path_string(&config.storage_root, config_dir).map_err(|err| {
         ReactorError::Config {
@@ -243,6 +262,7 @@ pub async fn sync_sources_async_with_reactor_skipping_repos(
                 &skill.source.r#ref,
             ),
             skip: skip_repos.contains(&repo_cache_key(&skill.source.repo, &skill.source.r#ref)),
+            force_refresh,
         });
     }
 
@@ -284,6 +304,11 @@ async fn sync_one_source(
     }
 
     let repo_exists = task.repo_dir.join(".git").exists();
+
+    if repo_exists && !task.force_refresh && repo_is_fresh(&task.repo_dir) {
+        return Ok(SyncOutcome::Skipped);
+    }
+
     let repo_dir_display = task.repo_dir.display().to_string();
     let skill_id = task.skill_id.clone();
     let task_name = format!("sync source `{}`", task.skill_id);
@@ -306,7 +331,10 @@ async fn sync_one_source(
     };
 
     match sync_result {
-        Ok(outcome) => Ok(outcome),
+        Ok(outcome) => {
+            write_fetched_at(&task.repo_dir);
+            Ok(outcome)
+        }
         Err(err) => Err(SyncFailure {
             skill_id,
             stage: err.stage,
@@ -470,6 +498,27 @@ fn is_local_source_repo(repo_url: &str) -> bool {
     Path::new(repo_url).is_absolute()
 }
 
+fn repo_is_fresh(repo_dir: &Path) -> bool {
+    let fetched_at_path = repo_dir.join(FETCHED_AT_FILE);
+    let Ok(content) = std::fs::read_to_string(&fetched_at_path) else {
+        return false;
+    };
+    let Ok(fetched_at) = content.trim().parse::<u64>() else {
+        return false;
+    };
+    let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH) else {
+        return false;
+    };
+    now.as_secs().saturating_sub(fetched_at) < DEFAULT_FRESHNESS_SECS
+}
+
+fn write_fetched_at(repo_dir: &Path) {
+    let Ok(now) = SystemTime::now().duration_since(UNIX_EPOCH) else {
+        return;
+    };
+    let _ = std::fs::write(repo_dir.join(FETCHED_AT_FILE), now.as_secs().to_string());
+}
+
 fn record_test_git_clone_if_configured() {
     record_test_git_event_if_configured("EDEN_SKILLS_TEST_GIT_CLONE_LOG", b"clone\n");
 }
@@ -490,4 +539,60 @@ fn record_test_git_event_if_configured(env_var: &str, line: &[u8]) {
         return;
     };
     let _ = std::io::Write::write_all(&mut file, line);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+    use tempfile::tempdir;
+
+    #[test]
+    fn repo_is_fresh_returns_false_when_no_timestamp_file() {
+        let temp = tempdir().expect("tempdir");
+        assert!(!repo_is_fresh(temp.path()));
+    }
+
+    #[test]
+    fn repo_is_fresh_returns_true_within_window() {
+        let temp = tempdir().expect("tempdir");
+        write_fetched_at(temp.path());
+        assert!(repo_is_fresh(temp.path()));
+    }
+
+    #[test]
+    fn repo_is_fresh_returns_false_after_window() {
+        let temp = tempdir().expect("tempdir");
+        let stale = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs()
+            - DEFAULT_FRESHNESS_SECS
+            - 10;
+        std::fs::write(temp.path().join(FETCHED_AT_FILE), stale.to_string()).unwrap();
+        assert!(!repo_is_fresh(temp.path()));
+    }
+
+    #[test]
+    fn repo_is_fresh_returns_false_for_corrupted_file() {
+        let temp = tempdir().expect("tempdir");
+        std::fs::write(temp.path().join(FETCHED_AT_FILE), "not-a-number").unwrap();
+        assert!(!repo_is_fresh(temp.path()));
+    }
+
+    #[test]
+    fn write_fetched_at_creates_parseable_timestamp() {
+        let temp = tempdir().expect("tempdir");
+        write_fetched_at(temp.path());
+        let content = std::fs::read_to_string(temp.path().join(FETCHED_AT_FILE)).unwrap();
+        let ts: u64 = content
+            .trim()
+            .parse()
+            .expect("should be a valid u64 timestamp");
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        assert!(now - ts < 5, "timestamp should be within 5 seconds of now");
+    }
 }

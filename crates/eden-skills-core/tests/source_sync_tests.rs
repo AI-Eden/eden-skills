@@ -25,11 +25,19 @@ fn sync_sources_tracks_cloned_skipped_and_updated_counts() {
     assert_eq!(first.skipped, 0);
     assert_eq!(first.failed, 0);
 
+    // Second sync within the freshness window should skip (no network).
     let second = sync_sources(&config, temp.path()).expect("second sync");
     assert_eq!(second.cloned, 0);
     assert_eq!(second.updated, 0);
-    assert_eq!(second.skipped, 1);
+    assert_eq!(
+        second.skipped, 1,
+        "repo should be skipped within freshness window"
+    );
     assert_eq!(second.failed, 0);
+
+    // Invalidate freshness window so the third sync actually fetches.
+    let repo_cache = resolve_repo_cache_root(&storage_root, &as_file_url(&origin_repo), "main");
+    let _ = fs::remove_file(repo_cache.join(".eden-fetched-at"));
 
     fs::write(origin_repo.join("packages/browser/README.txt"), "v2\n")
         .expect("write origin update");
