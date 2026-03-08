@@ -173,7 +173,7 @@ impl UiContext {
     /// Style secondary detail text such as modes or explanatory suffixes.
     pub fn styled_secondary(&self, text: &str) -> String {
         if self.colors_enabled() {
-            text.dimmed().to_string()
+            text.blue().to_string()
         } else {
             text.to_string()
         }
