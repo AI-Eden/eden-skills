@@ -197,6 +197,33 @@ impl UiContext {
         }
     }
 
+    /// Style a success count for table output.
+    pub fn styled_success_count(&self, count: usize) -> String {
+        if self.colors_enabled() {
+            count.to_string().green().to_string()
+        } else {
+            count.to_string()
+        }
+    }
+
+    /// Style a skipped count for table output.
+    pub fn styled_skipped_count(&self, count: usize) -> String {
+        if self.colors_enabled() {
+            count.to_string().yellow().to_string()
+        } else {
+            count.to_string()
+        }
+    }
+
+    /// Style a failed count for table output.
+    pub fn styled_failed_count(&self, count: usize) -> String {
+        if self.colors_enabled() {
+            count.to_string().red().to_string()
+        } else {
+            count.to_string()
+        }
+    }
+
     /// Render the canonical hint prefix used across CLI guidance lines.
     pub fn hint_prefix(&self) -> String {
         if self.colors_enabled() {

@@ -289,7 +289,7 @@ async fn install_registry_mode_async(
         return Err(err);
     }
 
-    let execution_summary = execute_install_plan_async(
+    let mut execution_summary = execute_install_plan_async(
         &single_skill_config,
         &config_dir,
         req.options.strict,
@@ -301,15 +301,18 @@ async fn install_registry_mode_async(
     let full_loaded = load_config_with_context(config_path, false)?;
     write_lock_for_config(config_path, &full_loaded.config, &config_dir)?;
 
+    if execution_summary.installed_targets.is_empty() && execution_summary.conflicts == 0 {
+        execution_summary.skipped_skills += 1;
+    }
+
     if req.options.json {
         print_install_success_json(skill_name, &requested_constraint)?;
     } else {
         print_install_result_lines(ui, &execution_summary.installed_targets);
         print_install_result_summary(
             ui,
-            1,
+            &execution_summary,
             unique_agent_count(&single_skill_config),
-            execution_summary.conflicts,
         );
         print_docker_cp_hints(ui, &execution_summary.docker_cp_hint_containers);
     }
@@ -493,6 +496,11 @@ async fn install_remote_url_mode_async(
             ui,
         )
         .await?;
+        let skill_was_noop =
+            skill_summary.installed_targets.is_empty() && skill_summary.conflicts == 0;
+        if skill_was_noop {
+            execution_summary.skipped_skills += 1;
+        }
         install_progress.record_step(ui, index, skill_id, false);
         execution_summary.merge(skill_summary);
     }
@@ -513,12 +521,7 @@ async fn install_remote_url_mode_async(
         println!("{encoded}");
     } else {
         print_install_result_lines(ui, &execution_summary.installed_targets);
-        print_install_result_summary(
-            ui,
-            selected_ids.len(),
-            unique_agent_count(&selected_config),
-            execution_summary.conflicts,
-        );
+        print_install_result_summary(ui, &execution_summary, unique_agent_count(&selected_config));
         print_docker_cp_hints(ui, &execution_summary.docker_cp_hint_containers);
     }
 
@@ -648,6 +651,11 @@ async fn install_local_url_mode_async(
             ui,
         )
         .await?;
+        let skill_was_noop =
+            skill_summary.installed_targets.is_empty() && skill_summary.conflicts == 0;
+        if skill_was_noop {
+            execution_summary.skipped_skills += 1;
+        }
         execution_summary.merge(skill_summary);
     }
 
@@ -664,12 +672,7 @@ async fn install_local_url_mode_async(
         println!("{encoded}");
     } else {
         print_install_result_lines(ui, &execution_summary.installed_targets);
-        print_install_result_summary(
-            ui,
-            selected_ids.len(),
-            unique_agent_count(&selected_config),
-            execution_summary.conflicts,
-        );
+        print_install_result_summary(ui, &execution_summary, unique_agent_count(&selected_config));
         print_docker_cp_hints(ui, &execution_summary.docker_cp_hint_containers);
     }
 

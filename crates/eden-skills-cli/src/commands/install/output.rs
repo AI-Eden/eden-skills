@@ -38,17 +38,31 @@ pub(super) fn print_install_result_lines(ui: &UiContext, installed_targets: &[In
 
 pub(super) fn print_install_result_summary(
     ui: &UiContext,
-    skill_count: usize,
+    summary: &super::execute::InstallExecutionSummary,
     agent_count: usize,
-    conflict_count: usize,
 ) {
+    let installed = summary.installed_skill_count();
+    let skipped = summary.skipped_skills;
+    let conflicts = summary.conflicts;
+
     println!();
+    let mut parts = vec![format!("{} installed", ui.styled_success_count(installed))];
+    if skipped > 0 {
+        parts.push(format!("{} skipped", ui.styled_skipped_count(skipped)));
+    }
+    if conflicts > 0 {
+        parts.push(format!("{} conflicts", ui.styled_failed_count(conflicts)));
+    }
+
+    let symbol = if installed > 0 || skipped > 0 {
+        ui.status_symbol(StatusSymbol::Success)
+    } else {
+        ui.status_symbol(StatusSymbol::Skipped)
+    };
     println!(
-        "  {} {} skills installed to {} agents, {} conflicts",
-        ui.status_symbol(StatusSymbol::Success),
-        skill_count,
-        agent_count,
-        conflict_count
+        "  {symbol} {} ({} agents)",
+        parts.join(", "),
+        ui.styled_cyan(&agent_count.to_string())
     );
 }
 

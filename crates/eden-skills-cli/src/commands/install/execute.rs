@@ -28,6 +28,7 @@ use crate::commands::common::{
 pub(super) struct InstallExecutionSummary {
     pub(super) installed_targets: Vec<InstallTargetLine>,
     pub(super) conflicts: usize,
+    pub(super) skipped_skills: usize,
     pub(super) docker_cp_hint_containers: Vec<String>,
 }
 
@@ -41,10 +42,19 @@ pub(super) struct InstallTargetLine {
 impl InstallExecutionSummary {
     pub(super) fn merge(&mut self, mut other: InstallExecutionSummary) {
         self.conflicts += other.conflicts;
+        self.skipped_skills += other.skipped_skills;
         self.installed_targets.append(&mut other.installed_targets);
         for container in other.docker_cp_hint_containers.drain(..) {
             self.record_docker_cp_hint(container);
         }
+    }
+
+    pub(super) fn installed_skill_count(&self) -> usize {
+        let mut seen = std::collections::HashSet::new();
+        for target in &self.installed_targets {
+            seen.insert(&target.skill_id);
+        }
+        seen.len()
     }
 
     pub(super) fn record_docker_cp_hint(&mut self, container_name: impl Into<String>) {

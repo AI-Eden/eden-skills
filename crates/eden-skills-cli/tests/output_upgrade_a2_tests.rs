@@ -248,8 +248,8 @@ fn tm_p28_024_install_per_skill_results() {
         "legacy flat arrow output should be removed, stdout={stdout}"
     );
     assert!(
-        stdout.contains("skills installed to") && stdout.contains("conflicts"),
-        "final install summary should include skills/agents/conflicts counts, stdout={stdout}"
+        stdout.contains("installed") && stdout.contains("agents"),
+        "final install summary should include installed count and agent count, stdout={stdout}"
     );
     assert!(
         !stdout.contains("status=installed"),
