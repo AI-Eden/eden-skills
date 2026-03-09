@@ -1,0 +1,7 @@
+[project]
+name = "eden-skills-banner-builder"
+version = "0.1.0"
+description = "Scripts for building the eden-skills banner"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = ["playwright>=1.50.0", "numpy>=1.26.0", "pillow>=10.0.0"]
