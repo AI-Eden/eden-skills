@@ -14,6 +14,37 @@ This tutorial covers all config mutation commands:
 - Users managing multiple skills over time
 - Teams wanting CLI-first config changes (instead of manual TOML edits)
 
+## Config as Code
+
+`skills.toml` is the single source of truth for your skill state. It is
+auto-created on first `install`, but you can also author it manually for full
+control:
+
+```toml
+version = 1
+
+[storage]
+root = "~/.eden-skills/skills"
+
+[[skills]]
+id = "web-design-guidelines"
+
+[skills.source]
+repo = "https://github.com/vercel-labs/agent-skills.git"
+subpath = "skills/web-design-guidelines"
+ref = "main"
+
+[skills.install]
+mode = "symlink"
+
+[[skills.targets]]
+agent = "claude-code"
+```
+
+Run `eden-skills apply` to converge the system to this config. The co-located
+`skills.lock` pins resolved commit SHAs and target paths so that every
+`apply` on any machine produces the same result.
+
 ## Setup
 
 ```bash

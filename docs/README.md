@@ -22,6 +22,14 @@ Task-oriented guides for all implemented features. If you are new, read in order
 6. [Troubleshooting Playbook](06-troubleshooting.md)  
    Diagnose common failures using finding codes and recovery steps.
 
+7. [CLI Reference](07-cli-reference.md)  
+   Complete command reference: all options, flags, examples, supported agents, exit codes.
+
+## Project Workflow
+
+- [Agentic Engineering Workflow](agentic-workflow.md)  
+  How eden-skills is built using a three-model AI collaboration (Scout / Architect / Builder). Includes contributor guidance.
+
 ## Command Contract References
 
 For normative behavior, refer to the spec files:

@@ -48,6 +48,25 @@ In TTY sessions, the second form opens a checkbox selector when multiple skills
 are discovered. In non-interactive sessions, `install` falls back to installing
 all discovered skills.
 
+### Accepted Source Formats
+
+```bash
+# GitHub shorthand (owner/repo)
+eden-skills install vercel-labs/agent-skills
+
+# Full GitHub URL
+eden-skills install https://github.com/vercel-labs/agent-skills
+
+# Direct path to a specific skill in a repo
+eden-skills install https://github.com/vercel-labs/agent-skills/tree/main/skills/web-design-guidelines
+
+# Local path
+eden-skills install ./my-local-skill
+```
+
+See [CLI Reference](07-cli-reference.md#install) for the full list of install
+options and flags.
+
 Verify:
 
 ```bash
