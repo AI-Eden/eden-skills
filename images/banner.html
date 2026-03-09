@@ -3,512 +3,346 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Eden-Skills Banner</title>
+    <title>Eden-Skills README Banner</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;800;900&display=swap"
       rel="stylesheet"
     />
 
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ["Outfit", "sans-serif"],
+              mono: ["JetBrains Mono", "monospace"],
+            },
+          },
+        },
+      };
+    </script>
+
     <style>
-      *,
-      *::before,
-      *::after {
-        margin: 0;
-        padding: 0;
-        box-sizing: border-box;
-      }
-
-      html,
-      body {
-        width: 100%;
-        height: 100%;
-        background: #06090f;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      /* ─── Banner Canvas ─────────────────────────────── */
-      .banner {
+      /* Hard-coded canvas: 1280 × 640 */
+      .banner-container {
         width: 1280px;
         height: 640px;
-        background: #0b0f19;
-        position: relative;
-        overflow: hidden;
-        display: flex;
-        align-items: stretch;
-        flex-shrink: 0;
-      }
-
-      /* ─── Atmospheric Glow Layers ────────────────────── */
-      .atm-glow-left {
-        position: absolute;
-        top: -220px;
-        left: -180px;
-        width: 780px;
-        height: 780px;
-        background: radial-gradient(
-          circle,
-          rgba(0, 185, 255, 0.16) 0%,
-          rgba(0, 130, 220, 0.09) 38%,
-          transparent 68%
-        );
-        pointer-events: none;
-      }
-
-      .atm-glow-right {
-        position: absolute;
-        bottom: -300px;
-        right: -60px;
-        width: 720px;
-        height: 720px;
-        background: radial-gradient(
-          circle,
-          rgba(0, 255, 160, 0.07) 0%,
-          rgba(0, 210, 120, 0.04) 35%,
-          transparent 65%
-        );
-        pointer-events: none;
-      }
-
-      .atm-glow-center {
-        position: absolute;
-        top: 50%;
-        left: 37%;
-        transform: translate(-50%, -50%);
-        width: 600px;
-        height: 600px;
-        background: radial-gradient(
-          circle,
-          rgba(0, 200, 255, 0.045) 0%,
-          transparent 60%
-        );
-        pointer-events: none;
-      }
-
-      /* ─── Grid Texture ────────────────────────────────── */
-      .grid-tex {
-        position: absolute;
-        inset: 0;
+        background-color: #0b0f19;
         background-image:
-          linear-gradient(rgba(0, 200, 255, 0.028) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(0, 200, 255, 0.028) 1px, transparent 1px);
-        background-size: 52px 52px;
-        pointer-events: none;
+          radial-gradient(
+            circle at 22% 55%,
+            rgba(56, 189, 248, 0.13) 0%,
+            transparent 42%
+          ),
+          radial-gradient(
+            circle at 78% 75%,
+            rgba(16, 185, 129, 0.09) 0%,
+            transparent 42%
+          ),
+          radial-gradient(
+            circle at 52% -10%,
+            rgba(59, 130, 246, 0.1) 0%,
+            transparent 48%
+          );
       }
 
-      /* Subtle scan-line band at the very bottom edge */
-      .scanline-edge {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(
-          90deg,
-          transparent 0%,
-          rgba(0, 210, 255, 0.22) 20%,
-          rgba(0, 210, 255, 0.5) 50%,
-          rgba(0, 210, 255, 0.22) 80%,
-          transparent 100%
+      /* Dot-matrix texture (reference style) */
+      .bg-dots {
+        background-image: radial-gradient(
+          circle,
+          rgba(255, 255, 255, 0.055) 1px,
+          transparent 1px
         );
-        pointer-events: none;
+        background-size: 28px 28px;
       }
 
-      /* ─── Left Panel ─────────────────────────────────── */
-      .left-panel {
-        width: 40%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        z-index: 2;
-        flex-shrink: 0;
-      }
-
-      .logo-wrap {
-        position: relative;
-        width: 340px;
-        height: 340px;
-        mask-image: radial-gradient(
-          circle at center,
-          black 52%,
-          transparent 76%
-        );
-        -webkit-mask-image: radial-gradient(
-          circle at center,
-          black 52%,
-          transparent 76%
-        );
-      }
-
-      .logo-img {
-        width: 340px;
-        height: 340px;
-        object-fit: contain;
-        filter: drop-shadow(0 0 26px rgba(0, 195, 255, 0.75))
-          drop-shadow(0 0 60px rgba(0, 195, 255, 0.32))
-          drop-shadow(0 0 110px rgba(0, 160, 255, 0.15));
-        animation: logoPulse 4.5s ease-in-out infinite;
-      }
-
-      @keyframes logoPulse {
-        0%,
-        100% {
-          filter: drop-shadow(0 0 22px rgba(0, 195, 255, 0.7))
-            drop-shadow(0 0 55px rgba(0, 195, 255, 0.28))
-            drop-shadow(0 0 100px rgba(0, 160, 255, 0.12));
-        }
-        50% {
-          filter: drop-shadow(0 0 28px rgba(0, 220, 255, 0.9))
-            drop-shadow(0 0 70px rgba(0, 220, 255, 0.38))
-            drop-shadow(0 0 120px rgba(0, 200, 255, 0.18));
-        }
-      }
-
-      /* ─── Vertical Separator ─────────────────────────── */
-      .v-sep {
-        width: 1px;
-        align-self: center;
-        height: 380px;
-        flex-shrink: 0;
-        position: relative;
-        z-index: 2;
-        background: linear-gradient(
-          180deg,
-          transparent 0%,
-          rgba(0, 200, 255, 0.12) 12%,
-          rgba(0, 200, 255, 0.4) 38%,
-          rgba(0, 200, 255, 0.55) 50%,
-          rgba(0, 200, 255, 0.4) 62%,
-          rgba(0, 200, 255, 0.12) 88%,
-          transparent 100%
-        );
-      }
-
-      .v-sep::after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: rgba(0, 225, 255, 0.85);
-        box-shadow: 0 0 14px 4px rgba(0, 225, 255, 0.55);
-      }
-
-      /* ─── Right Panel ────────────────────────────────── */
-      .right-panel {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding: 0 58px;
-        position: relative;
-        z-index: 2;
-        gap: 0;
-      }
-
-      /* Eyebrow */
-      .eyebrow {
-        font-family: "JetBrains Mono", monospace;
-        font-size: 10.5px;
-        letter-spacing: 0.36em;
-        color: rgba(0, 200, 255, 0.5);
-        text-transform: uppercase;
-        margin-bottom: 15px;
-      }
-
-      /* H-rule accent */
-      .h-rule {
-        width: 52px;
-        height: 2px;
-        background: linear-gradient(90deg, #00d0ff 0%, transparent 100%);
-        margin-bottom: 18px;
-        border-radius: 1px;
-      }
-
-      /* Main title */
-      .main-title {
-        font-family: "Syne", sans-serif;
-        font-size: 74px;
-        font-weight: 800;
-        color: #ffffff;
-        line-height: 1;
-        letter-spacing: -0.03em;
-        margin-bottom: 18px;
-      }
-
-      .title-accent {
-        background: linear-gradient(135deg, #00cfff 0%, #00ff99 100%);
+      /* Title gradient: white → sky */
+      .title-gradient {
+        background-clip: text;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        background-clip: text;
+        background-image: linear-gradient(135deg, #ffffff 25%, #7dd3fc 100%);
       }
 
-      /* Subtitle */
-      .subtitle {
-        font-family: "JetBrains Mono", monospace;
-        font-size: 14.5px;
-        font-weight: 400;
-        color: rgba(180, 220, 248, 0.7);
-        line-height: 1.58;
-        letter-spacing: 0.005em;
-        margin-bottom: 30px;
-        max-width: 430px;
+      /* Logo breathing glow */
+      @keyframes logoBreath {
+        0%,
+        100% {
+          filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.55))
+            drop-shadow(0 0 48px rgba(56, 189, 248, 0.2))
+            drop-shadow(0 0 90px rgba(16, 185, 129, 0.12));
+        }
+        50% {
+          filter: drop-shadow(0 0 26px rgba(56, 189, 248, 0.8))
+            drop-shadow(0 0 68px rgba(56, 189, 248, 0.3))
+            drop-shadow(0 0 120px rgba(16, 185, 129, 0.18));
+        }
       }
-
-      /* Feature tags row */
-      .tags-row {
-        display: flex;
-        gap: 11px;
-        flex-wrap: wrap;
-        margin-bottom: 34px;
-      }
-
-      .tag {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 6px 16px;
-        border: 1px solid rgba(0, 205, 255, 0.33);
-        border-radius: 4px;
-        background: rgba(0, 205, 255, 0.07);
-        color: #00d4ff;
-        font-family: "JetBrains Mono", monospace;
-        font-size: 12.5px;
-        font-weight: 500;
-        letter-spacing: 0.07em;
-        position: relative;
-      }
-
-      .tag-dot {
-        width: 5px;
-        height: 5px;
-        border-radius: 50%;
-        background: #00d4ff;
-        box-shadow: 0 0 7px 2px rgba(0, 212, 255, 0.7);
-        flex-shrink: 0;
-      }
-
-      /* Bottom divider */
-      .bottom-rule {
-        width: 100%;
-        height: 1px;
-        background: linear-gradient(
-          90deg,
-          rgba(0, 200, 255, 0.18) 0%,
-          rgba(0, 200, 255, 0.06) 60%,
-          transparent 100%
-        );
-        margin-bottom: 18px;
-      }
-
-      /* "Works with" row */
-      .works-row {
-        display: flex;
-        align-items: center;
-        gap: 0;
-        flex-wrap: wrap;
-      }
-
-      .works-label {
-        font-family: "JetBrains Mono", monospace;
-        font-size: 9.5px;
-        color: rgba(110, 145, 175, 0.42);
-        letter-spacing: 0.22em;
-        text-transform: uppercase;
-        margin-right: 14px;
-      }
-
-      .tool-name {
-        font-family: "JetBrains Mono", monospace;
-        font-size: 10.5px;
-        color: rgba(155, 195, 225, 0.52);
-      }
-
-      .tool-sep {
-        display: inline-block;
-        width: 3px;
-        height: 3px;
-        border-radius: 50%;
-        background: rgba(0, 200, 255, 0.22);
-        margin: 0 10px;
-        vertical-align: middle;
-      }
-
-      /* Tool icon wrappers */
-      .tool-icon {
-        width: 14px;
-        height: 14px;
-        opacity: 0.45;
-        vertical-align: middle;
-        margin-right: 4px;
+      .logo-img {
+        animation: logoBreath 4s ease-in-out infinite;
       }
     </style>
   </head>
-  <body>
-    <div class="banner">
-      <!-- Atmosphere -->
-      <div class="atm-glow-left"></div>
-      <div class="atm-glow-right"></div>
-      <div class="atm-glow-center"></div>
-      <div class="grid-tex"></div>
-      <div class="scanline-edge"></div>
 
-      <!-- ── Left: Logo ──────────────────────────────── -->
-      <div class="left-panel">
-        <div class="logo-wrap">
+  <body class="bg-gray-950 flex items-center justify-center min-h-screen">
+    <!-- ═══════════════════ BANNER CANVAS ═══════════════════ -->
+    <div
+      class="banner-container relative flex rounded-2xl border border-white/[0.06] overflow-hidden shadow-[0_24px_80px_-16px_rgba(0,0,0,0.85)]"
+    >
+      <!-- Dot overlay -->
+      <div
+        class="absolute inset-0 bg-dots opacity-75 pointer-events-none"
+      ></div>
+
+      <!-- ──────────── LEFT: Logo (40%) ──────────── -->
+      <!-- Ambient glow lives on the panel itself, NOT under the logo pixels -->
+      <div
+        class="w-[40%] flex items-center justify-center relative z-10 shrink-0"
+      >
+        <!-- Outer halo: diffuse ambient glow behind the logo -->
+        <div
+          class="absolute inset-0 flex items-center justify-center pointer-events-none"
+        >
+          <div
+            style="
+              width: 420px;
+              height: 420px;
+              border-radius: 50%;
+              background: radial-gradient(
+                circle,
+                rgba(56, 189, 248, 0.18) 0%,
+                rgba(16, 185, 129, 0.1) 40%,
+                transparent 70%
+              );
+              filter: blur(24px);
+            "
+          ></div>
+        </div>
+
+        <!-- Logo container: radial mask fades edges smoothly -->
+        <div
+          class="relative w-72 h-72"
+          style="
+            mask-image: radial-gradient(
+              circle at center,
+              black 48%,
+              rgba(0, 0, 0, 0.5) 62%,
+              transparent 78%
+            );
+            -webkit-mask-image: radial-gradient(
+              circle at center,
+              black 48%,
+              rgba(0, 0, 0, 0.5) 62%,
+              transparent 78%
+            );
+          "
+        >
           <img
             src="./eden-skills-logo.png"
             alt="Eden Skills Logo"
-            class="logo-img"
+            class="w-72 h-72 object-contain logo-img"
+            style="
+              mix-blend-mode: lighten;
+              filter: contrast(1.35) brightness(1.05);
+            "
           />
         </div>
       </div>
 
-      <!-- ── Separator ───────────────────────────────── -->
-      <div class="v-sep"></div>
+      <!-- ──────────── RIGHT: Copy (60%) ──────────── -->
+      <div
+        class="w-[60%] flex flex-col pl-4 pr-20 py-14 relative z-10"
+        style="justify-content: space-between"
+      >
+        <!-- Centre block: title + subtitle + tags -->
+        <div class="flex flex-col justify-center flex-1">
+          <!-- Main title — Big Shoulders Display for heavy industrial terminal feel -->
+          <h1
+            class="leading-[0.92] mb-4 title-gradient uppercase"
+            style="
+              font-family: &quot;Big Shoulders Display&quot;, sans-serif;
+              font-size: 5rem;
+              font-weight: 900;
+              letter-spacing: -0.01em;
+            "
+          >
+            Eden-Skills
+          </h1>
 
-      <!-- ── Right: Content ──────────────────────────── -->
-      <div class="right-panel">
-        <!-- Eyebrow label -->
-        <div class="eyebrow">// AI Skills Manager</div>
+          <!-- Subtitle -->
+          <h2
+            class="text-[1.2rem] font-semibold text-cyan-400/90 mb-8 leading-snug font-sans"
+          >
+            Deterministic &amp; Blazing-Fast<br />
+            Skills Manager for AI Agents
+          </h2>
 
-        <!-- Accent rule -->
-        <div class="h-rule"></div>
+          <!-- Feature tags -->
+          <div class="flex flex-wrap gap-3.5 font-mono">
+            <!-- Self-Healing → emerald -->
+            <span
+              class="px-4 py-2 border border-emerald-500/40 bg-emerald-950/45 text-emerald-300 rounded-lg text-[0.85rem] font-semibold tracking-wide backdrop-blur-md shadow-[0_0_16px_rgba(16,185,129,0.18)] flex items-center gap-2.5"
+            >
+              <svg
+                class="w-4 h-4 shrink-0 text-emerald-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
+              </svg>
+              Self-Healing
+            </span>
 
-        <!-- H1 -->
-        <h1 class="main-title">
-          Eden<span class="title-accent">-Skills</span>
-        </h1>
+            <!-- Zero Runtime → cyan -->
+            <span
+              class="px-4 py-2 border border-cyan-500/40 bg-cyan-950/45 text-cyan-300 rounded-lg text-[0.85rem] font-semibold tracking-wide backdrop-blur-md shadow-[0_0_16px_rgba(6,182,212,0.18)] flex items-center gap-2.5"
+            >
+              <svg
+                class="w-4 h-4 shrink-0 text-cyan-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M13 10V3L4 14h7v7l9-11h-7z"
+                />
+              </svg>
+              Zero Runtime
+            </span>
 
-        <!-- H2 Subtitle -->
-        <p class="subtitle">
-          Deterministic &amp; Blazing-Fast<br />
-          Skills Manager for AI Agents
-        </p>
-
-        <!-- Feature Tags -->
-        <div class="tags-row">
-          <span class="tag"><span class="tag-dot"></span>Self-Healing</span>
-          <span class="tag"><span class="tag-dot"></span>Zero Runtime</span>
-          <span class="tag"><span class="tag-dot"></span>Docker-Native</span>
+            <!-- Docker-Native → blue -->
+            <span
+              class="px-4 py-2 border border-blue-500/40 bg-blue-950/45 text-blue-300 rounded-lg text-[0.85rem] font-semibold tracking-wide backdrop-blur-md shadow-[0_0_16px_rgba(59,130,246,0.18)] flex items-center gap-2.5"
+            >
+              <svg
+                class="w-4 h-4 shrink-0 text-blue-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
+                />
+              </svg>
+              Docker-Native
+            </span>
+          </div>
         </div>
+        <!-- /centre block -->
 
-        <!-- Bottom rule -->
-        <div class="bottom-rule"></div>
+        <!-- Works with row — pinned to bottom -->
+        <div
+          class="flex items-center gap-2.5 text-[0.82rem] text-gray-400/75 font-sans"
+        >
+          <span
+            class="text-gray-500 uppercase tracking-widest text-[0.7rem] font-bold mr-2"
+          >
+            Works with:
+          </span>
 
-        <!-- Works with row -->
-        <div class="works-row">
-          <span class="works-label">Works with:</span>
-
-          <!-- Claude Code -->
-          <span class="tool-name">
-            <!-- Anthropic A-mark SVG -->
+          <!-- Claude Code — Anthropic A-mark -->
+          <div class="flex items-center gap-1">
             <svg
-              class="tool-icon"
               viewBox="0 0 24 24"
-              fill="rgba(200,180,120,0.75)"
+              class="w-[15px] h-[15px] fill-gray-400/80"
               xmlns="http://www.w3.org/2000/svg"
-              style="
-                display: inline-block;
-                vertical-align: middle;
-                margin-right: 4px;
-              "
             >
               <path
-                d="M13.827 3.52h3.603L24 20h-3.603l-6.57-16.48zm-3.654 0H6.57L0 20h3.603l1.357-3.415h7.83l-1.356-3.415H6.57l2.57-6.44 1.033 3.415z"
+                d="M17.306 3.406h-3.414l5.356 17.188h3.31zm-6.264 0H7.72l-5.358 17.19h3.218l1.45-4.787h6.883l1.455 4.787h3.353zm-2.028 3.518h.04l2.583 8.528H7.135Z"
               />
             </svg>
             Claude Code
-          </span>
+          </div>
 
-          <span class="tool-sep"></span>
+          <span class="text-gray-700/60 select-none">·</span>
 
-          <!-- Cursor -->
-          <span class="tool-name">
+          <!-- Cursor — hexagon with inner directional indicator
+               upper-left(3,7) → center(12,12) → lower(12,22) → upper-right(21,7)
+          -->
+          <div class="flex items-center gap-1">
             <svg
-              class="tool-icon"
               viewBox="0 0 24 24"
-              fill="rgba(150,200,255,0.75)"
+              fill="none"
+              class="w-[15px] h-[15px]"
               xmlns="http://www.w3.org/2000/svg"
-              style="
-                display: inline-block;
-                vertical-align: middle;
-                margin-right: 4px;
-              "
             >
-              <path d="M11.97 0L23.94 6.93v13.86L11.97 24 0 20.79V6.93z" />
+              <!-- Dark hexagon background -->
+              <path
+                d="M12 2L21 7V17L12 22L3 17V7Z"
+                fill="rgba(18,24,38,0.92)"
+              />
+              <!-- Bright indicator: upper-left → center → lower-vertex → upper-right -->
+              <path d="M3 7L12 12L12 22L21 7Z" fill="rgba(205,215,228,0.90)" />
+              <!-- Hexagon outline -->
+              <path
+                d="M12 2L21 7V17L12 22L3 17V7Z"
+                stroke="rgba(175,190,210,0.55)"
+                stroke-width="0.8"
+                stroke-linejoin="round"
+              />
             </svg>
             Cursor
-          </span>
+          </div>
 
-          <span class="tool-sep"></span>
+          <span class="text-gray-700/60 select-none">·</span>
 
-          <!-- Codex / OpenAI -->
-          <span class="tool-name">
-            <!-- OpenAI logo SVG -->
+          <!-- Codex — OpenAI mark -->
+          <div class="flex items-center gap-1">
             <svg
-              class="tool-icon"
               viewBox="0 0 24 24"
-              fill="rgba(180,220,180,0.75)"
+              class="w-[15px] h-[15px] fill-gray-400/80"
               xmlns="http://www.w3.org/2000/svg"
-              style="
-                display: inline-block;
-                vertical-align: middle;
-                margin-right: 4px;
-              "
             >
               <path
-                d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.896zm16.597 3.855l-5.843-3.367L15.115 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.403-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5Z"
+                d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.073zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.501 2.6067 1.501v3.002l-2.6067 1.501-2.602-1.501z"
               />
             </svg>
             Codex
-          </span>
+          </div>
 
-          <span class="tool-sep"></span>
+          <span class="text-gray-700/60 select-none">·</span>
 
-          <!-- Windsurf -->
-          <span class="tool-name">
-            <!-- Wave/surf SVG icon -->
+          <!-- Windsurf — double wave -->
+          <div class="flex items-center gap-1">
             <svg
-              class="tool-icon"
-              viewBox="0 0 24 24"
+              class="w-[15px] h-[15px]"
               fill="none"
+              stroke="rgba(156,163,175,0.80)"
+              viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
-              style="
-                display: inline-block;
-                vertical-align: middle;
-                margin-right: 4px;
-              "
             >
               <path
-                d="M2 16c2-4 4-6 7-6 3.5 0 5 3 8 3 1.5 0 2.5-.5 3-1"
-                stroke="rgba(160,200,255,0.75)"
-                stroke-width="2"
                 stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 15c2-2 4-3 6-3s4 4 7 4c1.5 0 2.5-.5 3-1"
               />
               <path
-                d="M2 11c2-3 4-4.5 7-4.5 3.5 0 5 2.5 8 2.5 1.5 0 2.5-.4 3-.8"
-                stroke="rgba(100,170,255,0.55)"
-                stroke-width="1.5"
                 stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="1.5"
+                d="M3 9c2-1.5 4-2.5 6-2.5s4 3 7 3c1.5 0 2.5-.4 3-.8"
+                opacity="0.6"
               />
             </svg>
             Windsurf
-          </span>
+          </div>
 
-          <span class="tool-sep"></span>
-
-          <span class="tool-name" style="color: rgba(110, 150, 185, 0.38)"
-            >&amp; More</span
-          >
+          <!-- & More — extra left margin to visually separate -->
+          <span class="text-gray-500/50 ml-3 text-[0.75rem]">&amp; More</span>
         </div>
       </div>
     </div>
