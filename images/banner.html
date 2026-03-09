@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Eden-Skills README Banner</title>
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Iosevka via fontsource CDN (monospace display for title) -->
     <link
-      href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;900&family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;600;800;900&display=swap"
+      href="https://cdn.jsdelivr.net/npm/@fontsource/iosevka@5/700.css"
+      rel="stylesheet"
+    />
+    <!-- JetBrains Mono (description, tags, works-with) -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
 
@@ -15,7 +22,7 @@
         theme: {
           extend: {
             fontFamily: {
-              sans: ["Outfit", "sans-serif"],
+              iosevka: ["Iosevka", "JetBrains Mono", "monospace"],
               mono: ["JetBrains Mono", "monospace"],
             },
           },
@@ -24,30 +31,14 @@
     </script>
 
     <style>
-      /* Hard-coded canvas: 1280 × 640 */
+      /* ── Canvas: 1200 × 400 (3:1 — standard README banner ratio) ── */
       .banner-container {
-        width: 1280px;
-        height: 640px;
+        width: 1200px;
+        height: 400px;
         background-color: #0b0f19;
-        background-image:
-          radial-gradient(
-            circle at 22% 55%,
-            rgba(56, 189, 248, 0.13) 0%,
-            transparent 42%
-          ),
-          radial-gradient(
-            circle at 78% 75%,
-            rgba(16, 185, 129, 0.09) 0%,
-            transparent 42%
-          ),
-          radial-gradient(
-            circle at 52% -10%,
-            rgba(59, 130, 246, 0.1) 0%,
-            transparent 48%
-          );
       }
 
-      /* Dot-matrix texture (reference style) */
+      /* Dot-matrix texture */
       .bg-dots {
         background-image: radial-gradient(
           circle,
@@ -65,28 +56,12 @@
         background-image: linear-gradient(135deg, #ffffff 25%, #7dd3fc 100%);
       }
 
-      /* Logo breathing glow */
-      @keyframes logoBreath {
-        0%,
-        100% {
-          filter: drop-shadow(0 0 18px rgba(56, 189, 248, 0.55))
-            drop-shadow(0 0 48px rgba(56, 189, 248, 0.2))
-            drop-shadow(0 0 90px rgba(16, 185, 129, 0.12));
-        }
-        50% {
-          filter: drop-shadow(0 0 26px rgba(56, 189, 248, 0.8))
-            drop-shadow(0 0 68px rgba(56, 189, 248, 0.3))
-            drop-shadow(0 0 120px rgba(16, 185, 129, 0.18));
-        }
-      }
-      .logo-img {
-        animation: logoBreath 4s ease-in-out infinite;
-      }
+      /* Logo — no filter; transparent PNG placed as-is */
     </style>
   </head>
 
   <body class="bg-gray-950 flex items-center justify-center min-h-screen">
-    <!-- ═══════════════════ BANNER CANVAS ═══════════════════ -->
+    <!-- ═══════════ BANNER CANVAS 1200 × 400 ═══════════ -->
     <div
       class="banner-container relative flex rounded-2xl border border-white/[0.06] overflow-hidden shadow-[0_24px_80px_-16px_rgba(0,0,0,0.85)]"
     >
@@ -95,97 +70,61 @@
         class="absolute inset-0 bg-dots opacity-75 pointer-events-none"
       ></div>
 
-      <!-- ──────────── LEFT: Logo (40%) ──────────── -->
-      <!-- Ambient glow lives on the panel itself, NOT under the logo pixels -->
+      <!-- ─── LEFT: Logo (38%) ─── -->
       <div
-        class="w-[40%] flex items-center justify-center relative z-10 shrink-0"
+        class="w-[38%] flex items-center justify-center relative z-10 shrink-0"
       >
-        <!-- Outer halo: diffuse ambient glow behind the logo -->
-        <div
-          class="absolute inset-0 flex items-center justify-center pointer-events-none"
-        >
-          <div
-            style="
-              width: 420px;
-              height: 420px;
-              border-radius: 50%;
-              background: radial-gradient(
-                circle,
-                rgba(56, 189, 248, 0.18) 0%,
-                rgba(16, 185, 129, 0.1) 40%,
-                transparent 70%
-              );
-              filter: blur(24px);
-            "
-          ></div>
-        </div>
-
-        <!-- Logo container: radial mask fades edges smoothly -->
-        <div
-          class="relative w-72 h-72"
-          style="
-            mask-image: radial-gradient(
-              circle at center,
-              black 48%,
-              rgba(0, 0, 0, 0.5) 62%,
-              transparent 78%
-            );
-            -webkit-mask-image: radial-gradient(
-              circle at center,
-              black 48%,
-              rgba(0, 0, 0, 0.5) 62%,
-              transparent 78%
-            );
-          "
-        >
-          <img
-            src="./eden-skills-logo.png"
-            alt="Eden Skills Logo"
-            class="w-72 h-72 object-contain logo-img"
-            style="
-              mix-blend-mode: lighten;
-              filter: contrast(1.35) brightness(1.05);
-            "
-          />
-        </div>
+        <!-- Transparent PNG — static, clean -->
+        <img
+          src="./eden-skills-logo-transparent.png"
+          alt="Eden Skills Logo"
+          class="relative w-56 h-56 object-contain logo-img"
+        />
       </div>
 
-      <!-- ──────────── RIGHT: Copy (60%) ──────────── -->
+      <!-- ─── RIGHT: Copy (62%) ─── -->
       <div
-        class="w-[60%] flex flex-col pl-4 pr-20 py-14 relative z-10"
+        class="w-[62%] flex flex-col pl-2 pr-14 py-9 relative z-10"
         style="justify-content: space-between"
       >
         <!-- Centre block: title + subtitle + tags -->
         <div class="flex flex-col justify-center flex-1">
-          <!-- Main title — Big Shoulders Display for heavy industrial terminal feel -->
+          <!-- H1 — Iosevka, ultra-bold, gradient -->
           <h1
-            class="leading-[0.92] mb-4 title-gradient uppercase"
+            class="leading-[0.90] mb-3 title-gradient uppercase tracking-tight"
             style="
-              font-family: &quot;Big Shoulders Display&quot;, sans-serif;
-              font-size: 5rem;
-              font-weight: 900;
-              letter-spacing: -0.01em;
+              font-family:
+                &quot;Iosevka&quot;, &quot;JetBrains Mono&quot;, monospace;
+              font-size: 3.8rem;
+              font-weight: 700;
             "
           >
             Eden-Skills
           </h1>
 
-          <!-- Subtitle -->
+          <!-- Subtitle — JetBrains Mono -->
           <h2
-            class="text-[1.2rem] font-semibold text-cyan-400/90 mb-8 leading-snug font-sans"
+            class="mb-6 leading-snug"
+            style="
+              font-family: &quot;JetBrains Mono&quot;, monospace;
+              font-size: 1.05rem;
+              font-weight: 400;
+              color: rgba(56, 189, 248, 0.88);
+            "
           >
             Deterministic &amp; Blazing-Fast<br />
             Skills Manager for AI Agents
           </h2>
 
-          <!-- Feature tags -->
-          <div class="flex flex-wrap gap-3.5 font-mono">
+          <!-- Feature tags — JetBrains Mono -->
+          <div class="flex flex-wrap gap-3 font-mono">
             <!-- Self-Healing → emerald -->
             <span
-              class="px-4 py-2 border border-emerald-500/40 bg-emerald-950/45 text-emerald-300 rounded-lg text-[0.85rem] font-semibold tracking-wide backdrop-blur-md shadow-[0_0_16px_rgba(16,185,129,0.18)] flex items-center gap-2.5"
+              class="px-3.5 py-1.5 border border-emerald-500/40 bg-emerald-950/45 text-emerald-300 rounded-lg text-[0.8rem] font-semibold tracking-wide backdrop-blur-md shadow-[0_0_14px_rgba(16,185,129,0.18)] flex items-center gap-2"
+              style="font-family: &quot;JetBrains Mono&quot;, monospace"
             >
               <svg
-                class="w-4 h-4 shrink-0 text-emerald-400"
+                class="w-3.5 h-3.5 shrink-0 text-emerald-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -202,10 +141,11 @@
 
             <!-- Zero Runtime → cyan -->
             <span
-              class="px-4 py-2 border border-cyan-500/40 bg-cyan-950/45 text-cyan-300 rounded-lg text-[0.85rem] font-semibold tracking-wide backdrop-blur-md shadow-[0_0_16px_rgba(6,182,212,0.18)] flex items-center gap-2.5"
+              class="px-3.5 py-1.5 border border-cyan-500/40 bg-cyan-950/45 text-cyan-300 rounded-lg text-[0.8rem] font-semibold tracking-wide backdrop-blur-md shadow-[0_0_14px_rgba(6,182,212,0.18)] flex items-center gap-2"
+              style="font-family: &quot;JetBrains Mono&quot;, monospace"
             >
               <svg
-                class="w-4 h-4 shrink-0 text-cyan-400"
+                class="w-3.5 h-3.5 shrink-0 text-cyan-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -222,10 +162,11 @@
 
             <!-- Docker-Native → blue -->
             <span
-              class="px-4 py-2 border border-blue-500/40 bg-blue-950/45 text-blue-300 rounded-lg text-[0.85rem] font-semibold tracking-wide backdrop-blur-md shadow-[0_0_16px_rgba(59,130,246,0.18)] flex items-center gap-2.5"
+              class="px-3.5 py-1.5 border border-blue-500/40 bg-blue-950/45 text-blue-300 rounded-lg text-[0.8rem] font-semibold tracking-wide backdrop-blur-md shadow-[0_0_14px_rgba(59,130,246,0.18)] flex items-center gap-2"
+              style="font-family: &quot;JetBrains Mono&quot;, monospace"
             >
               <svg
-                class="w-4 h-4 shrink-0 text-blue-400"
+                class="w-3.5 h-3.5 shrink-0 text-blue-400"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -243,23 +184,19 @@
         </div>
         <!-- /centre block -->
 
-        <!-- Works with row — pinned to bottom -->
+        <!-- Works with — pinned to bottom -->
         <div
-          class="flex items-center gap-2.5 text-[0.82rem] text-gray-400/75 font-sans"
+          class="flex items-center gap-2 text-[0.75rem] text-gray-400/75 font-mono"
         >
           <span
-            class="text-gray-500 uppercase tracking-widest text-[0.7rem] font-bold mr-2"
+            class="text-gray-500 uppercase tracking-widest text-[0.65rem] font-bold mr-2"
           >
             Works with:
           </span>
 
-          <!-- Claude Code — Anthropic A-mark -->
+          <!-- Claude Code -->
           <div class="flex items-center gap-1">
-            <svg
-              viewBox="0 0 24 24"
-              class="w-[15px] h-[15px] fill-gray-400/80"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg viewBox="0 0 24 24" class="w-[13px] h-[13px] fill-gray-400/80">
               <path
                 d="M17.306 3.406h-3.414l5.356 17.188h3.31zm-6.264 0H7.72l-5.358 17.19h3.218l1.45-4.787h6.883l1.455 4.787h3.353zm-2.028 3.518h.04l2.583 8.528H7.135Z"
               />
@@ -267,26 +204,16 @@
             Claude Code
           </div>
 
-          <span class="text-gray-700/60 select-none">·</span>
+          <span class="text-gray-700/60">·</span>
 
-          <!-- Cursor — hexagon with inner directional indicator
-               upper-left(3,7) → center(12,12) → lower(12,22) → upper-right(21,7)
-          -->
+          <!-- Cursor — hexagon + inner indicator: upper-left → center → lower → upper-right -->
           <div class="flex items-center gap-1">
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              class="w-[15px] h-[15px]"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <!-- Dark hexagon background -->
+            <svg viewBox="0 0 24 24" fill="none" class="w-[13px] h-[13px]">
               <path
                 d="M12 2L21 7V17L12 22L3 17V7Z"
                 fill="rgba(18,24,38,0.92)"
               />
-              <!-- Bright indicator: upper-left → center → lower-vertex → upper-right -->
               <path d="M3 7L12 12L12 22L21 7Z" fill="rgba(205,215,228,0.90)" />
-              <!-- Hexagon outline -->
               <path
                 d="M12 2L21 7V17L12 22L3 17V7Z"
                 stroke="rgba(175,190,210,0.55)"
@@ -297,15 +224,11 @@
             Cursor
           </div>
 
-          <span class="text-gray-700/60 select-none">·</span>
+          <span class="text-gray-700/60">·</span>
 
-          <!-- Codex — OpenAI mark -->
+          <!-- Codex / OpenAI -->
           <div class="flex items-center gap-1">
-            <svg
-              viewBox="0 0 24 24"
-              class="w-[15px] h-[15px] fill-gray-400/80"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg viewBox="0 0 24 24" class="w-[13px] h-[13px] fill-gray-400/80">
               <path
                 d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.073zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.501 2.6067 1.501v3.002l-2.6067 1.501-2.602-1.501z"
               />
@@ -313,36 +236,30 @@
             Codex
           </div>
 
-          <span class="text-gray-700/60 select-none">·</span>
+          <span class="text-gray-700/60">·</span>
 
-          <!-- Windsurf — double wave -->
+          <!-- OpenCode — inline from opencode-logo-dark.svg (for dark backgrounds)
+               Outer frame (#F1ECEC → tinted gray) / inner content area (#4B4646 → banner-dark) -->
           <div class="flex items-center gap-1">
             <svg
-              class="w-[15px] h-[15px]"
+              viewBox="0 0 240 300"
               fill="none"
-              stroke="rgba(156,163,175,0.80)"
-              viewBox="0 0 24 24"
+              class="shrink-0"
+              style="width: 10px; height: 13px"
               xmlns="http://www.w3.org/2000/svg"
             >
+              <!-- inner content area: match banner background so it reads as "window" -->
+              <path d="M180 240H60V120H180V240Z" fill="rgba(18,26,44,0.95)" />
+              <!-- outer document frame: visible against dark bg -->
               <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M3 15c2-2 4-3 6-3s4 4 7 4c1.5 0 2.5-.5 3-1"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M3 9c2-1.5 4-2.5 6-2.5s4 3 7 3c1.5 0 2.5-.4 3-.8"
-                opacity="0.6"
+                d="M180 60H60V240H180V60ZM240 300H0V0H240V300Z"
+                fill="rgba(156,163,175,0.82)"
               />
             </svg>
-            Windsurf
+            OpenCode
           </div>
 
-          <!-- & More — extra left margin to visually separate -->
-          <span class="text-gray-500/50 ml-3 text-[0.75rem]">&amp; More</span>
+          <span class="text-gray-400/75 ml-3 text-[0.75rem]">&amp; More</span>
         </div>
       </div>
     </div>
