@@ -32,8 +32,8 @@ When files disagree, follow:
 
 ## 3. Role Boundaries
 
-- `Builder (Codex)` owns implementation, tests, refactors, and non-strategic doc sync.
-- `Architect (Claude)` owns taxonomy/rubric/crawler strategy decisions.
+- `Builder (GPT 5.3 Codex / GPT 5.4)` owns implementation, tests, refactors, and non-strategic doc sync.
+- `Architect (Claude Opus 4.6 / Claude Sonnet 4.6)` owns taxonomy/rubric/crawler strategy decisions.
 - Builder must not finalize Architect-owned strategy outputs without explicit user instruction.
 
 ## 4. Change Protocol
