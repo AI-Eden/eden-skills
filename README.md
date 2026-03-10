@@ -1,3 +1,7 @@
+<div align="center"> <!-- markdownlint-disable-line -->
+  <img src="images/banner-export.png" alt="Eden-Skills — Deterministic & Blazing-Fast Skills Manager for AI Agents" width="100%" /> <!-- markdownlint-disable-line -->
+</div>
+
 # eden-skills
 
 [![CI](https://github.com/AI-Eden/eden-skills/actions/workflows/ci.yml/badge.svg)](https://github.com/AI-Eden/eden-skills/actions/workflows/ci.yml)
