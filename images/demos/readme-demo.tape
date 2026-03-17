@@ -1,7 +1,7 @@
 # @title: eden-skills README demo
 # @description: Install skills, break one link, diagnose, repair, and verify.
 # Assumes an Ubuntu recording environment with Claude Code installed and
-# ~/.claude/skills/react-best-practices present after the install step.
+# ~/.claude/skills/vercel-react-best-practices present after the install step.
 
 Output readme-demo.gif
 
@@ -37,7 +37,7 @@ Sleep 300ms
 Enter
 Sleep 700ms
 
-Type "eden-skills doctor"
+Type "eden-skills doctor --no-warning"
 Enter
 Sleep 2600ms
 
@@ -48,6 +48,10 @@ Sleep 2600ms
 Ctrl+L
 Sleep 400ms
 
-Type "eden-skills doctor"
+Type "eden-skills doctor --no-warning"
 Enter
 Sleep 2400ms
+
+Type "eden-skills list"
+Enter
+Sleep 2600ms
