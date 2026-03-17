@@ -3,7 +3,7 @@ updated_at: "2026-03-17"
 project:
   name: eden-skills
   phase: phase298_list_source_doctor_ux_verify_dedup
-  status: in_progress
+  status: completed
 
 authority_order:
   - spec
@@ -63,11 +63,9 @@ phases:
     completed_at: "2026-03-08"
     archive: trace/phase2.97/
   phase298:
-    status: in_progress
+    status: frozen
     started_at: "2026-03-17"
-    completed_at: null
+    completed_at: "2026-03-17"
     archive: trace/phase2.98/
 
-next_execution_targets:
-  - phase298_batch1_builder
-  - phase298_batch2_builder
+next_execution_targets: []

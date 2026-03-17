@@ -10,13 +10,13 @@
 
 Deterministic, self-healing skill manager for AI agent environments. Single binary. Zero runtime dependencies.
 
-*Built by a [three-model AI engineering team](#built-with-agentic-engineering) — 38K lines of Rust, 456 tests, 62 behavior specs.*
+*Built by a [three-model AI engineering team](#built-with-agentic-engineering) — 38K lines of Rust, 476 tests, 57 behavior specs.*
 
 ## Why eden-skills
 
 - **Installs are deterministic:** `skills.lock` pins every installed skill by commit SHA and target path. Run `apply` on any machine and get exactly the same state — like Terraform for agent skills.
 
-- **Broken installs self-heal:** `doctor` detects broken symlinks, missing sources, and drift. `repair` fixes them automatically. No competitor offers this.
+- **Broken installs self-heal:** `doctor` detects broken symlinks, missing sources, drift, and risk findings. Use `doctor --no-warning` when you want an error-focused view. `repair` fixes recoverable drift automatically. No competitor offers this.
 
 - **Config is code:** `skills.toml` is your single source of truth. Version it, share it with your team, and `apply` it anywhere.
 
@@ -83,10 +83,10 @@ eden-skills repair
 | --- | --- |
 | `install <source>` | Install skills from GitHub, URL, or local path |
 | `remove [skills...]` | Remove skills (batch or interactive) |
-| `list` | List installed skills |
+| `list` | List installed skills and their source origins |
 | `apply` | Reconcile all skills to the desired config state |
 | `plan` | Preview planned changes (read-only) |
-| `doctor` | Detect broken links, drift, and risk findings |
+| `doctor` | Detect broken links, drift, and risk findings (`--no-warning` hides warnings) |
 | `repair` | Self-heal broken symlinks and drifted state |
 | `update` | Sync registry indexes to latest |
 | `clean` | Remove orphaned repo-cache entries and stale temp directories |
@@ -119,7 +119,7 @@ See [full agent list](docs/07-cli-reference.md#supported-agents).
 - Phase 1 (CLI foundation): complete
 - Phase 2 (async reactor, Docker adapter, registry): complete
 - Phase 2.5 (URL install, agent auto-detection, binary distribution): complete
-- Phase 2.7 – 2.97 (lock file, TUI, output polish, interactive UX, cache clean): complete
+- Phase 2.7 – 2.98 (lock file, TUI, output polish, interactive UX, cache clean, doctor/list polish): complete
 - Phase 3 (crawler / taxonomy / curation): planned
 
 `eden-skills` is under active development. Avoid production use where breaking changes are not tolerable.

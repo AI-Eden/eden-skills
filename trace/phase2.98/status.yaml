@@ -1,7 +1,7 @@
 phase: phase298_list_source_doctor_ux_verify_dedup
-status: in_progress
+status: closeout_completed
 started_at: "2026-03-17"
-completed_at: null
+completed_at: "2026-03-17"
 
 spec_files:
   - spec/phase2.98/README.md
@@ -29,7 +29,7 @@ batches:
     name: "Documentation + Regression + Closeout"
     work_packages: [WP-4]
     requirements: [DOC-001]
-    status: pending
+    status: completed
 
 builder_progress:
   batch_1_all_implementation_list_source_doctor_ux_verify_dedup:
@@ -48,4 +48,23 @@ builder_progress:
       fmt_check: passed
       clippy_workspace_deny_warnings: passed
       test_workspace: passed
+      current_test_inventory: 476
+  batch_2_documentation_regression_closeout:
+    status: completed
+    started_at: "2026-03-17"
+    completed_at: "2026-03-17"
+    requirements: DOC-001
+    scenarios: TM-P298-001 ~ TM-P298-020 (regression revalidated)
+    notes:
+      - updated `README.md` to document `doctor --no-warning`, refresh the `list` command wording around source origins, update the Phase 2 status line through 2.98, and sync the headline test/spec counts
+      - updated `docs/07-cli-reference.md` to document the `list` `Source` column semantics and the new `doctor --no-warning` option while explicitly noting that the doctor JSON schema remains unchanged
+      - updated `docs/06-troubleshooting.md` with `doctor --no-warning` usage, a `Level`-column example, and an error-focused JSON example for automation
+      - completed Phase 2.98 closeout by filling the documentation row in `spec/phase2.98/SPEC_TRACEABILITY.md`, updating `trace/phase2.98/status.yaml` and `trace/phase2.98/tracker.md`, and synchronizing root `STATUS.yaml` and `EXECUTION_TRACKER.md`
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace_all_targets: passed
+      windows_target_check: passed
+      json_output_contracts: passed
+      exit_code_semantics: passed
       current_test_inventory: 476

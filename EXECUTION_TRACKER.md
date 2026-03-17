@@ -7,7 +7,7 @@ This file quantifies implementation progress and enforces model responsibility b
 
 - Date: 2026-03-17
 - Workspace: `eden-skills`
-- Active Phase: **Phase 2.98 (in progress)** (List Source Display, Doctor UX & Verify Dedup)
+- Most Recent Phase: **Phase 2.98 (completed)** (List Source Display, Doctor UX & Verify Dedup)
 
 ## 2. Responsibility Boundaries
 
@@ -40,8 +40,9 @@ Progress score (roadmap action items, Builder scope): `10 / 10 = 100%`
 - [x] CI gate setup for Linux + macOS + Windows (`.github/workflows/ci.yml`)
 - [x] Phase 2.95 closeout matrix re-verified (`fmt`, `clippy`, `test --all-targets`, Windows target check, ANSI scan); post-closeout `install.sh` PATH auto-rc follow-up revalidated on the full suite
 - [x] Phase 2.97 closeout matrix verified (`fmt`, `clippy`, `test --all-targets`, Windows target check, ANSI scan) after documentation and tracker sync
+- [x] Phase 2.98 closeout matrix verified (`fmt`, `clippy`, `test --all-targets`, Windows target check) after README/docs and tracker sync
 
-Current automated tests: `451` (workspace unit/integration-style tests).
+Current automated tests: `476` (workspace unit/integration-style tests).
 
 ### 3.3 Phase 2.97 Work Packages
 
@@ -55,10 +56,10 @@ Current automated tests: `451` (workspace unit/integration-style tests).
 
 ### 3.4 Phase 2.98 Work Packages
 
-- [ ] WP-1: List source column — replace `Path` with `Source` in `list` table (LSR-001~003)
-- [ ] WP-2: Doctor UX — `--no-warning` flag, `Level` column rename, severity coloring (DUX-001~006)
-- [ ] WP-3: Verify dedup — short-circuit dependent checks when target missing (VDD-001~003)
-- [ ] WP-4: Documentation — README.md + docs/ update (DOC-001)
+- [x] WP-1: List source column — replace `Path` with `Source` in `list` table (LSR-001~003)
+- [x] WP-2: Doctor UX — `--no-warning` flag, `Level` column rename, severity coloring (DUX-001~006)
+- [x] WP-3: Verify dedup — short-circuit dependent checks when target missing (VDD-001~003)
+- [x] WP-4: Documentation — README.md + docs/ update (DOC-001)
 
 ## 4. Pending Tasks with Planned LLM Ownership
 
@@ -89,4 +90,4 @@ Each directory contains `status.yaml` (machine-readable) and `tracker.md`
 | Phase 2.9 | Frozen | 2026-03-05 | 2026-03-06 | [trace/phase2.9/](trace/phase2.9/) |
 | Phase 2.95 | Frozen | 2026-03-06 | 2026-03-07 | [trace/phase2.95/](trace/phase2.95/) |
 | Phase 2.97 | Frozen | 2026-03-07 | 2026-03-08 | [trace/phase2.97/](trace/phase2.97/) |
-| **Phase 2.98** | **In Progress** | 2026-03-17 | — | [trace/phase2.98/](trace/phase2.98/) |
+| **Phase 2.98** | **Frozen** | 2026-03-17 | 2026-03-17 | [trace/phase2.98/](trace/phase2.98/) |

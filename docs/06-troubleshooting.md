@@ -11,6 +11,13 @@ CONFIG="${HOME}/.eden-skills/skills.toml"
 eden-skills doctor --config "$CONFIG"
 ```
 
+If you want to focus on errors first and temporarily hide warning-level
+findings:
+
+```bash
+eden-skills doctor --config "$CONFIG" --no-warning
+```
+
 1. If drift exists, try:
 
 ```bash
@@ -18,6 +25,29 @@ eden-skills repair --config "$CONFIG"
 ```
 
 1. If source sync failed, inspect the `source sync failed ...` error line and the `~>` hint for guidance.
+
+## Reading `doctor` Output
+
+When more than 3 findings remain, `doctor` prints a summary table before the
+detail cards:
+
+```text
+  Doctor  4 issues detected
+
+ ┌─────────┬─────────────────────┬────────────┐
+ │ Level   ┆ Code                ┆ Skill      │
+ ╞═════════╪═════════════════════╪════════════╡
+ │ error   ┆ TARGET_PATH_MISSING ┆ demo-skill │
+ │ warning ┆ LICENSE_UNKNOWN     ┆ demo-skill │
+ │ info    ┆ ORPHAN_CACHE_ENTRY  ┆            │
+ └─────────┴─────────────────────┴────────────┘
+```
+
+Notes:
+
+- `Level` now uses the full labels `error`, `warning`, and `info`
+- `eden-skills doctor --no-warning` hides warning-level rows from both text and JSON output
+- `eden-skills doctor --strict --no-warning` only fails if post-filter findings still remain
 
 ## Common Cases
 
@@ -240,6 +270,12 @@ Use JSON output in automation:
 
 ```bash
 eden-skills doctor --config "$CONFIG" --json > doctor.json
+```
+
+For an error-focused machine-readable payload:
+
+```bash
+eden-skills doctor --config "$CONFIG" --json --no-warning > doctor.json
 ```
 
 `doctor.json` includes stable keys:

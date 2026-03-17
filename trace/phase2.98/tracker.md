@@ -1,16 +1,16 @@
 # Phase 2.98 Execution Tracker
 
 Phase: List Source Display, Doctor UX & Verify Dedup
-Status: In Progress
+Status: Closeout Completed
 Started: 2026-03-17
-Completed: —
+Completed: 2026-03-17
 
 ## Batch Plan
 
 | Batch | Name | WP | Requirements | Status |
 | --- | --- | --- | --- | --- |
 | 1 | All Implementation (List Source + Doctor UX + Verify Dedup) | WP-1 + WP-2 + WP-3 | LSR-001~003, DUX-001~006, VDD-001~003 | completed |
-| 2 | Documentation + Regression + Closeout | WP-4 | DOC-001 | pending |
+| 2 | Documentation + Regression + Closeout | WP-4 | DOC-001 | completed |
 
 ## Dependency Constraints
 
@@ -36,3 +36,22 @@ Completed: —
 - Notes:
   - `doctor --no-warning` intentionally remains behavior-neutral for exit codes and JSON schema beyond filtering warning findings out of the existing payload.
   - The Batch 1 regression pass stayed within Phase 2.98 scope only; root `STATUS.yaml`, root `EXECUTION_TRACKER.md`, and end-user docs remain untouched until Batch 2 closeout.
+
+### Batch 2 — Documentation + Regression + Closeout (Completed 2026-03-17)
+
+- Requirements: `DOC-001`
+- Completed in this pass:
+  - Updated `README.md` to mention `doctor --no-warning`, clarify that `list` shows source origins, refresh the Phase status line through 2.98, and sync the headline test/spec counts.
+  - Updated `docs/07-cli-reference.md` to document the human `list` `Source` column semantics plus the new `doctor --no-warning` option, while explicitly noting that doctor JSON output keeps the existing schema.
+  - Updated `docs/06-troubleshooting.md` with `doctor --no-warning` usage, a `Level`-column example, and an error-focused JSON command example for automation.
+  - Completed Phase 2.98 closeout by marking `DOC-001` complete in `spec/phase2.98/SPEC_TRACEABILITY.md`, updating `trace/phase2.98/status.yaml` and `trace/phase2.98/tracker.md`, and synchronizing root `STATUS.yaml` and `EXECUTION_TRACKER.md`.
+- Validation:
+  - `cargo fmt --all -- --check` ✅
+  - `cargo clippy --workspace -- -D warnings` ✅
+  - `cargo test --workspace --all-targets` ✅
+  - `cargo check --workspace --all-targets --target x86_64-pc-windows-msvc` ✅
+  - JSON output contracts unchanged ✅
+  - Exit code semantics unchanged ✅
+  - Test inventory: `476`
+- Notes:
+  - Phase 2.98 now closes with both batches complete; no additional implementation or documentation work remains in this phase.

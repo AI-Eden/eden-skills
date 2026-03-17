@@ -3,7 +3,7 @@
 Requirement-to-implementation mapping for Phase 2.98.
 Use this file to recover accurate context after compression.
 
-**Status:** IN PROGRESS — Batch 1 implementation mapped; documentation row pending.
+**Status:** COMPLETED — all Phase 2.98 requirements mapped.
 
 ## 1. List Source Requirements
 
@@ -36,4 +36,4 @@ Use this file to recover accurate context after compression.
 
 | REQ_ID | Source | Requirement | Implementation | Tests | Status |
 | --- | --- | --- | --- | --- | --- |
-| DOC-001 | `README.md`, `docs/` | Docs updated with new flag and column change | `README.md`, `docs/07-cli-reference.md` | — | pending |
+| DOC-001 | `README.md`, `docs/` | Docs updated with new flag and column change | `README.md`, `docs/07-cli-reference.md`, `docs/06-troubleshooting.md` | — | completed |

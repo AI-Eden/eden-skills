@@ -115,6 +115,20 @@ eden-skills list [options]
 
 Add `--json` for machine-readable output.
 
+Human output renders a four-column table:
+
+```text
+Skill | Mode | Source | Agents
+```
+
+The `Source` column uses the same display format as `install --dry-run`:
+
+- GitHub sources: `owner/repo (subpath)`
+- Local sources: `~/local-path (subpath)`
+
+`list --json` keeps the existing `source.repo`, `source.ref`, and
+`source.subpath` object unchanged for automation.
+
 ---
 
 ## apply
@@ -146,6 +160,27 @@ Detect broken symlinks, missing sources, drift, and risk findings.
 ```bash
 eden-skills doctor [options]
 ```
+
+### Doctor Options
+
+| Option | Description |
+| --- | --- |
+| `--no-warning` | Hide warning-level findings from both text and JSON output |
+| `--strict` | Exit with code `3` when any post-filter findings remain |
+| `--json` | Emit machine-readable findings and summary |
+
+When more than 3 findings remain, human output includes a summary table whose
+severity column is named `Level` and uses the full labels `error`, `warning`,
+and `info`.
+
+Use `--no-warning` when you want to focus on actionable errors first:
+
+```bash
+eden-skills doctor --no-warning
+```
+
+In JSON mode, the schema is unchanged. The filter only removes warning entries
+from `findings` and updates the existing `summary` counts accordingly.
 
 ---
 
