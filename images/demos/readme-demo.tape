@@ -8,7 +8,7 @@ Output readme-demo.gif
 Require eden-skills
 Require unlink
 
-Set FontFamily "'IosevkaTerm Nerd Font Mono', 'Ubuntu Mono', 'monospace'"
+Set FontFamily "IosevkaTerm Nerd Font Mono"
 Set FontSize 36
 Set Width 2000
 Set Height 1240
