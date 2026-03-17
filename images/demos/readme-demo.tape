@@ -25,7 +25,7 @@ Env PS1 "$ "
 
 Sleep 600ms
 
-Type "eden-skills install vercel-labs/agent-skills --all"
+Type "eden-skills install vercel-labs/agent-skills --skill vercel-react-best-practices"
 Enter
 Sleep 2800ms
 
