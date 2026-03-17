@@ -75,7 +75,13 @@ If anything is broken:
 eden-skills repair
 ```
 
-<!-- TODO: asciinema / GIF demo embed -->
+## See It In Action
+
+Interactive install, simulated damage, and self-healing recovery:
+
+<div align="center"> <!-- markdownlint-disable-line -->
+  <img src="images/demos/readme-demo.gif" alt="eden-skills terminal demo: interactively install a skill, simulate install damage, diagnose it with doctor, repair it, and verify the final healthy state" width="95%" /> <!-- markdownlint-disable-line -->
+</div>
 
 ## Commands
 
