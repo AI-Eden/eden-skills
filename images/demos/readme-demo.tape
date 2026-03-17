@@ -1,14 +1,14 @@
 # @title: eden-skills README demo
 # @description: Install skills, break one link, diagnose, repair, and verify.
-# Assumes Claude Code is installed in the recording environment and
-# ~/.claude/skills/react-best-practices exists after the install step.
+# Assumes an Ubuntu recording environment with Claude Code installed and
+# ~/.claude/skills/react-best-practices present after the install step.
 
 Output readme-demo.gif
 
 Require eden-skills
 Require unlink
 
-Set FontFamily "JetBrains Mono"
+Set FontFamily "Ubuntu Mono"
 Set FontSize 18
 Set Width 1000
 Set Height 620
@@ -20,8 +20,8 @@ Set Framerate 24
 Set Shell "bash"
 Set WindowBar Colorful
 Set WindowBarSize 36
-Set Env "TERM" "xterm-256color"
-Set Env "PS1" "$ "
+Env TERM "xterm-256color"
+Env PS1 "$ "
 
 Sleep 600ms
 
