@@ -41,10 +41,15 @@ Sleep 3200ms
 
 # break the symlink deliberately
 
-Type "unlink ~/.claude/skills/vercel-react-best-practices"
-Sleep 300ms
+Type "# Next, BREAK the symlink deliberately."
+Sleep 500ms
 Enter
-Sleep 700ms
+Sleep 500ms
+
+Type "unlink ~/.claude/skills/vercel-react-best-practices"
+Sleep 500ms
+Enter
+Sleep 1500ms
 
 Ctrl+L
 Sleep 400ms
