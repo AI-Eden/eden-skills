@@ -25,17 +25,29 @@ Env PS1 "$ "
 
 Sleep 600ms
 
-Type "eden-skills install vercel-labs/agent-skills --skill vercel-react-best-practices"
-Enter
-Sleep 2800ms
+# install
 
-Ctrl+L
-Sleep 400ms
+Type "eden-skills install vercel-labs/agent-skills"
+Enter
+Sleep 3200ms
+Down
+Sleep 350ms
+Down
+Sleep 350ms
+Space
+Sleep 700ms
+Enter
+Sleep 3200ms
+
+# break the symlink deliberately
 
 Type "unlink ~/.claude/skills/vercel-react-best-practices"
 Sleep 300ms
 Enter
 Sleep 700ms
+
+Ctrl+L
+Sleep 400ms
 
 Type "eden-skills doctor --no-warning"
 Enter
@@ -44,9 +56,6 @@ Sleep 2600ms
 Type "eden-skills repair"
 Enter
 Sleep 2600ms
-
-Ctrl+L
-Sleep 400ms
 
 Type "eden-skills doctor --no-warning"
 Enter
