@@ -1,0 +1,34 @@
+phase: phase298_list_source_doctor_ux_verify_dedup
+status: in_progress
+started_at: "2026-03-17"
+completed_at: null
+
+spec_files:
+  - spec/phase2.98/README.md
+  - spec/phase2.98/SPEC_LIST_SOURCE.md
+  - spec/phase2.98/SPEC_DOCTOR_UX.md
+  - spec/phase2.98/SPEC_VERIFY_DEDUP.md
+  - spec/phase2.98/SPEC_TEST_MATRIX.md
+  - spec/phase2.98/SPEC_TRACEABILITY.md
+
+requirement_ids:
+  list_source: LSR-001 ~ LSR-003
+  doctor_ux: DUX-001 ~ DUX-006
+  verify_dedup: VDD-001 ~ VDD-003
+  documentation: DOC-001
+
+test_scenarios: TM-P298-001 ~ TM-P298-020
+
+batches:
+  batch1:
+    name: "All Implementation (List Source + Doctor UX + Verify Dedup)"
+    work_packages: [WP-1, WP-2, WP-3]
+    requirements: [LSR-001, LSR-002, LSR-003, DUX-001, DUX-002, DUX-003, DUX-004, DUX-005, DUX-006, VDD-001, VDD-002, VDD-003]
+    status: pending
+  batch2:
+    name: "Documentation + Regression + Closeout"
+    work_packages: [WP-4]
+    requirements: [DOC-001]
+    status: pending
+
+builder_progress: []

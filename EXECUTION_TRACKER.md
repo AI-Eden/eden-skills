@@ -5,9 +5,9 @@ This file quantifies implementation progress and enforces model responsibility b
 
 ## 1. Snapshot
 
-- Date: 2026-03-08
+- Date: 2026-03-17
 - Workspace: `eden-skills`
-- Active Phase: **Phase 2.97 (completed)** (Reliability, Interactive UX & Docker Safety)
+- Active Phase: **Phase 2.98 (in progress)** (List Source Display, Doctor UX & Verify Dedup)
 
 ## 2. Responsibility Boundaries
 
@@ -53,6 +53,13 @@ Current automated tests: `451` (workspace unit/integration-style tests).
 - [x] WP-6: Hint sync — `→` → `~>` spec amendment (HSY-001~002)
 - [x] WP-7: Documentation — README.md + docs/ update (DOC-001~002)
 
+### 3.4 Phase 2.98 Work Packages
+
+- [ ] WP-1: List source column — replace `Path` with `Source` in `list` table (LSR-001~003)
+- [ ] WP-2: Doctor UX — `--no-warning` flag, `Level` column rename, severity coloring (DUX-001~006)
+- [ ] WP-3: Verify dedup — short-circuit dependent checks when target missing (VDD-001~003)
+- [ ] WP-4: Documentation — README.md + docs/ update (DOC-001)
+
 ## 4. Pending Tasks with Planned LLM Ownership
 
 ### 4.1 Architect-Owned (Claude Opus)
@@ -81,4 +88,5 @@ Each directory contains `status.yaml` (machine-readable) and `tracker.md`
 | Phase 2.8 | Frozen | 2026-03-04 | 2026-03-05 | [trace/phase2.8/](trace/phase2.8/) |
 | Phase 2.9 | Frozen | 2026-03-05 | 2026-03-06 | [trace/phase2.9/](trace/phase2.9/) |
 | Phase 2.95 | Frozen | 2026-03-06 | 2026-03-07 | [trace/phase2.95/](trace/phase2.95/) |
-| **Phase 2.97** | **Closeout Completed** | 2026-03-07 | 2026-03-08 | [trace/phase2.97/](trace/phase2.97/) |
+| Phase 2.97 | Frozen | 2026-03-07 | 2026-03-08 | [trace/phase2.97/](trace/phase2.97/) |
+| **Phase 2.98** | **In Progress** | 2026-03-17 | — | [trace/phase2.98/](trace/phase2.98/) |
