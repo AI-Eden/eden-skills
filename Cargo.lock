@@ -274,7 +274,7 @@ dependencies = [
 
 [[package]]
 name = "eden-skills"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "clap",
  "comfy-table",
@@ -296,7 +296,7 @@ dependencies = [
 
 [[package]]
 name = "eden-skills-core"
-version = "0.2.2"
+version = "0.2.3"
 dependencies = [
  "async-trait",
  "junction",
@@ -312,7 +312,7 @@ dependencies = [
 
 [[package]]
 name = "eden-skills-indexer"
-version = "0.2.2"
+version = "0.2.3"
 
 [[package]]
 name = "enable-ansi-support"
