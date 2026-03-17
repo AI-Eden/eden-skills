@@ -8,13 +8,13 @@ Output readme-demo.gif
 Require eden-skills
 Require unlink
 
-Set FontFamily "Ubuntu Mono"
+Set FontFamily "'IosevkaTerm Nerd Font Mono', 'Ubuntu Mono', 'monospace'"
 Set FontSize 36
 Set Width 2000
 Set Height 1240
 Set Theme "Catppuccin Mocha"
-Set Padding 40
-Set BorderRadius 24
+Set Padding 0
+Set BorderRadius 0
 Set TypingSpeed 35ms
 Set Framerate 24
 Set Shell "bash"
