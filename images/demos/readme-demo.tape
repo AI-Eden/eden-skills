@@ -32,7 +32,7 @@ Sleep 2800ms
 Ctrl+L
 Sleep 400ms
 
-Type "unlink ~/.claude/skills/react-best-practices"
+Type "unlink ~/.claude/skills/vercel-react-best-practices"
 Sleep 300ms
 Enter
 Sleep 700ms
