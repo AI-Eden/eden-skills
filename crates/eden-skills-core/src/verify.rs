@@ -40,8 +40,12 @@ pub fn verify_config_state(
         for target in &skill.targets {
             let target_root = resolve_target_path(target, config_dir)?;
             let target_path = normalize_lexical(&target_root.join(&skill.id));
+            let target_exists = fs::symlink_metadata(&target_path).is_ok();
 
             for check in &skill.verify.checks {
+                if !target_exists && check != "path-exists" {
+                    continue;
+                }
                 run_check(
                     check,
                     skill.id.as_str(),

@@ -120,7 +120,7 @@ fn tm_p28_020_doctor_summary_table_conditional() {
     assert_success(&high_output);
     let high_stdout = String::from_utf8_lossy(&high_output.stdout);
     assert!(
-        high_stdout.contains("Sev")
+        high_stdout.contains("Level")
             && high_stdout.contains("Code")
             && high_stdout.contains("Skill"),
         "doctor with >3 findings should include summary table header, stdout={high_stdout}"
@@ -154,7 +154,7 @@ fn tm_p28_020_doctor_summary_table_conditional() {
     assert_success(&low_output);
     let low_stdout = String::from_utf8_lossy(&low_output.stdout);
     assert!(
-        !(low_stdout.contains("Sev")
+        !(low_stdout.contains("Level")
             && low_stdout.contains("Code")
             && low_stdout.contains("Skill")),
         "doctor with <=3 findings should not include summary table, stdout={low_stdout}"

@@ -24,11 +24,28 @@ batches:
     name: "All Implementation (List Source + Doctor UX + Verify Dedup)"
     work_packages: [WP-1, WP-2, WP-3]
     requirements: [LSR-001, LSR-002, LSR-003, DUX-001, DUX-002, DUX-003, DUX-004, DUX-005, DUX-006, VDD-001, VDD-002, VDD-003]
-    status: pending
+    status: completed
   batch2:
     name: "Documentation + Regression + Closeout"
     work_packages: [WP-4]
     requirements: [DOC-001]
     status: pending
 
-builder_progress: []
+builder_progress:
+  batch_1_all_implementation_list_source_doctor_ux_verify_dedup:
+    status: completed
+    started_at: "2026-03-17"
+    completed_at: "2026-03-17"
+    requirements: LSR-001, LSR-002, LSR-003, DUX-001, DUX-002, DUX-003, DUX-004, DUX-005, DUX-006, VDD-001, VDD-002, VDD-003
+    scenarios: TM-P298-001, TM-P298-002, TM-P298-003, TM-P298-004, TM-P298-005, TM-P298-006, TM-P298-007, TM-P298-008, TM-P298-009, TM-P298-010, TM-P298-011, TM-P298-012, TM-P298-013, TM-P298-014, TM-P298-015, TM-P298-016, TM-P298-017, TM-P298-018, TM-P298-019, TM-P298-020
+    notes:
+      - updated `crates/eden-skills-core/src/verify.rs` to short-circuit non-`path-exists` checks when a target path is missing, removing redundant `BROKEN_SYMLINK` findings while preserving existing behavior for present targets
+      - updated `crates/eden-skills-cli/src/commands/config_ops.rs` to replace the human `list` table `Path` column with a cyan `Source` column using `abbreviate_repo_url` plus `abbreviate_home_path`, without changing `list --json`
+      - introduced `DoctorArgs` in `crates/eden-skills-cli/src/lib.rs`, wired `doctor --no-warning` through command dispatch, and updated `crates/eden-skills-cli/src/commands/diagnose.rs` to filter warning findings before text/JSON rendering and strict exit evaluation
+      - renamed the doctor summary column from `Sev` to `Level`, expanded the label width for `warning`, and colorized summary-table severities with red/yellow/dim styling to match the per-card severity semantics
+      - added `crates/eden-skills-cli/tests/list_source_tests.rs`, `crates/eden-skills-cli/tests/doctor_ux_tests.rs`, `crates/eden-skills-cli/tests/verify_dedup_tests.rs`, and `crates/eden-skills-core/tests/verify_dedup_tests.rs`, and refreshed affected legacy CLI tests for the superseded `Path` / `Sev` expectations
+    quality_gate:
+      fmt_check: passed
+      clippy_workspace_deny_warnings: passed
+      test_workspace: passed
+      current_test_inventory: 476

@@ -18,6 +18,7 @@ use eden_skills_core::plan::{build_plan, Action, PlanItem};
 use eden_skills_core::registry::{parse_registry_specs_from_toml, sort_registry_specs_by_priority};
 use eden_skills_core::safety::{analyze_skills, LicenseStatus, SkillSafetyReport};
 use eden_skills_core::verify::{verify_config_state, VerifyIssue};
+use owo_colors::OwoColorize;
 use serde::Deserialize;
 
 use super::clean::{collect_orphan_repo_cache_entries, orphan_cache_target_path};
@@ -60,7 +61,11 @@ pub(crate) struct DoctorFinding {
 /// # Errors
 ///
 /// Returns [`EdenError`] on config load failure or plan build errors.
-pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenError> {
+pub fn doctor(
+    config_path: &str,
+    options: CommandOptions,
+    no_warning: bool,
+) -> Result<(), EdenError> {
     let config_path_buf = resolve_config_path(config_path)?;
     let config_path = config_path_buf.as_path();
     let loaded = load_config_with_context(config_path, options.strict)?;
@@ -75,6 +80,9 @@ pub fn doctor(config_path: &str, options: CommandOptions) -> Result<(), EdenErro
         &loaded.config,
         &config_dir,
     )?);
+    if no_warning {
+        findings.retain(|finding| finding.severity != "warning");
+    }
 
     if options.json {
         print_doctor_json(&findings)?;
@@ -792,13 +800,13 @@ fn print_doctor_text(ui: &UiContext, findings: &[DoctorFinding]) {
     println!();
 
     if findings.len() > 3 {
-        let mut table = ui.table(&["Sev", "Code", "Skill"]);
+        let mut table = ui.table(&["Level", "Code", "Skill"]);
         if let Some(column) = table.column_mut(0) {
-            column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(5)));
+            column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(7)));
         }
         for finding in findings {
             table.add_row(vec![
-                doctor_severity_cell(&finding.severity),
+                doctor_severity_cell(ui, &finding.severity),
                 finding.code.clone(),
                 ui.styled_skill_id(&finding.skill_id),
             ]);
@@ -842,11 +850,19 @@ fn doctor_severity_symbol(ui: &UiContext, severity: &str) -> String {
     }
 }
 
-fn doctor_severity_cell(severity: &str) -> String {
+fn doctor_severity_cell(ui: &UiContext, severity: &str) -> String {
+    let label = match severity {
+        "info" => "info",
+        "warning" => "warning",
+        _ => "error",
+    };
+    if !ui.colors_enabled() {
+        return label.to_string();
+    }
     match severity {
-        "info" => "info".to_string(),
-        "warning" => "warn".to_string(),
-        _ => "error".to_string(),
+        "info" => label.dimmed().to_string(),
+        "warning" => label.yellow().to_string(),
+        _ => label.red().to_string(),
     }
 }
 

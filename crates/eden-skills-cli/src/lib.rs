@@ -157,6 +157,7 @@ pub async fn run_with_args(args: Vec<String>) -> Result<(), CliError> {
                 strict: args.strict,
                 json: args.json,
             },
+            args.no_warning,
         ),
         Commands::Docker(args) => match args.command {
             DockerSubcommand::MountHint(cmd) => {
@@ -500,7 +501,7 @@ enum Commands {
         about = "Diagnose configuration and installation health",
         next_help_heading = "State Reconciliation"
     )]
-    Doctor(CommonArgs),
+    Doctor(DoctorArgs),
     #[command(
         about = "Docker-specific utilities",
         next_help_heading = "Container Utilities"
@@ -614,6 +615,23 @@ struct CommonArgs {
     strict: bool,
     #[arg(long, help = "Output machine-readable JSON")]
     json: bool,
+}
+
+#[derive(Debug, Clone, Args)]
+struct DoctorArgs {
+    #[arg(
+        long,
+        default_value = DEFAULT_CONFIG_PATH,
+        hide_default_value = true,
+        help = "Path to skills.toml config file [default: ~/.eden-skills/skills.toml]"
+    )]
+    config: String,
+    #[arg(long, help = "Exit with error on drift or warnings")]
+    strict: bool,
+    #[arg(long, help = "Output machine-readable JSON")]
+    json: bool,
+    #[arg(long, help = "Hide warning-level findings from output")]
+    no_warning: bool,
 }
 
 #[derive(Debug, Clone, Args)]

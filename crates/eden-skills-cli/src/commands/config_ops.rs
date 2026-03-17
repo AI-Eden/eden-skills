@@ -15,7 +15,6 @@ use eden_skills_core::config::{
 use eden_skills_core::error::EdenError;
 use eden_skills_core::lock::{lock_path_for_config, write_lock_file, LockFile};
 use eden_skills_core::paths::{resolve_path_string, resolve_target_path};
-use eden_skills_core::source::resolve_skill_source_path;
 use owo_colors::OwoColorize;
 
 use super::common::{
@@ -23,7 +22,7 @@ use super::common::{
     print_warning, read_existing_registries, resolve_config_path, write_normalized_config,
 };
 use super::{AddRequest, CommandOptions, SetRequest};
-use crate::ui::{abbreviate_home_path, StatusSymbol, UiContext};
+use crate::ui::{abbreviate_home_path, abbreviate_repo_url, StatusSymbol, UiContext};
 
 /// Create a new `skills.toml` and companion lock file.
 ///
@@ -92,7 +91,7 @@ pub(crate) fn default_config_template() -> String {
 
 /// List all configured skills and their targets.
 ///
-/// Renders a table (`Skill | Mode | Path | Agents`) in human mode
+/// Renders a table (`Skill | Mode | Source | Agents`) in human mode
 /// or a JSON object with a `count` and `skills` array.
 ///
 /// # Errors
@@ -108,7 +107,6 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     }
 
     let config_dir = config_dir_from_path(config_path);
-    let storage_root = resolve_path_string(&loaded.config.storage_root, &config_dir)?;
     let skills = &loaded.config.skills;
 
     if options.json {
@@ -161,16 +159,17 @@ pub fn list(config_path: &str, options: CommandOptions) -> Result<(), EdenError>
     }
     println!();
 
-    let mut table = ui.table(&["Skill", "Mode", "Path", "Agents"]);
+    let mut table = ui.table(&["Skill", "Mode", "Source", "Agents"]);
     if let Some(column) = table.column_mut(1) {
         column.set_constraint(ColumnConstraint::LowerBoundary(Width::Fixed(8)));
     }
     for skill in skills {
-        let source_path = resolve_skill_source_path(&storage_root, skill);
+        let repo_display = abbreviate_home_path(&abbreviate_repo_url(&skill.source.repo));
+        let source = format!("{repo_display} ({})", skill.source.subpath);
         table.add_row(vec![
             ui.styled_skill_id(&skill.id),
             ui.styled_secondary(skill.install.mode.as_str()),
-            ui.styled_path(&source_path.display().to_string()),
+            ui.styled_cyan(&source),
             render_skill_agents(&ui, skill, &config_dir),
         ]);
     }

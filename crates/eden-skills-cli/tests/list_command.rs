@@ -55,7 +55,7 @@ path = "./targets"
     assert!(
         stdout.contains("Skill")
             && stdout.contains("Mode")
-            && stdout.contains("Path")
+            && stdout.contains("Source")
             && stdout.contains("Agents"),
         "stdout={stdout}"
     );

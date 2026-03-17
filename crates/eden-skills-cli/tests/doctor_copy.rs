@@ -42,6 +42,7 @@ fn doctor_strict_detects_missing_source() {
             strict: true,
             json: false,
         },
+        false,
     )
     .expect_err("doctor strict should fail");
 
@@ -131,6 +132,7 @@ fn tm_p295_036_doctor_resolves_remote_sources_from_repo_cache() {
             strict: true,
             json: false,
         },
+        false,
     )
     .expect("doctor should accept repo-cache-backed source paths");
 }

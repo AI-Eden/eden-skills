@@ -170,12 +170,12 @@ fn tm_p297_058_list_uses_path_column_with_repo_cache_paths() {
 
     let stdout = String::from_utf8_lossy(&output.stdout);
     assert!(
-        stdout.contains("Path") && !stdout.contains("Source"),
-        "list table should expose Path column instead of Source, stdout={stdout}"
+        stdout.contains("Source") && !stdout.contains("Path"),
+        "list table should expose Source column instead of Path, stdout={stdout}"
     );
     assert!(
-        stdout.contains("~/.eden-skills/skills/.repos/") && stdout.contains("skills/alpha-skill"),
-        "list path column should show abbreviated repo-cache source paths, stdout={stdout}"
+        stdout.contains("vercel-labs/agent-skills (skills/alpha-skill)"),
+        "list source column should show owner/repo (subpath), stdout={stdout}"
     );
 }
 

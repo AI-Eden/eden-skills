@@ -56,7 +56,7 @@ fn tm_p29_003_fixed_columns_apply_upper_boundary_constraints_at_call_sites() {
     assert_contains_all(
         &config_ops,
         &[
-            "ui.table(&[\"Skill\", \"Mode\", \"Path\", \"Agents\"])",
+            "ui.table(&[\"Skill\", \"Mode\", \"Source\", \"Agents\"])",
             "column_mut(1)",
             "Width::Fixed(8)",
         ],
@@ -67,9 +67,9 @@ fn tm_p29_003_fixed_columns_apply_upper_boundary_constraints_at_call_sites() {
     assert_contains_all(
         &diagnose,
         &[
-            "ui.table(&[\"Sev\", \"Code\", \"Skill\"])",
+            "ui.table(&[\"Level\", \"Code\", \"Skill\"])",
             "column_mut(0)",
-            "Width::Fixed(5)",
+            "Width::Fixed(7)",
         ],
         "doctor summary table constraints",
     );
@@ -146,7 +146,7 @@ fn tm_p29_004_table_cells_use_styled_renderers() {
     assert_contains_all(
         &diagnose,
         &[
-            "doctor_severity_cell(&finding.severity)",
+            "doctor_severity_cell(ui, &finding.severity)",
             "ui.styled_skill_id(&finding.skill_id)",
         ],
         "doctor table cell styling",
