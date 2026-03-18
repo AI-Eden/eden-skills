@@ -1,7 +1,10 @@
 /target
 /.vscode
 /.VSCodeCounter
+
 /publicity
 /eden-skills-publicity
+
+/.cursor
 
 .DS_Store
