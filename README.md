@@ -8,7 +8,7 @@
 [![crates.io](https://img.shields.io/crates/v/eden-skills)](https://crates.io/crates/eden-skills)
 [![downloads](https://img.shields.io/crates/d/eden-skills)](https://crates.io/crates/eden-skills)
 
-Deterministic, self-healing skill manager for AI agent environments. Single binary. Zero runtime dependencies.
+Deterministic, self-healing skills manager for AI agents. Single binary. Zero runtime dependencies.
 
 *Built by a [three-model AI engineering team](#built-with-agentic-engineering) — 38K lines of Rust, 476 tests, 57 behavior specs.*
 
