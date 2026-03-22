@@ -112,3 +112,36 @@ When files disagree, follow:
 - Phase 2.95 extends Phase 2 adapter/reactor, Phase 2.5 install flow, Phase 2.7 remove interactive mode, and Phase 2.9 update semantics.
 - Phase 2.97 fixes Phase 2.95 update concurrency, replaces Phase 2.95 remove `*` wildcard with MultiSelect, extends Phase 2.8 table styling, adds cache cleanup, and introduces Docker management domain tracking.
 - Completed phase execution records are archived in `trace/<phase>/`. Root `STATUS.yaml` and `EXECUTION_TRACKER.md` only contain the current execution state (the active phase, or the most recently closed phase before the next phase starts).
+
+## Cursor Cloud specific instructions
+
+### Project overview
+
+`eden-skills` is a pure Rust CLI tool (no web server, no database, no external services). The workspace contains three crates: `eden-skills-cli` (binary), `eden-skills-core` (library), and `eden-skills-indexer` (Phase 3 stub). The only runtime dependency beyond the Rust toolchain is `git` on `PATH`.
+
+### Build, lint, and test
+
+Standard commands from CI (see `.github/workflows/ci.yml`):
+
+```
+cargo build --workspace
+cargo fmt --all -- --check
+cargo clippy --workspace -- -D warnings
+cargo test --workspace
+```
+
+The full test suite (~476 tests) takes ~4 minutes due to several integration tests with 30-second timeouts (these exercise async reactor timeout behavior and are expected). All tests are deterministic and require no external services.
+
+### Running the CLI in dev mode
+
+```
+cargo run --bin eden-skills -- <subcommand>
+```
+
+The binary is `eden-skills`. Use `--help` for the full command list. A typical dev-loop hello-world: `init` → `add --id ... --repo ... --target ...` → `list` → `apply` → `doctor`.
+
+### Non-obvious caveats
+
+- **Docker tests**: Some tests stub `docker` commands via shell scripts rather than requiring a real Docker daemon. The test suite passes without Docker installed.
+- **`rust-toolchain.toml`** pins the `stable` channel with `rustfmt` + `clippy` components. Rustup auto-installs the correct toolchain on first `cargo` invocation.
+- **No hot-reload**: This is a compiled CLI, not a long-running server. After code changes, rebuild with `cargo build --workspace` or use `cargo run` which rebuilds automatically.
