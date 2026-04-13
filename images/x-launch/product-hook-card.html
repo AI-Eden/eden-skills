@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>eden-skills X Product Hook Card</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/@fontsource/iosevka@5/700.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./shared.css" />
+  </head>
+  <body>
+    <main class="card">
+      <div class="top-rail"></div>
+      <div class="corner-label">Launch Sequence / Line 1</div>
+      <div class="layout product-layout">
+        <section class="panel content-panel">
+          <div class="eyebrow">eden-skills</div>
+          <h1 class="headline">
+            A Rust CLI for managing <span>AI agent skills</span>
+          </h1>
+          <p class="subhead">
+            Deterministic installs, doctor/repair when things drift, and Docker
+            targets without pulling in a runtime stack.
+          </p>
+          <div class="chip-row">
+            <div class="chip">Deterministic installs</div>
+            <div class="chip green">doctor/repair</div>
+            <div class="chip blue">Docker targets</div>
+          </div>
+          <div class="demo-path">
+            <small>core demo path</small>
+            install -> break -> doctor -> repair
+          </div>
+        </section>
+        <aside class="panel orb-panel">
+          <div class="orb-wrap">
+            <img
+              src="../eden-skills-logo-transparent.png"
+              alt="eden-skills glowing orb logo"
+              width="480"
+              height="480"
+            />
+          </div>
+          <div class="orb-caption">
+            <small>why this exists</small>
+            <strong>The annoying part starts after install.</strong>
+            <p>
+              Broken links, moved repos, path drift, and mismatched setups are
+              where `eden-skills` is meant to earn its keep.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </body>
+</html>
