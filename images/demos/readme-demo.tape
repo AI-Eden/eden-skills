@@ -5,8 +5,8 @@
 
 Output readme-demo.gif
 
-Require eden-skills
-Require unlink
+Require 'eden-skills'
+Require 'unlink'
 
 Set FontFamily "Iosevka Nerd Font Mono"
 Set FontSize 36

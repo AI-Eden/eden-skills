@@ -3,8 +3,8 @@
 
 Output product-demo.mp4
 
-Require eden-skills
-Require unlink
+Require 'eden-skills'
+Require 'unlink'
 
 Set FontFamily "Iosevka Nerd Font Mono"
 Set FontSize 32
